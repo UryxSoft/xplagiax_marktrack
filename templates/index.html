@@ -1,0 +1,245 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Texto Inteligente</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- CKEditor 5 -->
+    <script src="https://cdn.ckeditor.com/ckeditor5/36.0.0/classic/ckeditor.js"></script>
+    
+    <!-- Estilos personalizados -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-pen-fancy me-2"></i>
+                Editor Inteligente
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" id="newDocBtn">
+                            <i class="fas fa-file me-1"></i> Nuevo
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="openDocBtn">
+                            <i class="fas fa-folder-open me-1"></i> Abrir
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="saveDocBtn">
+                            <i class="fas fa-save me-1"></i> Guardar
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="analysisDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-brain me-1"></i> Análisis
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" id="toggleSpelling">
+                                <i class="fas fa-check me-2"></i> Ortografía
+                                <i class="fas fa-toggle-on text-primary float-end"></i>
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" id="toggleGrammar">
+                                <i class="fas fa-language me-2"></i> Gramática
+                                <i class="fas fa-toggle-on text-primary float-end"></i>
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" id="toggleStyle">
+                                <i class="fas fa-feather-alt me-2"></i> Estilo
+                                <i class="fas fa-toggle-on text-primary float-end"></i>
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" id="toggleCoherence">
+                                <i class="fas fa-link me-2"></i> Coherencia
+                                <i class="fas fa-toggle-on text-primary float-end"></i>
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" id="togglePlagiarism">
+                                <i class="fas fa-copy me-2"></i> Plagio
+                                <i class="fas fa-toggle-on text-primary float-end"></i>
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" id="analyzeAll">
+                                <i class="fas fa-magic me-2"></i> Analizar Todo
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+                <div class="ms-auto d-flex align-items-center">
+                    <div class="form-check form-switch me-3">
+                        <input class="form-check-input" type="checkbox" id="realtimeSwitch" checked>
+                        <label class="form-check-label text-white" for="realtimeSwitch">Análisis en tiempo real</label>
+                    </div>
+                    <div class="text-white me-3" id="statusIndicator">
+                        <i class="fas fa-circle text-success me-1"></i> Listo
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-3">
+        <div class="row">
+            <div class="col-md-9">
+                <!-- Editor principal -->
+                <div class="card">
+                    <div class="card-header d-flex align-items-center">
+                        <h5 class="mb-0" id="docTitle">Documento sin título</h5>
+                        <span class="badge bg-secondary ms-2" id="docType">DOCX</span>
+                        <div class="ms-auto">
+                            <span class="text-muted small" id="wordCount">0 palabras</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="editor">
+                            <!-- Contenido del editor -->
+                            <p>Comienza a escribir aquí o abre un documento...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <!-- Panel de sugerencias -->
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-lightbulb me-2"></i> Sugerencias
+                            <span class="badge bg-light text-dark float-end" id="suggestionCount">0</span>
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush" id="suggestionsList">
+                            <!-- Las sugerencias se cargarán dinámicamente aquí -->
+                            <div class="list-group-item text-center text-muted">
+                                <p class="mb-0">No hay sugerencias disponibles</p>
+                                <small>Comienza a escribir para recibir análisis</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Estadísticas del documento -->
+                <div class="card mt-3">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-bar me-2"></i> Estadísticas
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6 border-end">
+                                <div class="text-center">
+                                    <h6>Palabras</h6>
+                                    <h3 id="statWords">0</h3>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <h6>Caracteres</h6>
+                                    <h3 id="statChars">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-6 border-end">
+                                <div class="text-center">
+                                    <h6>Párrafos</h6>
+                                    <h3 id="statParagraphs">0</h3>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <h6>Tiempo de lectura</h6>
+                                    <h3 id="statReadTime">0 min</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="progress mt-2">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 100%" id="originalityBar">
+                                100% Original
+                            </div>
+                        </div>
+                        <small class="text-muted d-block text-center mt-1">Índice de originalidad</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para abrir archivo -->
+    <div class="modal fade" id="openFileModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Abrir documento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="uploadForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="fileInput" class="form-label">Selecciona un archivo DOCX o DOC</label>
+                            <input class="form-control" type="file" id="fileInput" accept=".docx,.doc">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="uploadBtn">Abrir</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para sugerencia detallada -->
+    <div class="modal fade" id="suggestionDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="suggestionTitle">Detalle de sugerencia</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="suggestionDetail">
+                    <!-- Contenido detallado de la sugerencia -->
+                    <div class="suggestion-original mb-3">
+                        <h6>Texto original:</h6>
+                        <p id="originalText" class="p-2 border rounded bg-light"></p>
+                    </div>
+                    
+                    <div class="suggestion-recommendation mb-3">
+                        <h6>Sugerencia:</h6>
+                        <p id="suggestionText" class="p-2 border rounded bg-info bg-opacity-10"></p>
+                    </div>
+                    
+                    <div class="suggestion-explanation">
+                        <h6>Explicación:</h6>
+                        <p id="explanationText"></p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Ignorar</button>
+                    <button type="button" class="btn btn-primary" id="applySuggestion">Aplicar sugerencia</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript necesarios -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+</body>
+</html>

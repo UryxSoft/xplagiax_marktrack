@@ -1,0 +1,27 @@
+# Dev environment
+pip
+autopep8
+
+# App
+flask
+
+Flask==2.3.3
+Flask-SocketIO==5.3.6
+Werkzeug==2.3.7
+
+# Procesamiento de documentos
+python-docx==1.0.1
+docx2python==3.5.0
+mammoth==1.6.0
+beautifulsoup4==4.12.2  # Para procesar HTML de Quill.js
+
+# IA y Procesamiento de Lenguaje Natural
+transformers==4.34.0
+nltk==3.8.1
+blingfire==0.1.8
+accelerate==0.23.0    # Para optimización de modelos
+bitsandbytes==0.41.1  # Para cuantización de 4-bit
+
+# Utilidades
+python-socketio==5.9.0
+eventlet==0.33.3      # Para WebSockets

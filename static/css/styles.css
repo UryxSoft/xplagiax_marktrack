@@ -1,0 +1,255 @@
+/**
+ * styles.css - Estilos para el Editor de Texto Inteligente
+ */
+
+/* Estilos generales */
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Editor principal */
+.ck-editor__editable {
+    min-height: 400px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Barra de navegación */
+.navbar-brand {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+/* Panel de sugerencias */
+.suggestion-item {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.suggestion-item:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+/* Colores de severidad */
+.border-severity-high {
+    border-left: 3px solid #dc3545;
+}
+
+.border-severity-medium {
+    border-left: 3px solid #ffc107;
+}
+
+.border-severity-low {
+    border-left: 3px solid #17a2b8;
+}
+
+/* Indicadores de estado */
+#statusIndicator {
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+}
+
+#statusIndicator i.fa-pulse {
+    animation: pulse 1.5s infinite;
+}
+
+/* Estadísticas */
+.stat-card {
+    text-align: center;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background-color: white;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 500;
+    color: #343a40;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+/* Animaciones */
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Marcas de sugerencia en el texto */
+.spelling-error {
+    text-decoration: wavy underline #dc3545;
+}
+
+.grammar-error {
+    text-decoration: wavy underline #ffc107;
+}
+
+.style-suggestion {
+    text-decoration: wavy underline #17a2b8;
+}
+
+.coherence-issue {
+    background-color: rgba(23, 162, 184, 0.1);
+}
+
+.plagiarism-alert {
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+/* Modal de sugerencias */
+.suggestion-original, .suggestion-recommendation {
+    position: relative;
+}
+
+.suggestion-original::before, .suggestion-recommendation::before {
+    position: absolute;
+    top: 0;
+    left: -30px;
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+}
+
+.suggestion-original::before {
+    content: "\f071";
+    color: #dc3545;
+}
+
+.suggestion-recommendation::before {
+    content: "\f0eb";
+    color: #28a745;
+}
+
+/* Personalización del scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #adb5bd;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #6c757d;
+}
+
+::-webkit-scrollbar-track {
+    background-color: #f8f9fa;
+}
+
+/* Ajustes responsivos */
+@media (max-width: 768px) {
+    .ck-editor__editable {
+        min-height: 300px;
+    }
+    
+    #suggestionsList {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+}
+
+/* Tooltips para marcas de sugerencia */
+[data-suggestion-tooltip] {
+    position: relative;
+}
+
+[data-suggestion-tooltip]:hover::before {
+    content: attr(data-suggestion-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.5rem;
+    background-color: #343a40;
+    color: white;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+/* Estilos para las notificaciones */
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #dc3545;
+    color: white;
+    font-size: 0.75rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Animación de guardado */
+@keyframes saved-animation {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.saved-indicator {
+    animation: saved-animation 0.5s ease-in-out;
+}
+
+/* Barra de filtros de sugerencias */
+.suggestion-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.suggestion-filter {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    background-color: #e9ecef;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.suggestion-filter:hover {
+    background-color: #dee2e6;
+}
+
+.suggestion-filter.active {
+    background-color: #007bff;
+    color: white;
+}
+
+/* Indicador de progreso de análisis */
+.analysis-progress {
+    height: 4px;
+    margin-top: -4px;
+    background-color: #007bff;
+    width: 0%;
+    transition: width 0.5s ease-in-out;
+    position: relative;
+    z-index: 1000;
+}
