@@ -16,14 +16,15 @@ from docx import Document as DocxDocument
 from docx.shared import Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from weasyprint import HTML, CSS
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag, NavigableString
 from PIL import Image
+from models.models import DocumentVersion
 
 # Flask y extensiones
 from flask import current_app, request
 from flask_mail import Message
 
-from extensions import minio_client, redis_client, mail, logger
+from .extensions import minio_client, redis_client, mail, logger,db
 
 def allowed_file(filename, allowed_extensions=None):
     """Verificar si el archivo tiene una extensión permitida"""
@@ -109,7 +110,7 @@ def extract_and_upload_images(delta):
                         )
                         
                         # Reemplazar en delta con URL
-                        op['insert']['image'] = f"/api/image/{filename}"
+                        op['insert']['image'] = f"/document_bp/api/image/{filename}"
                         
                         logger.info(f"Imagen subida: {filename}")
                         
@@ -192,131 +193,134 @@ def load_from_minio_compressed(filename):
         return None, None
 
 def process_docx_upload(file_path):
-    """Procesar archivo DOCX subido y convertir a formato Quill"""
+    """Procesar archivo DOCX subido y convertir a formato Quill, incluyendo imágenes"""
     try:
-        # Leer el archivo DOCX
         with open(file_path, 'rb') as docx_file:
-            result = mammoth.convert_to_html(docx_file)
+            result = mammoth.convert_to_html(
+                docx_file,
+                convert_image=mammoth.images.inline(convert_image_to_base64)
+            )
+
             html_content = result.value
-            
-            # Procesar warnings si los hay
+
+            # Warnings de Mammoth
             if result.messages:
                 for message in result.messages:
                     logger.warning(f"Mammoth warning: {message}")
-        
-        # Convertir HTML a formato que Quill pueda entender
+
         processed_html = process_html_for_quill(html_content)
-        
-        # Generar un delta básico desde HTML
         delta = html_to_basic_delta(processed_html)
-        
+
         return delta, processed_html, None
-    
+
     except Exception as e:
         logger.error(f"Error procesando DOCX: {e}")
         return None, None, str(e)
+
+def convert_image_to_base64(image):
+    """
+    Convertir imágenes DOCX a base64 para incrustar en HTML.
+    Mammoth pasa un objeto Image con método open() y content_type.
+    """
+    with image.open() as image_bytes:
+        import base64
+        encoded = base64.b64encode(image_bytes.read()).decode('utf-8')
+        return {"src": f"data:{image.content_type};base64,{encoded}"}
 
 def process_html_for_quill(html_content):
     """Procesar HTML para que sea compatible con Quill"""
     if not html_content:
         return ""
-    
+
     soup = BeautifulSoup(html_content, 'html.parser')
-    
-    # Convertir estilos específicos de Word a clases de Quill
+
     for element in soup.find_all(True):
-        # Centrado
-        if element.get('style') and 'text-align: center' in element.get('style', ''):
+        style = element.get('style', '')
+        if 'text-align: center' in style:
             element['class'] = element.get('class', []) + ['ql-align-center']
-        
-        # Alineación derecha
-        if element.get('style') and 'text-align: right' in element.get('style', ''):
+        elif 'text-align: right' in style:
             element['class'] = element.get('class', []) + ['ql-align-right']
-        
-        # Justificado
-        if element.get('style') and 'text-align: justify' in element.get('style', ''):
+        elif 'text-align: justify' in style:
             element['class'] = element.get('class', []) + ['ql-align-justify']
-        
-        # Limpiar atributos de estilo innecesarios
+
         if element.get('style'):
             del element['style']
-    
+
     return str(soup)
 
 def html_to_basic_delta(html_content):
-    """Convertir HTML básico a formato Delta de Quill"""
+    """Convertir HTML procesado a Delta para Quill, incluyendo imágenes"""
     if not html_content:
         return {"ops": [{"insert": "\n"}]}
-    
+
     soup = BeautifulSoup(html_content, 'html.parser')
     ops = []
-    
-    def process_element(element):
-        if element.name == 'p':
-            text = element.get_text()
+
+    def process_element(node):
+        if isinstance(node, NavigableString):
+            text = str(node)
+            if text:
+                ops.append({"insert": text})
+            return
+        if not isinstance(node, Tag):
+            return
+
+        if node.name == 'p':
+            text = node.get_text()
+            attributes = {}
+            classes = node.get('class', [])
+            if 'ql-align-center' in classes:
+                attributes['align'] = 'center'
+            elif 'ql-align-right' in classes:
+                attributes['align'] = 'right'
+            elif 'ql-align-justify' in classes:
+                attributes['align'] = 'justify'
+
             if text.strip():
-                # Determinar atributos
-                attributes = {}
-                if 'ql-align-center' in element.get('class', []):
-                    attributes['align'] = 'center'
-                elif 'ql-align-right' in element.get('class', []):
-                    attributes['align'] = 'right'
-                elif 'ql-align-justify' in element.get('class', []):
-                    attributes['align'] = 'justify'
-                
                 ops.append({"insert": text})
                 if attributes:
                     ops.append({"insert": "\n", "attributes": attributes})
                 else:
                     ops.append({"insert": "\n"})
-        
-        elif element.name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
-            level = int(element.name[1])
-            text = element.get_text()
+
+        elif node.name in ['h1','h2','h3','h4','h5','h6']:
+            level = int(node.name[1])
+            text = node.get_text()
             if text.strip():
                 ops.append({"insert": text})
                 ops.append({"insert": "\n", "attributes": {"header": level}})
-        
-        elif element.name == 'strong' or element.name == 'b':
-            text = element.get_text()
+
+        elif node.name in ['strong','b']:
+            text = node.get_text()
             if text.strip():
                 ops.append({"insert": text, "attributes": {"bold": True}})
-        
-        elif element.name == 'em' or element.name == 'i':
-            text = element.get_text()
+        elif node.name in ['em','i']:
+            text = node.get_text()
             if text.strip():
                 ops.append({"insert": text, "attributes": {"italic": True}})
-        
-        elif element.name == 'u':
-            text = element.get_text()
+        elif node.name == 'u':
+            text = node.get_text()
             if text.strip():
                 ops.append({"insert": text, "attributes": {"underline": True}})
-        
-        else:
-            # Para otros elementos, procesar recursivamente
-            for child in element.children:
-                if hasattr(child, 'name'):
-                    process_element(child)
-                else:
-                    # Texto directo
-                    text = str(child).strip()
-                    if text:
-                        ops.append({"insert": text})
-    
-    # Procesar todos los elementos
-    for element in soup.find_all(True):
-        process_element(element)
-    
-    # Asegurar que termine con newline
+
+        elif node.name == 'img':
+            src = node.get('src')
+            if src:
+                ops.append({"insert": {"image": src}})
+
+        for child in node.children:
+            process_element(child)
+
+    for el in soup.contents:
+        process_element(el)
+
     if not ops or ops[-1].get('insert') != '\n':
         ops.append({"insert": "\n"})
-    
+
     return {"ops": ops}
 
 def create_version_backup(document):
     """Crear respaldo de versión del documento"""
-    from models import DocumentVersion
-    from extensions import db
     
     try:
         # Contar versiones existentes
@@ -368,8 +372,8 @@ def clean_html_for_export(html):
     # Convertir imágenes de Minio a URLs completas
     for img in soup.find_all('img'):
         src = img.get('src', '')
-        if src.startswith('/api/image/'):
-            filename = src.replace('/api/image/', '')
+        if src.startswith('/document_bp/api/image/'):
+            filename = src.replace('/document_bp/api/image/', '')
             # Generar URL temporal de Minio
             try:
                 img_url = minio_client.presigned_get_object(
@@ -567,25 +571,36 @@ def export_to_docx(html_content, title="Documento"):
                     doc.add_paragraph()
         
         def process_inline_elements(element, paragraph):
-            """Procesar elementos inline dentro de un párrafo"""
             for child in element.children:
                 if hasattr(child, 'name'):
-                    if child.name == 'strong' or child.name == 'b':
+                    if child.name in ['strong', 'b']:
                         run = paragraph.add_run(child.get_text())
                         run.bold = True
-                    elif child.name == 'em' or child.name == 'i':
+                    elif child.name in ['em', 'i']:
                         run = paragraph.add_run(child.get_text())
                         run.italic = True
                     elif child.name == 'u':
                         run = paragraph.add_run(child.get_text())
                         run.underline = True
+                    elif child.name == 'img':
+                        # Manejar imagen como buffer
+                        src = child.get('src')
+                        if src:
+                            try:
+                                if src.startswith('http'):  # URL
+                                    import requests
+                                    resp = requests.get(src)
+                                    image_bytes = BytesIO(resp.content)
+                                    paragraph.add_run().add_picture(image_bytes, width=Inches(4))
+                                else:  # Minio u otro path local
+                                    paragraph.add_run().add_picture(src, width=Inches(4))
+                            except Exception as e:
+                                logger.warning(f"No se pudo agregar imagen: {e}")
                     elif child.name == 'br':
                         paragraph.add_run().add_break()
                     else:
-                        # Procesar recursivamente otros elementos inline
                         process_inline_elements(child, paragraph)
                 else:
-                    # Texto directo
                     text = str(child).strip()
                     if text:
                         paragraph.add_run(text)

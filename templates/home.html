@@ -1,0 +1,4018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XplagiaX - MarkTrack</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+  <style>
+      /* ===========================
+          VARIABLES & RESET
+          =========================== */
+      :root {
+        --primary-color: #191919;
+        --primary: #1621ff;
+        --white: #FFFFFF;
+        --sidebar-primary-hover: #EBEFFD;
+        --sidebar-background: #ffffff;
+        --background: #bbc7d4;
+        --text: #64748b;
+        --text-dark: #1e293b;
+        --text-link: #2c36ff;
+        --expand-button: #222dff;
+        --logout: #FA7575;
+        --search-background: #EBEFFD;
+        --card-bg: #ffffff;
+        --border: rgba(0, 0, 0, 0.08);
+        --danger: #ef4444;
+        --success: #10b981;
+        
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+        --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
+        
+        --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+        --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+        --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+        
+        --space-xs: 0.25rem;
+        --space-sm: 0.5rem;
+        --space-md: 1rem;
+        --space-lg: 1.5rem;
+        --space-xl: 2rem;
+        
+        --radius-sm: 0.25rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --radius-xl: 1rem;
+        
+        --z-dropdown: 1000;
+        --z-sticky: 1020;
+        --z-modal-backdrop: 1040;
+        --z-modal: 1050;
+        --z-toast: 1060;
+
+        --sidebar-width: 16rem;
+        --sidebar-collapsed-width: 5rem;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 14px;
+        background: var(--background);
+        color: var(--text-dark);
+        line-height: 1.5;
+        display: flex;
+        flex-direction: column;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        margin-left: var(--sidebar-collapsed-width);
+        transition: margin-left var(--transition-normal);
+      }
+
+      body.sidebar-expanded {
+        margin-left: var(--sidebar-width);
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+      }
+
+      /* ===========================
+          SIDEBAR
+          =========================== */
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: var(--sidebar-collapsed-width);
+        padding: var(--space-lg) var(--space-md);
+        background: var(--sidebar-background);
+        transition: width var(--transition-normal);
+        z-index: var(--z-sticky);
+        box-shadow: var(--shadow-md);
+        border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      body.sidebar-expanded .sidebar {
+        width: var(--sidebar-width);
+      }
+
+      .sidebar-top {
+        position: relative;
+        display: flex;
+        align-items: center;
+        height: 4rem;
+        margin-bottom: var(--space-lg);
+        overflow: hidden;
+      }
+
+      .navbar-brand {
+        display: flex;
+        align-items: center;
+        gap: var(--space-md);
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .app-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, var(--primary) 0%, #007AFF 100%);
+        border-radius: 9px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-shrink: 0;
+      }
+
+      .icon-svg {
+        width: 22px;
+        height: 22px;
+        color: white;
+      }
+
+      .brand-text {
+        color: var(--text-dark);
+        font-weight: 500;
+        font-size: 24px;
+        opacity: 0;
+        transition: opacity var(--transition-normal);
+      }
+
+      body.sidebar-expanded .brand-text {
+        opacity: 1;
+      }
+
+      /* IMPROVED: Expand button with elegant overflow effect */
+      .expand-btn {
+        position: absolute;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        background: var(--expand-button);
+        right: -1.125rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 2.25rem;
+        height: 2.25rem;
+        border: 3px solid var(--background);
+        border-radius: 50%;
+        transition: all var(--transition-normal);
+        z-index: 10;
+        box-shadow: 0 2px 8px rgba(34, 45, 255, 0.3);
+      }
+
+      .expand-btn:hover {
+        transform: translateY(-50%) scale(1.15);
+        box-shadow: 0 4px 16px rgba(34, 45, 255, 0.5);
+        background: #0f19cc;
+      }
+
+      .expand-btn:active {
+        transform: translateY(-50%) scale(1.05);
+      }
+
+      .expand-btn svg {
+        stroke: var(--white);
+        width: 1.25rem;
+        height: 1.25rem;
+        transition: transform var(--transition-normal);
+        transform: rotate(0deg);
+      }
+
+      body.sidebar-expanded .expand-btn svg {
+        transform: rotate(180deg);
+      }
+
+      .sidebar-links {
+        flex: 1;
+      }
+
+      .sidebar-links ul {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-sm);
+      }
+
+      .sidebar-links li a {
+        display: flex;
+        align-items: center;
+        gap: var(--space-md);
+        padding: var(--space-md);
+        color: var(--text);
+        text-decoration: none;
+        border-radius: var(--radius-lg);
+        transition: all var(--transition-fast);
+        white-space: nowrap;
+        overflow: hidden;
+      }
+
+      .sidebar-links li a:hover,
+      .sidebar-links li a:focus {
+        background: var(--sidebar-primary-hover);
+        color: var(--text-link);
+      }
+
+      .sidebar-links li a svg {
+        width: 1.4rem;
+        height: 1.4rem;
+        min-width: 1.4rem;
+        stroke: currentColor;
+        fill: currentColor;
+      }
+
+      .sidebar-links .link-text {
+        opacity: 0;
+        transition: opacity var(--transition-normal);
+      }
+
+      body.sidebar-expanded .sidebar-links .link-text {
+        opacity: 1;
+      }
+
+      .sidebar-links .active {
+        background: var(--sidebar-primary-hover);
+        color: var(--text-link);
+      }
+
+      /* ===========================
+          HEADER
+          =========================== */
+      .header {
+        padding: var(--space-md) 0;
+        position: sticky;
+        top: 0;
+        z-index: var(--z-sticky);
+        backdrop-filter: blur(10px);
+        background: rgba(187, 199, 212, 0.8);
+        flex-shrink: 0;
+      }
+
+      .header-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 var(--space-lg);
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: var(--space-md);
+      }
+
+      .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        color: var(--text);
+        font-size: 0.875rem;
+      }
+
+      .breadcrumb a {
+        color: var(--text-link);
+        text-decoration: none;
+        transition: color var(--transition-fast);
+      }
+
+      .breadcrumb a:hover {
+        color: var(--primary);
+      }
+
+      .search-container {
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: var(--space-sm) var(--space-md);
+        padding-left: 2.5rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--white);
+        font-size: 0.875rem;
+        transition: all var(--transition-fast);
+      }
+
+      .search-input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(22, 33, 255, 0.1);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: var(--space-md);
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text);
+        pointer-events: none;
+      }
+
+      .search-clear {
+        position: absolute;
+        right: var(--space-sm);
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--text);
+        cursor: pointer;
+        padding: var(--space-xs);
+        border-radius: var(--radius-sm);
+        display: none;
+        transition: all var(--transition-fast);
+      }
+
+      .search-clear:hover {
+        background: var(--sidebar-primary-hover);
+        color: var(--primary);
+      }
+
+      .search-clear.show {
+        display: block;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--space-md);
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-sm);
+        padding: var(--space-sm) var(--space-lg);
+        border: none;
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        background: var(--white);
+        white-space: nowrap;
+      }
+
+      .btn:hover,
+      .btn:focus {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+      }
+
+      .btn:active {
+        transform: translateY(0);
+      }
+
+      .btn--primary {
+        color: var(--primary);
+      }
+
+      .btn--danger {
+        color: var(--danger);
+      }
+
+      .btn svg {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+
+      /* ===========================
+          MAIN CONTAINER
+          =========================== */
+      .main-container {
+        max-width: 1400px;
+        width: 100%;
+        margin: 0 auto;
+        padding: var(--space-xl);
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+      /* ===========================
+          SECTION HEADERS
+          =========================== */
+      .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--space-lg);
+        gap: var(--space-md);
+        flex-wrap: wrap;
+      }
+
+      .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-dark);
+      }
+
+      .section-actions {
+        display: flex;
+        gap: var(--space-sm);
+        align-items: center;
+      }
+
+      /* ===========================
+          VIEW TOGGLE
+          =========================== */
+      .view-toggle {
+        display: inline-flex;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: var(--space-xs);
+        gap: var(--space-xs);
+      }
+
+      .view-toggle__btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        background: transparent;
+        border: none;
+        border-radius: var(--radius-sm);
+        color: var(--text);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+      }
+
+      .view-toggle__btn:hover {
+        background: var(--sidebar-primary-hover);
+        color: var(--primary);
+      }
+
+      .view-toggle__btn.active {
+        background: var(--primary);
+        color: var(--white);
+      }
+
+      .view-toggle__btn svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      /* ===========================
+          IMPROVED: FILES SECTION - FULLY RESPONSIVE
+          =========================== */
+      .my-files-section {
+        margin-bottom: var(--space-xl);
+      }
+
+      .files-container {
+        display: grid;
+        gap: var(--space-md);
+        grid-template-columns: auto 1fr;
+        align-items: start;
+      }
+
+      .new-doc-column {
+        display: contents;
+      }
+
+      /* Card View - Responsive Grid */
+      .files-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: var(--space-md);
+        grid-column: 1 / -1;
+        transition: opacity var(--transition-normal);
+      }
+
+      .files-grid.fade-out {
+        opacity: 0.4;
+      }
+
+      /* List View - Responsive */
+      .files-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-sm);
+        grid-column: 1 / -1;
+      }
+
+      .files-list .file-card {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: var(--space-md);
+        padding: var(--space-md);
+        width: 100%;
+      }
+
+      .files-list .file-icon-large {
+        width: 2rem;
+        height: 2rem;
+        margin: 0;
+      }
+
+      .files-list .file-info {
+        text-align: left;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .files-list .file-name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: var(--space-xs);
+      }
+
+      .files-list .file-menu-btn {
+        position: static;
+        opacity: 1;
+      }
+
+      .files-list .file-menu-container {
+        position: relative;
+        z-index: 150;
+      }
+
+      /* Ajustar posición del dropdown en card view */
+.files-grid .dropdown-menu {
+  bottom: calc(100% - 2.5rem);
+  right: var(--space-sm);
+}
+
+/* Ajustar posición del dropdown en list view */
+.files-list .dropdown-menu {
+  bottom: auto;
+  top: calc(100% + var(--space-xs));
+  right: var(--space-sm);
+}
+
+      .files-list .dropdown-menu {
+        z-index: var(--z-dropdown);
+         z-index: 200;
+      }
+      .file-card-wrapper {
+  position: relative;
+}
+
+      /* File Card */
+      .file-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: var(--space-md);
+        text-align: center;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        position: relative;
+        overflow: visible;
+      }
+
+      .file-card:hover,
+      .file-card:focus-within {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary);
+      }
+
+      .file-icon-large {
+        width: 2.5rem;
+        height: 2.5rem;
+        margin: 0 auto var(--space-sm);
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .doc-file { background: #4285f4; color: white; }
+      .new-file { background: var(--sidebar-primary-hover); color: var(--primary); }
+
+      .file-name {
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--text-dark);
+        margin-bottom: var(--space-xs);
+        line-height: 1.3;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+
+      .file-size {
+        font-size: 0.7rem;
+        color: var(--text);
+      }
+
+      /* Dropdown Menu */
+      .file-menu-container {
+        position: relative;
+         z-index: 100; 
+      }
+
+      .file-menu-btn {
+        position: absolute;
+        top: var(--space-sm);
+        right: var(--space-sm);
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: var(--space-xs);
+        cursor: pointer;
+        opacity: 0;
+        transition: all var(--transition-fast);
+        z-index: 150;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .file-card:hover .file-menu-btn,
+      .file-menu-btn:focus {
+        opacity: 1;
+      }
+
+      .file-menu-btn:hover {
+        background: var(--sidebar-primary-hover);
+        border-color: var(--primary);
+      }
+
+      .file-menu-btn svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .dropdown-menu {
+        position: absolute;
+        bottom: 100%;
+        margin-bottom: var(--space-xs);
+        right: var(--space-sm);
+        right: 0;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-lg);
+        min-width: 160px;
+        z-index: 1000; 
+        display: none;
+        overflow: hidden;
+      }
+
+      .dropdown-menu.show {
+        display: block;
+        animation: slideDown var(--transition-fast);
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .dropdown-item {
+        padding: var(--space-md);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        font-size: 0.875rem;
+        color: var(--text-dark);
+        transition: background var(--transition-fast);
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+      }
+
+      .dropdown-item:hover,
+      .dropdown-item:focus {
+        background: var(--sidebar-primary-hover);
+        color: var(--primary);
+      }
+
+      .dropdown-item svg {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+
+      .dropdown-item.danger {
+        color: var(--danger);
+      }
+
+      .dropdown-item.danger:hover,
+      .dropdown-item.danger:focus {
+        background: rgba(239, 68, 68, 0.1);
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: var(--space-xl);
+        color: var(--text);
+      }
+
+      .empty-state svg {
+        width: 64px;
+        height: 64px;
+        margin-bottom: var(--space-md);
+        opacity: 0.5;
+      }
+
+      .empty-state p {
+        font-size: 0.875rem;
+      }
+
+      /* ===========================
+          OFF-CANVAS SHARED STYLES
+          =========================== */
+      .offcanvas-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: var(--z-modal-backdrop);
+        display: none;
+        opacity: 0;
+        transition: opacity var(--transition-normal);
+      }
+
+      .offcanvas-backdrop.show {
+        display: block;
+        opacity: 1;
+      }
+
+      .offcanvas-header {
+        padding: var(--space-lg);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+      }
+
+      .offcanvas-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+      }
+
+      .offcanvas-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text);
+        padding: var(--space-xs) var(--space-sm);
+        border-radius: var(--radius-sm);
+        transition: all var(--transition-fast);
+        line-height: 1;
+      }
+
+      .offcanvas-close:hover,
+      .offcanvas-close:focus {
+        background: var(--sidebar-primary-hover);
+        color: var(--primary);
+      }
+
+      .offcanvas-body {
+        padding: var(--space-lg);
+        overflow-y: auto;
+        flex: 1;
+      }
+
+      /* ===========================
+          TRASH OFF-CANVAS (RIGHT)
+          =========================== */
+      .offcanvas-trash {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 350px;
+        max-width: 90vw;
+        height: 100vh;
+        background: var(--white);
+        box-shadow: var(--shadow-xl);
+        z-index: var(--z-modal);
+        transition: right var(--transition-normal);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .offcanvas-trash.show {
+        right: 0;
+      }
+
+      /* IMPROVED: Trash item with document icon */
+      .trash-item {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: var(--space-md);
+        margin-bottom: var(--space-md);
+        transition: all var(--transition-fast);
+      }
+
+      .trash-item:hover {
+        transform: translateX(-2px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary);
+      }
+
+      .trash-item-header {
+        margin-bottom: var(--space-sm);
+        display: flex;
+        align-items: start;
+        gap: var(--space-md);
+      }
+
+      .trash-item-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        background: #4285f4;
+        color: white;
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .trash-item-icon svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .trash-item-info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .trash-item-title {
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: var(--space-xs);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .trash-item-date {
+        font-size: 0.75rem;
+        color: var(--text);
+      }
+
+      .trash-item-actions {
+        display: flex;
+        gap: var(--space-sm);
+        margin-top: var(--space-md);
+      }
+
+      .trash-btn-small {
+        padding: var(--space-sm) var(--space-md);
+        font-size: 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-xs);
+        background: var(--white);
+      }
+
+      .btn-restore {
+        color: var(--primary);
+      }
+
+      .btn-restore:hover {
+        background: var(--sidebar-primary-hover);
+        border-color: var(--primary);
+      }
+
+      .btn-delete-permanent {
+        color: var(--danger);
+      }
+
+      .btn-delete-permanent:hover {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: var(--danger);
+      }
+
+      .trash-btn-small svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* ===========================
+          SHARE OFF-CANVAS (BOTTOM)
+          =========================== */
+      .offcanvas-share {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-height: 80vh;
+        background: var(--white);
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        box-shadow: var(--shadow-xl);
+        z-index: var(--z-modal);
+        transform: translateY(100%);
+        transition: transform var(--transition-normal);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .offcanvas-share.show {
+        transform: translateY(0);
+      }
+
+      .form-group {
+        margin-bottom: var(--space-lg);
+      }
+
+      .form-label {
+        display: block;
+        margin-bottom: var(--space-sm);
+        font-weight: 500;
+        font-size: 0.875rem;
+        color: var(--text-dark);
+      }
+
+      .form-control {
+        width: 100%;
+        padding: var(--space-md);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        font-family: inherit;
+        transition: all var(--transition-fast);
+      }
+
+      .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(22, 33, 255, 0.1);
+      }
+
+      .share-link-container {
+        display: flex;
+        gap: var(--space-sm);
+      }
+
+      .share-link-input {
+        flex: 1;
+        background: var(--search-background);
+      }
+
+      .btn-copy {
+        background: var(--primary);
+        color: var(--white);
+        padding: var(--space-md) var(--space-lg);
+        flex-shrink: 0;
+      }
+
+      .btn-copy:hover {
+        background: #0f19cc;
+      }
+
+      .btn-copy.copied {
+        background: var(--success);
+      }
+
+      .share-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: var(--space-md);
+      }
+
+      .share-option {
+        padding: var(--space-md);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        text-align: left;
+      }
+
+      .share-option:hover {
+        border-color: var(--primary);
+        background: var(--sidebar-primary-hover);
+      }
+
+      .share-option input[type="radio"] {
+        margin-right: var(--space-sm);
+      }
+
+      /* ===========================
+          SHARED FILES OFF-CANVAS (BOTTOM)
+          =========================== */
+      .offcanvas-shared {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-height: 85vh;
+        background: var(--white);
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        box-shadow: var(--shadow-xl);
+        z-index: var(--z-modal);
+        transform: translateY(100%);
+        transition: transform var(--transition-normal);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .offcanvas-shared.show {
+        transform: translateY(0);
+      }
+
+      .classroom-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: var(--space-md);
+      }
+
+      .classroom-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+      }
+
+      .classroom-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary);
+      }
+
+      .card-content {
+        padding: var(--space-md);
+      }
+
+      .assignment-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: var(--space-sm);
+        line-height: 1.3;
+      }
+
+      .assignment-description {
+        font-size: 0.875rem;
+        color: var(--text);
+        margin-bottom: var(--space-md);
+        line-height: 1.4;
+      }
+
+      .assignment-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--space-md);
+        font-size: 0.75rem;
+        color: var(--text);
+      }
+
+      .progress-section {
+        margin-bottom: var(--space-md);
+      }
+
+      .progress-label {
+        font-size: 0.75rem;
+        color: var(--text);
+        margin-bottom: var(--space-sm);
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        font-weight: 500;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 0.375rem;
+        background: #e2e8f0;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        margin-bottom: var(--space-sm);
+      }
+
+      .progress-fill {
+        height: 100%;
+        border-radius: var(--radius-sm);
+        transition: width var(--transition-slow);
+      }
+
+      .progress-blue { background: #3b82f6; }
+      .progress-green { background: #10b981; }
+      .progress-orange { background: #f59e0b; }
+      .progress-purple { background: #8b5cf6; }
+
+      .participants-section {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .participant-avatars {
+        display: flex;
+      }
+
+      .avatar {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        border: 2px solid white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: white;
+        margin-left: -0.5rem;
+      }
+
+      .avatar:first-child {
+        margin-left: 0;
+      }
+
+      .avatar-1 { background: #3b82f6; }
+      .avatar-2 { background: #10b981; }
+      .avatar-3 { background: #f59e0b; }
+      .avatar-4 { background: #8b5cf6; }
+      .avatar-5 { background: #ef4444; }
+      .more-avatars { background: var(--text); font-size: 0.625rem; }
+
+      .edit-btn {
+        padding: var(--space-xs);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: var(--text);
+        border-radius: var(--radius-sm);
+        transition: all var(--transition-fast);
+      }
+
+      .edit-btn:hover,
+      .edit-btn:focus {
+        background: var(--sidebar-primary-hover);
+        color: var(--primary);
+      }
+
+      .shared-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.5rem;
+        height: 0.9rem;
+        padding: 0 var(--space-xs);
+        background: var(--primary);
+        color: white;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: var(--space-sm);
+      }
+
+      /* ===========================
+          NEW: PROFESSIONAL MODALS
+          =========================== */
+      .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: var(--z-modal-backdrop);
+        display: none;
+        opacity: 0;
+        transition: opacity var(--transition-normal);
+        backdrop-filter: blur(4px);
+      }
+
+      .modal-backdrop.show {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 1;
+      }
+
+      .modal {
+        background: var(--white);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-xl);
+        width: 90%;
+        max-width: 500px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        transform: scale(0.9);
+        opacity: 0;
+        transition: all var(--transition-normal);
+      }
+
+      .modal-backdrop.show .modal {
+        transform: scale(1);
+        opacity: 1;
+        animation: modalFadeIn var(--transition-normal) ease-out;
+      }
+
+      @keyframes modalFadeIn {
+        from {
+          transform: scale(0.95) translateY(-20px);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1) translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .modal-header {
+        padding: var(--space-lg);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .modal-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+      }
+
+      .modal-title svg {
+        width: 24px;
+        height: 24px;
+        color: var(--primary);
+      }
+
+      .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text);
+        padding: var(--space-xs) var(--space-sm);
+        border-radius: var(--radius-sm);
+        transition: all var(--transition-fast);
+        line-height: 1;
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal-close:hover {
+        background: var(--sidebar-primary-hover);
+        color: var(--primary);
+      }
+
+      .modal-body {
+        padding: var(--space-lg);
+        overflow-y: auto;
+        flex: 1;
+      }
+
+      .modal-footer {
+        padding: var(--space-lg);
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--space-md);
+      }
+
+      .modal-btn {
+        padding: var( --space-sm) var( --space-lg);
+        border: none;
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-sm);
+      }
+
+      .modal-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+      }
+
+      .modal-btn-cancel {
+        background: var(--white);
+        color: var(--text-dark);
+        border: 1px solid var(--border);
+      }
+
+      .modal-btn-cancel:hover {
+        background: var(--sidebar-primary-hover);
+        border-color: var(--primary);
+        color: var(--primary);
+      }
+
+      .modal-btn-primary {
+        background: var(--primary);
+        color: var(--white);
+      }
+
+      .modal-btn-primary:hover {
+        background: #0f19cc;
+      }
+
+      .modal-btn-danger {
+        background: var(--danger);
+        color: var(--white);
+      }
+
+      .modal-btn-danger:hover {
+        background: #dc2626;
+      }
+
+      .modal-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .modal-input-group {
+        margin-bottom: var(--space-lg);
+      }
+
+      .modal-label {
+        display: block;
+        margin-bottom: var(--space-sm);
+        font-weight: 500;
+        font-size: 0.875rem;
+        color: var(--text-dark);
+      }
+
+      .modal-input {
+        width: 100%;
+        padding: var(--space-md);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        font-family: inherit;
+        transition: all var(--transition-fast);
+      }
+
+      .modal-input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(22, 33, 255, 0.1);
+      }
+
+      .modal-file-preview {
+        background: var(--search-background);
+        border-radius: var(--radius-md);
+        padding: var(--space-lg);
+        text-align: center;
+        border: 2px dashed var(--border);
+        transition: all var(--transition-fast);
+        cursor: pointer;
+      }
+
+      .modal-file-preview:hover {
+        border-color: var(--primary);
+        background: var(--sidebar-primary-hover);
+      }
+
+      .modal-file-preview svg {
+        width: 48px;
+        height: 48px;
+        color: var(--primary);
+        margin-bottom: var(--space-md);
+      }
+
+      .modal-file-preview p {
+        color: var(--text);
+        font-size: 0.875rem;
+      }
+
+      .modal-file-preview.has-file {
+        border-color: var(--success);
+        background: rgba(16, 185, 129, 0.1);
+      }
+
+      .modal-file-info {
+        display: flex;
+        align-items: center;
+        gap: var(--space-md);
+        padding: var(--space-md);
+        background: var(--search-background);
+        border-radius: var(--radius-md);
+        margin-top: var(--space-md);
+      }
+
+      .modal-file-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        background: #4285f4;
+        color: white;
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .modal-file-icon svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .modal-file-details {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .modal-file-name {
+        font-weight: 500;
+        color: var(--text-dark);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .modal-file-size {
+        font-size: 0.75rem;
+        color: var(--text);
+      }
+
+      .modal-alert {
+        padding: var(--space-md);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-lg);
+        display: flex;
+        align-items: start;
+        gap: var(--space-md);
+      }
+
+      .modal-alert-danger {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+      }
+
+      .modal-alert-icon {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+      }
+
+      .modal-alert-danger .modal-alert-icon {
+        color: var(--danger);
+      }
+
+      .modal-alert-text {
+        color: var(--text-dark);
+        font-size: 0.875rem;
+        line-height: 1.5;
+      }
+
+      .loading {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .focus-trap-start,
+      .focus-trap-end {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* ===========================
+          RESPONSIVE DESIGN
+          =========================== */
+      @media (max-width: 1024px) {
+        :root {
+          --sidebar-width: 14rem;
+        }
+
+        .header-container {
+          grid-template-columns: 1fr;
+          gap: var(--space-md);
+        }
+
+        .breadcrumb {
+          grid-column: 1 / -1;
+        }
+
+        .search-container {
+          max-width: 100%;
+          grid-column: 1 / -1;
+        }
+
+        .header-actions {
+          grid-column: 1 / -1;
+          justify-content: flex-end;
+        }
+
+        .files-grid {
+          grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        }
+      }
+
+      @media (max-width: 768px) {
+        body {
+          margin-left: 0;
+        }
+
+        body.sidebar-expanded {
+          margin-left: 0;
+        }
+
+        .sidebar {
+          left: -100%;
+          width: 80vw;
+          max-width: 280px;
+          border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+        }
+
+        body.sidebar-expanded .sidebar {
+          left: 0;
+          width: 80vw;
+        }
+
+        .expand-btn {
+          left: calc(100% + 0.5rem);
+          right: auto;
+        }
+
+        .main-container {
+          padding: var(--space-md);
+        }
+
+        .header-container {
+          padding: 0 var(--space-md);
+        }
+
+        .files-container {
+          grid-template-columns: 1fr;
+        }
+
+        .files-grid {
+          grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+          gap: var(--space-sm);
+        }
+
+        .classroom-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .offcanvas-trash {
+          width: 100%;
+          max-width: 100vw;
+        }
+
+        .offcanvas-share,
+        .offcanvas-shared {
+          max-height: 90vh;
+        }
+
+        .share-options {
+          grid-template-columns: 1fr;
+        }
+
+        .btn {
+          padding: var(--space-sm);
+          font-size: 0.8rem;
+        }
+
+        .btn span:not(.loading):not(.shared-badge) {
+          display: none;
+        }
+
+        .btn svg {
+          margin: 0;
+        }
+
+        .modal {
+          max-width: 95%;
+        }
+
+        .modal-footer {
+          flex-direction: column;
+        }
+
+        .modal-btn {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .files-grid {
+          grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        }
+
+        .files-list .file-card {
+          grid-template-columns: auto 1fr;
+          font-size: 0.8rem;
+        }
+
+        .files-list .file-menu-btn {
+          position: absolute;
+          right: var(--space-sm);
+          top: 50%;
+          transform: translateY(-50%);
+        }
+
+        .view-toggle {
+          order: 1;
+        }
+
+        .section-header {
+          flex-wrap: wrap;
+        }
+
+        .file-name {
+          font-size: 0.75rem;
+        }
+
+        .file-size {
+          font-size: 0.65rem;
+        }
+      }
+  </style>
+</head>
+<body class="collapsed">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-container">
+            <nav class="breadcrumb">
+                <a href="#" aria-label="Go to XplagiaX home">XplagiaX</a>
+                <span aria-hidden="true">/</span>
+                <span aria-current="page">MarkTrack</span>
+            </nav>
+            
+            <div class="search-container">
+                <svg class="search-icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input 
+                    type="search" 
+                    class="search-input" 
+                    id="searchInput"
+                    placeholder="Search files..."
+                    aria-label="Search files"
+                    autocomplete="off"
+                />
+                <button class="search-clear" id="searchClear" aria-label="Clear search" title="Clear search">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="header-actions">
+                <button class="btn btn--primary" onclick="openSharedFiles()" aria-label="View shared files">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                        <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5m-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3"/>
+                    </svg>
+                    <span>Shared</span>
+                    <span class="shared-badge">17</span>
+                </button>
+                <button class="btn btn--danger" onclick="openTrash()" aria-label="Open trash">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    <span>Trash</span>
+                </button>
+                <button class="btn btn--primary" onclick="openUploadModal()" aria-label="Upload file">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    <span>Upload</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <nav class="sidebar" role="navigation" aria-label="Main navigation">
+        <div class="sidebar-top">
+            <a href="#" class="navbar-brand" aria-label="MarkTrack home">
+                <div class="app-icon" aria-hidden="true">
+                    <svg class="icon-svg" viewBox="0 0 16 16" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0"></path>
+                        <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1z"></path>
+                    </svg>
+                </div>
+                <span class="brand-text">MarkTrack</span>
+            </a>
+            <button class="expand-btn" type="button" aria-label="Toggle sidebar" aria-expanded="false">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M6.00979 2.72L10.3565 7.06667C10.8698 7.58 10.8698 8.42 10.3565 8.93333L6.00979 13.28" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="sidebar-links">
+            <ul>
+                <li>
+                    <a href="#" class="active" aria-current="page">
+                        <svg fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M8.707 1.5a1 1 0 0 0-1.414 0L.646 8.146a.5.5 0 0 0 .708.708L2 8.207V13.5A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5V8.207l.646.647a.5.5 0 0 0 .708-.708L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293zM13 7.207V13.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V7.207l5-5z"/>
+                        </svg>
+                        <span class="link-text">Home</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="main-container" role="main">
+        <section class="my-files-section" aria-labelledby="my-documents-title">
+            <div class="section-header">
+                <h2 class="section-title" id="my-documents-title">My Documents</h2>
+                <div class="section-actions">
+                    <div class="view-toggle" role="group" aria-label="View options">
+                        <button 
+                            class="view-toggle__btn active" 
+                            id="cardViewBtn"
+                            data-view="card"
+                            aria-label="Card view"
+                            aria-pressed="true"
+                            title="Card view"
+                        >
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                            </svg>
+                        </button>
+                        <button 
+                            class="view-toggle__btn" 
+                            id="listViewBtn"
+                            data-view="list"
+                            aria-label="List view"
+                            aria-pressed="false"
+                            title="List view"
+                        >
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="files-container">
+                <button class="file-card" onclick="createNewDocument()" aria-label="Create new document" style="border: 2px dashed var(--border); grid-column: 1;">
+                    <div class="file-icon-large new-file" aria-hidden="true">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                    </div>
+                    <p class="file-name">New</p>
+                </button>
+
+                <div class="files-grid" id="documentsListContainer" role="list" aria-label="Your documents">
+                </div>
+            </div>
+
+            <div class="empty-state" id="emptyState" style="display: none;" role="status">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <p>No files found</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Trash Off-canvas -->
+    <div class="offcanvas-backdrop" id="trashBackdrop" onclick="closeTrash()" aria-hidden="true"></div>
+    <div class="offcanvas-trash" id="trashOffcanvas" role="dialog" aria-labelledby="trashTitle" aria-modal="true">
+        <span class="focus-trap-start" tabindex="0"></span>
+        <div class="offcanvas-header">
+            <h3 class="offcanvas-title" id="trashTitle">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                    <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                </svg>
+                Trash
+            </h3>
+            <button class="offcanvas-close" onclick="closeTrash()" aria-label="Close trash">×</button>
+        </div>
+        <div class="offcanvas-body" id="trashContent">
+            <div class="trash-item">
+                <div class="trash-item-header">
+                    <div class="trash-item-icon">
+                        <svg fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+                        </svg>
+                    </div>
+                    <div class="trash-item-info">
+                        <div class="trash-item-title">Old Report 2023</div>
+                        <div class="trash-item-date">Deleted: Oct 15, 2024</div>
+                    </div>
+                </div>
+                <div class="trash-item-actions">
+                    <button class="trash-btn-small btn-restore" onclick="restoreDocument(101)">
+                        <svg fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M7.364 3.5a.5.5 0 0 1 .5-.5H14.5A1.5 1.5 0 0 1 16 4.5v10a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 3 14.5V7.864a.5.5 0 1 1 1 0V14.5a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-10a.5.5 0 0 0-.5-.5H7.864a.5.5 0 0 1-.5-.5"/>
+                            <path fill-rule="evenodd" d="M0 .5A.5.5 0 0 1 .5 0h5a.5.5 0 0 1 0 1H1.707l8.147 8.146a.5.5 0 0 1-.708.708L1 1.707V5.5a.5.5 0 0 1-1 0z"/>
+                        </svg>
+                        Restore
+                    </button>
+                    <button class="trash-btn-small btn-delete-permanent" onclick="deletePermanent(101)">
+                        <svg fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M6.854 7.146a.5.5 0 1 0-.708.708L7.293 9l-1.147 1.146a.5.5 0 0 0 .708.708L8 9.707l1.146 1.147a.5.5 0 0 0 .708-.708L8.707 9l1.147-1.146a.5.5 0 0 0-.708-.708L8 8.293z"/>
+                            <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
+                        </svg>
+                        Delete Forever
+                    </button>
+                </div>
+            </div>
+
+            <div class="trash-item">
+                <div class="trash-item-header">
+                    <div class="trash-item-icon">
+                        <svg fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+                        </svg>
+                    </div>
+                    <div class="trash-item-info">
+                        <div class="trash-item-title">Draft Ideas</div>
+                        <div class="trash-item-date">Deleted: Oct 12, 2024</div>
+                    </div>
+                </div>
+                <div class="trash-item-actions">
+                    <button class="trash-btn-small btn-restore" onclick="restoreDocument(102)">
+                        <svg fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M7.364 3.5a.5.5 0 0 1 .5-.5H14.5A1.5 1.5 0 0 1 16 4.5v10a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 3 14.5V7.864a.5.5 0 1 1 1 0V14.5a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-10a.5.5 0 0 0-.5-.5H7.864a.5.5 0 0 1-.5-.5"/>
+                            <path fill-rule="evenodd" d="M0 .5A.5.5 0 0 1 .5 0h5a.5.5 0 0 1 0 1H1.707l8.147 8.146a.5.5 0 0 1-.708.708L1 1.707V5.5a.5.5 0 0 1-1 0z"/>
+                        </svg>
+                        Restore
+                    </button>
+                    <button class="trash-btn-small btn-delete-permanent" onclick="deletePermanent(102)">
+                        <svg fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M6.854 7.146a.5.5 0 1 0-.708.708L7.293 9l-1.147 1.146a.5.5 0 0 0 .708.708L8 9.707l1.146 1.147a.5.5 0 0 0 .708-.708L8.707 9l1.147-1.146a.5.5 0 0 0-.708-.708L8 8.293z"/>
+                            <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
+                        </svg>
+                        Delete Forever
+                    </button>
+                </div>
+            </div>
+
+            <div class="trash-item">
+                <div class="trash-item-header">
+                    <div class="trash-item-icon">
+                        <svg fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+                        </svg>
+                    </div>
+                    <div class="trash-item-info">
+                        <div class="trash-item-title">Marketing Plan 2023</div>
+                        <div class="trash-item-date">Deleted: Oct 08, 2024</div>
+                    </div>
+                </div>
+                <div class="trash-item-actions">
+                    <button class="trash-btn-small btn-restore" onclick="restoreDocument(103)">
+                        <svg fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M7.364 3.5a.5.5 0 0 1 .5-.5H14.5A1.5 1.5 0 0 1 16 4.5v10a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 3 14.5V7.864a.5.5 0 1 1 1 0V14.5a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-10a.5.5 0 0 0-.5-.5H7.864a.5.5 0 0 1-.5-.5"/>
+                            <path fill-rule="evenodd" d="M0 .5A.5.5 0 0 1 .5 0h5a.5.5 0 0 1 0 1H1.707l8.147 8.146a.5.5 0 0 1-.708.708L1 1.707V5.5a.5.5 0 0 1-1 0z"/>
+                        </svg>
+                        Restore
+                    </button>
+                    <button class="trash-btn-small btn-delete-permanent" onclick="deletePermanent(103)">
+                        <svg fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M6.854 7.146a.5.5 0 1 0-.708.708L7.293 9l-1.147 1.146a.5.5 0 0 0 .708.708L8 9.707l1.146 1.147a.5.5 0 0 0 .708-.708L8.707 9l1.147-1.146a.5.5 0 0 0-.708-.708L8 8.293z"/>
+                            <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
+                        </svg>
+                        Delete Forever
+                    </button>
+                </div>
+            </div>
+        </div>
+        <span class="focus-trap-end" tabindex="0"></span>
+    </div>
+
+    <!-- Share Off-canvas -->
+    <div class="offcanvas-backdrop" id="shareBackdrop" onclick="closeShare()" aria-hidden="true"></div>
+    <div class="offcanvas-share" id="shareOffcanvas" role="dialog" aria-labelledby="shareTitle" aria-modal="true">
+        <span class="focus-trap-start" tabindex="0"></span>
+        <div class="offcanvas-header">
+            <h3 class="offcanvas-title" id="shareTitle">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5m-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3"/>
+                </svg>
+                Share File
+            </h3>
+            <button class="offcanvas-close" onclick="closeShare()" aria-label="Close share dialog">×</button>
+        </div>
+        <div class="offcanvas-body">
+            <form id="shareForm" onsubmit="handleShare(event)">
+                <div class="form-group">
+                    <label class="form-label" for="shareLink">Share Link</label>
+                    <div class="share-link-container">
+                        <input 
+                            type="text" 
+                            id="shareLink" 
+                            class="form-control share-link-input" 
+                            readonly 
+                            value="https://marktrack.app/share/abc123xyz"
+                        />
+                        <button type="button" class="btn btn-copy" id="copyLinkBtn" onclick="copyShareLink()">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                            <span id="copyBtnText">Copy</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="recipientEmail">Send to Email (Optional)</label>
+                    <input 
+                        type="email" 
+                        id="recipientEmail" 
+                        class="form-control" 
+                        placeholder="colleague@example.com"
+                    />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Permission Level</label>
+                    <div class="share-options">
+                        <label class="share-option">
+                            <input type="radio" name="permission" value="view" checked />
+                            <div>
+                                <strong>Can View</strong>
+                                <p style="font-size: 0.75rem; color: var(--text); margin-top: var(--space-xs);">Read-only</p>
+                            </div>
+                        </label>
+                        <label class="share-option">
+                            <input type="radio" name="permission" value="edit" />
+                            <div>
+                                <strong>Can Edit</strong>
+                                <p style="font-size: 0.75rem; color: var(--text); margin-top: var(--space-xs);">Full access</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="expirationDays">Link Expires</label>
+                    <select id="expirationDays" class="form-control">
+                        <option value="1">1 day</option>
+                        <option value="7" selected>7 days</option>
+                        <option value="30">30 days</option>
+                        <option value="never">Never</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: var(--space-md); justify-content: flex-end; margin-top: var(--space-xl);">
+                    <button type="button" class="btn" onclick="closeShare()" style="background: var(--text); color: white;">Cancel</button>
+                    <button type="submit" class="btn btn-copy" style="background: var(--primary);">
+                        <span class="loading" id="shareLoading" style="display: none;"></span>
+                        <span id="shareSubmitText">Send</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+        <span class="focus-trap-end" tabindex="0"></span>
+    </div>
+
+    <!-- Shared Files Off-canvas -->
+    <div class="offcanvas-backdrop" id="sharedBackdrop" onclick="closeSharedFiles()" aria-hidden="true"></div>
+    <div class="offcanvas-shared" id="sharedOffcanvas" role="dialog" aria-labelledby="sharedTitle" aria-modal="true">
+        <span class="focus-trap-start" tabindex="0"></span>
+        <div class="offcanvas-header">
+            <h3 class="offcanvas-title" id="sharedTitle">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5m-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3"/>
+                </svg>
+                Shared Files <span class="shared-badge">17</span>
+            </h3>
+            <button class="offcanvas-close" onclick="closeSharedFiles()" aria-label="Close shared files">×</button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="classroom-grid">
+                <div class="classroom-card" onclick="openAssignment('html-basics')">
+                    <div class="card-content">
+                        <h3 class="assignment-title">HTML and CSS Fundamentals</h3>
+                        <p class="assignment-description">Learn the basic concepts of HTML and CSS to create your first web page from scratch.</p>
+                        
+                        <div class="assignment-meta">
+                            <span>Views: 12,450</span>
+                            <span class="due-date">89</span>
+                        </div>
+
+                        <div class="progress-section">
+                            <div class="progress-label">Progress</div>
+                            <div class="progress-bar" role="progressbar" aria-valuenow="90" aria-valuemin="0" aria-valuemax="100">
+                                <div class="progress-fill progress-green" style="width: 90%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="participants-section">
+                            <div class="participant-avatars">
+                                <div class="avatar avatar-1">P</div>
+                                <div class="avatar avatar-2">C</div>
+                                <div class="avatar avatar-3">D</div>
+                                <div class="avatar more-avatars">+5</div>
+                            </div>
+                            <button class="edit-btn" onclick="editAssignment('html-basics', event)" aria-label="Edit">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="classroom-card" onclick="openAssignment('javascript-intro')">
+                    <div class="card-content">
+                        <h3 class="assignment-title">Introduction to JavaScript</h3>
+                        <p class="assignment-description">Master JavaScript fundamentals and add interactivity to your websites.</p>
+                        
+                        <div class="assignment-meta">
+                            <span>Views: 8,762</span>
+                            <span class="due-date">67</span>
+                        </div>
+
+                        <div class="progress-section">
+                            <div class="progress-label">Progress</div>
+                            <div class="progress-bar" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">
+                                <div class="progress-fill progress-blue" style="width: 75%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="participants-section">
+                            <div class="participant-avatars">
+                                <div class="avatar avatar-4">E</div>
+                                <div class="avatar avatar-5">F</div>
+                                <div class="avatar avatar-1">G</div>
+                            </div>
+                            <button class="edit-btn" onclick="editAssignment('javascript-intro', event)">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="classroom-card" onclick="openAssignment('responsive-design')">
+                    <div class="card-content">
+                        <h3 class="assignment-title">Responsive Web Design</h3>
+                        <p class="assignment-description">Learn to create websites that adapt perfectly to any device.</p>
+                        
+                        <div class="assignment-meta">
+                            <span>Views: 6,543</span>
+                            <span class="due-date">45</span>
+                        </div>
+
+                        <div class="progress-section">
+                            <div class="progress-label">Progress</div>
+                            <div class="progress-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100">
+                                <div class="progress-fill progress-orange" style="width: 60%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="participants-section">
+                            <div class="participant-avatars">
+                                <div class="avatar avatar-2">H</div>
+                                <div class="avatar avatar-4">I</div>
+                            </div>
+                            <button class="edit-btn" onclick="editAssignment('responsive-design', event)">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="classroom-card" onclick="openAssignment('ui-fundamentals')">
+                    <div class="card-content">
+                        <h3 class="assignment-title">UI/UX Fundamentals</h3>
+                        <p class="assignment-description">Discover the basic principles of user interface and user experience design.</p>
+                        
+                        <div class="assignment-meta">
+                            <span>Views: 9,821</span>
+                            <span class="due-date">78</span>
+                        </div>
+
+                        <div class="progress-section">
+                            <div class="progress-label">Progress</div>
+                            <div class="progress-bar" role="progressbar" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100">
+                                <div class="progress-fill progress-purple" style="width: 35%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="participants-section">
+                            <div class="participant-avatars">
+                                <div class="avatar avatar-5">J</div>
+                                <div class="avatar avatar-1">K</div>
+                                <div class="avatar avatar-3">L</div>
+                                <div class="avatar more-avatars">+3</div>
+                            </div>
+                            <button class="edit-btn" onclick="editAssignment('ui-fundamentals', event)">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <span class="focus-trap-end" tabindex="0"></span>
+    </div>
+
+    <!-- NEW: Upload Modal -->
+    <div class="modal-backdrop" id="uploadModalBackdrop" onclick="closeUploadModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    Upload Document
+                </h3>
+                <button class="modal-close" onclick="closeUploadModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-file-preview" id="uploadPreview" onclick="document.getElementById('fileInput').click()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    <p><strong>Click to select a file</strong></p>
+                    <p style="margin-top: 0.5rem; font-size: 0.75rem;">or drag and drop here</p>
+                </div>
+                <input type="file" id="fileInput" style="display: none;" onchange="handleFileSelect(event)" accept=".doc,.docx,.pdf,.txt">
+                <div id="fileInfoContainer" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="closeUploadModal()"><i class="bi bi-x-square"></i> Cancel</button>
+                <button class="modal-btn modal-btn-primary" id="uploadBtn" onclick="handleUploadSubmit()" disabled>
+                    <span class="loading" id="uploadLoading" style="display: none;"></span>
+                    <span id="uploadBtnText"> <i class="bi bi-save"></i> Upload</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: Rename Modal -->
+    <div class="modal-backdrop" id="renameModalBackdrop" onclick="closeRenameModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    Rename Document
+                </h3>
+                <button class="modal-close" onclick="closeRenameModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-input-group">
+                    <label class="modal-label" for="renameInput">Document Name</label>
+                    <input type="text" id="renameInput" class="modal-input" placeholder="Enter new name...">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="closeRenameModal()"><i class="bi bi-x-square"></i> Cancel</button>
+                <button class="modal-btn modal-btn-primary" onclick="handleRenameSubmit()">
+                    <span class="loading" id="renameLoading" style="display: none;"></span>
+                    <span id="renameBtnText"><i class="bi bi-save"></i> Rename</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: Delete Confirmation Modal -->
+    <div class="modal-backdrop" id="deleteModalBackdrop" onclick="closeDeleteModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Delete Document
+                </h3>
+                <button class="modal-close" onclick="closeDeleteModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-alert modal-alert-danger">
+                    <svg class="modal-alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <div class="modal-alert-text">
+                        <strong>Are you sure?</strong><br>
+                        This will move "<span id="deleteFileName"></span>" to trash. You can restore it later from the trash.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="closeDeleteModal()"><i class="bi bi-x-square"></i> Cancel</button>
+                <button class="modal-btn modal-btn-danger" onclick="handleDeleteSubmit()">
+                    <span class="loading" id="deleteLoading" style="display: none;"></span>
+                    <span id="deleteBtnText"><i class="bi bi-check2-square"></i> Move to Trash</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: Download Confirmation Modal -->
+    <div class="modal-backdrop" id="downloadModalBackdrop" onclick="closeDownloadModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Download Document
+                </h3>
+                <button class="modal-close" onclick="closeDownloadModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-file-info">
+                    <div class="modal-file-icon">
+                        <svg fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+                        </svg>
+                    </div>
+                    <div class="modal-file-details">
+                        <div class="modal-file-name" id="downloadFileName"></div>
+                        <div class="modal-file-size" id="downloadFileSize"></div>
+                    </div>
+                </div>
+                <p style="color: var(--text); margin-top: var(--space-lg); font-size: 0.875rem;">
+                    Ready to download this document to your device?
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="closeDownloadModal()"><i class="bi bi-x-square"></i> Cancel</button>
+                <button class="modal-btn modal-btn-primary" onclick="handleDownloadSubmit()">
+                    <span class="loading" id="downloadLoading" style="display: none;"></span>
+                    <span id="downloadBtnText"><i class="bi bi-file-earmark-arrow-down"></i> Download</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: Create Document Modal -->
+    <div class="modal-backdrop" id="createDocModalBackdrop" onclick="closeCreateDocModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Create New Document
+                </h3>
+                <button class="modal-close" onclick="closeCreateDocModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-input-group">
+                    <label class="modal-label" for="newDocName">Document Name</label>
+                    <input type="text" id="newDocName" class="modal-input" placeholder="Enter document name...">
+                </div>
+                <div class="modal-input-group">
+                    <label class="modal-label">
+                        <input type="checkbox" id="shareNewDoc" style="margin-right: 0.5rem;">
+                        Share document immediately
+                    </label>
+                    <p style="font-size: 0.75rem; color: var(--text); margin-top: 0.5rem; margin-left: 1.5rem;">
+                        Generate a shareable link for this document
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="closeCreateDocModal()"><i class="bi bi-x-square"></i> Cancel</button>
+                <button class="modal-btn modal-btn-primary" onclick="handleCreateDocSubmit()">
+                    <span class="loading" id="createDocLoading" style="display: none;"></span>
+                    <span id="createDocBtnText">Create</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: Restore Confirmation Modal -->
+    <div class="modal-backdrop" id="restoreModalBackdrop" onclick="closeRestoreModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M7.364 3.5a.5.5 0 0 1 .5-.5H14.5A1.5 1.5 0 0 1 16 4.5v10a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 3 14.5V7.864a.5.5 0 1 1 1 0V14.5a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-10a.5.5 0 0 0-.5-.5H7.864a.5.5 0 0 1-.5-.5"/>
+                        <path fill-rule="evenodd" d="M0 .5A.5.5 0 0 1 .5 0h5a.5.5 0 0 1 0 1H1.707l8.147 8.146a.5.5 0 0 1-.708.708L1 1.707V5.5a.5.5 0 0 1-1 0z"/>
+                    </svg>
+                    Restore Document
+                </h3>
+                <button class="modal-close" onclick="closeRestoreModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-file-info">
+                    <div class="modal-file-icon">
+                        <svg fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+                        </svg>
+                    </div>
+                    <div class="modal-file-details">
+                        <div class="modal-file-name" id="restoreFileName"></div>
+                        <div class="modal-file-size" id="restoreFileDate"></div>
+                    </div>
+                </div>
+                <p style="color: var(--text); margin-top: var(--space-lg); font-size: 0.875rem;">
+                    This document will be restored to your active documents list.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="closeRestoreModal()"><i class="bi bi-x-square"></i> Cancel</button>
+                <button class="modal-btn modal-btn-primary" onclick="handleRestoreSubmit()">
+                    <span class="loading" id="restoreLoading" style="display: none;"></span>
+                    <span id="restoreBtnText"><i class="bi bi-box-arrow-up-left"></i> Restore</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: Delete Forever Confirmation Modal -->
+    <div class="modal-backdrop" id="deleteForeverModalBackdrop" onclick="closeDeleteForeverModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M6.854 7.146a.5.5 0 1 0-.708.708L7.293 9l-1.147 1.146a.5.5 0 0 0 .708.708L8 9.707l1.146 1.147a.5.5 0 0 0 .708-.708L8.707 9l1.147-1.146a.5.5 0 0 0-.708-.708L8 8.293z"/>
+                        <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
+                    </svg>
+                    Delete Permanently
+                </h3>
+                <button class="modal-close" onclick="closeDeleteForeverModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-alert modal-alert-danger">
+                    <svg class="modal-alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <div class="modal-alert-text">
+                        <strong>⚠️ This action cannot be undone!</strong><br>
+                        "<span id="deleteForeverFileName"></span>" will be permanently deleted from the system. This cannot be recovered.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="closeDeleteForeverModal()"><i class="bi bi-x-square"></i> Cancel</button>
+                <button class="modal-btn modal-btn-danger" onclick="handleDeleteForeverSubmit()">
+                    <span class="loading" id="deleteForeverLoading" style="display: none;"></span>
+                    <span id="deleteForeverBtnText"><i class="bi bi-trash"></i> Delete Forever</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+ <script>
+  // ===========================
+// VARIABLES GLOBALES Y ESTADO
+// ===========================
+const AppState = {
+    currentView: localStorage.getItem('fileView') || 'card',
+    files: [],
+    filteredFiles: [],
+    searchTerm: '',
+    debounceTimer: null,
+    activeDropdown: null,
+    currentFileId: null,
+    selectedFile: null,
+    currentDocumentId: null,
+    currentShareDocId: null,
+    currentUserEmail: 'anonymous',
+    isSharedDocument: false,
+    sharedDocumentInfo: null
+};
+
+// ===========================
+// SIDEBAR FUNCTIONALITY
+// ===========================
+const expand_btn = document.querySelector(".expand-btn");
+
+if (expand_btn) {
+    expand_btn.addEventListener("click", () => {
+        document.body.classList.toggle("collapsed");
+        document.body.classList.toggle("sidebar-expanded");
+        const isExpanded = document.body.classList.contains("sidebar-expanded");
+        expand_btn.setAttribute('aria-expanded', isExpanded);
+    });
+}
+
+// Enlaces activos del sidebar
+const current = window.location.href;
+const allLinks = document.querySelectorAll(".sidebar-links a");
+
+allLinks.forEach((elem) => {
+    elem.addEventListener("click", function () {
+        const hrefLinkClick = elem.href;
+        allLinks.forEach((link) => {
+            if (link.href == hrefLinkClick) {
+                link.classList.add("active");
+            } else {
+                link.classList.remove("active");
+            }
+        });
+    });
+});
+
+// ===========================
+// FUNCIONES DE UTILIDAD
+// ===========================
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ===========================
+// SISTEMA DE NOTIFICACIONES
+// ===========================
+function showNotification(message, type = 'info') {
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notification => notification.remove());
+
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    
+    const colors = {
+        success: '#10b981',
+        error: '#ef4444',
+        info: '#1621ff',
+        warning: '#f59e0b'
+    };
+    
+    notification.style.cssText = `
+        position: fixed;
+        top: 2rem;
+        right: 2rem;
+        background: ${colors[type] || colors.info};
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 3000;
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 500;
+        font-size: 0.9rem;
+        max-width: 300px;
+    `;
+    
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 300);
+    }, 3000);
+}
+
+function showLoading(message) {
+    console.log('Loading:', message);
+    showNotification(message, 'info');
+}
+
+function hideLoading() {
+    console.log('Loading complete');
+}
+
+// ===========================
+// GESTIÓN DE USUARIO
+// ===========================
+function loadUserEmail() {
+    AppState.currentUserEmail = localStorage.getItem('userEmail') || prompt('Ingresa tu email:') || 'anonymous';
+    if (AppState.currentUserEmail !== 'anonymous') {
+        localStorage.setItem('userEmail', AppState.currentUserEmail);
+    }
+}
+
+// ===========================
+// VIEW TOGGLE (CARD/LIST)
+// ===========================
+const cardViewBtn = document.getElementById('cardViewBtn');
+const listViewBtn = document.getElementById('listViewBtn');
+const filesContainer = document.getElementById('documentsListContainer');
+
+function switchView(view) {
+    AppState.currentView = view;
+    localStorage.setItem('fileView', view);
+
+    if (cardViewBtn && listViewBtn) {
+        [cardViewBtn, listViewBtn].forEach(btn => {
+            const isActive = btn.dataset.view === view;
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-pressed', isActive);
+        });
+    }
+
+    if (filesContainer) {
+        if (view === 'list') {
+            filesContainer.classList.remove('files-grid');
+            filesContainer.classList.add('files-list');
+        } else {
+            filesContainer.classList.remove('files-list');
+            filesContainer.classList.add('files-grid');
+        }
+    }
+
+    renderDocumentsList();
+}
+
+if (cardViewBtn) cardViewBtn.addEventListener('click', () => switchView('card'));
+if (listViewBtn) listViewBtn.addEventListener('click', () => switchView('list'));
+
+// ===========================
+// SEARCH FUNCTIONALITY
+// ===========================
+const searchInput = document.getElementById('searchInput');
+const searchClear = document.getElementById('searchClear');
+const emptyState = document.getElementById('emptyState');
+
+if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+        const value = e.target.value;
+        if (searchClear) {
+            searchClear.classList.toggle('show', value.length > 0);
+        }
+
+        clearTimeout(AppState.debounceTimer);
+        AppState.debounceTimer = setTimeout(() => {
+            performSearch(value);
+        }, 250);
+    });
+}
+
+if (searchClear) {
+    searchClear.addEventListener('click', () => {
+        if (searchInput) {
+            searchInput.value = '';
+            searchClear.classList.remove('show');
+            performSearch('');
+            searchInput.focus();
+        }
+    });
+}
+
+function performSearch(term) {
+    AppState.searchTerm = term.toLowerCase().trim();
+    
+    if (!AppState.searchTerm) {
+        AppState.filteredFiles = [];
+        renderDocumentsList();
+        return;
+    }
+
+    AppState.filteredFiles = AppState.files.filter(file => {
+        const title = (file.title || file.name || '').toLowerCase();
+        const size = formatBytes(file.size_bytes || 0).toLowerCase();
+        return title.includes(AppState.searchTerm) || size.includes(AppState.searchTerm);
+    });
+
+    renderDocumentsList();
+}
+
+// ===========================
+// DROPDOWN FUNCTIONALITY
+// ===========================
+function toggleDropdown(event, docId) {
+    event.stopPropagation();
+    const dropdown = document.getElementById(`dropdown-${docId}`);
+    const button = event.currentTarget;
+    const isOpen = dropdown && dropdown.classList.contains('show');
+
+    closeAllDropdowns();
+
+    if (!isOpen && dropdown) {
+        dropdown.classList.add('show');
+        button.setAttribute('aria-expanded', 'true');
+        AppState.activeDropdown = docId;
+
+        const rect = button.getBoundingClientRect();
+        const dropdownRect = dropdown.getBoundingClientRect();
+        
+        if (rect.right + dropdownRect.width > window.innerWidth) {
+            dropdown.style.right = '0';
+            dropdown.style.left = 'auto';
+        }
+
+        setTimeout(() => {
+            const firstItem = dropdown.querySelector('.dropdown-item');
+            if (firstItem) firstItem.focus();
+        }, 50);
+    }
+}
+
+function closeAllDropdowns() {
+    document.querySelectorAll('.dropdown-menu.show').forEach(dropdown => {
+        dropdown.classList.remove('show');
+        const container = dropdown.closest('.file-menu-container');
+        const button = container?.querySelector('.file-menu-btn');
+        if (button) button.setAttribute('aria-expanded', 'false');
+    });
+    AppState.activeDropdown = null;
+}
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.file-menu-container') && !e.target.closest('.dropdown-menu')) {
+        closeAllDropdowns();
+    }
+});
+
+// ===========================
+// API: CARGAR DOCUMENTOS
+// ===========================
+async function loadDocumentsList() {
+    try {
+        const response = await fetch(`/document_bp/api/documents?owner_email=${AppState.currentUserEmail}&per_page=50`);
+        
+        if (!response.ok) {
+            throw new Error('Error cargando lista de documentos');
+        }
+        
+        const data = await response.json();
+        AppState.files = data.documents || [];
+        
+        renderDocumentsList();
+    } catch (error) {
+        console.error('Error loading documents:', error);
+        showNotification('Error loading documents. Showing demo data.', 'warning');
+        AppState.files = [];
+        renderDocumentsList();
+    }
+}
+
+// ===========================
+// RENDERIZADO DE DOCUMENTOS
+// ===========================
+function renderDocumentsList() {
+    if (!filesContainer) return;
+
+    filesContainer.classList.add('fade-out');
+
+    setTimeout(() => {
+        const filesToRender = AppState.filteredFiles.length > 0 ? AppState.filteredFiles : AppState.files;
+
+        if (filesToRender.length === 0 && AppState.searchTerm && emptyState) {
+            filesContainer.innerHTML = '';
+            filesContainer.style.display = 'none';
+            emptyState.style.display = 'block';
+        } else {
+            if (emptyState) emptyState.style.display = 'none';
+            filesContainer.style.display = '';
+            
+            filesContainer.innerHTML = filesToRender.map(doc => 
+                AppState.currentView === 'card' 
+                    ? renderFileCard(doc) 
+                    : renderFileListItem(doc)
+            ).join('');
+        }
+
+        filesContainer.classList.remove('fade-out');
+    }, 150);
+}
+
+function renderFileCard(doc) {
+    return `
+        <div class="file-card-wrapper" data-file-id="${doc.id}">
+            <div class="file-card" onclick="loadDocument(${doc.id})" role="listitem">
+                <button class="file-menu-btn" onclick="toggleDropdown(event, ${doc.id})" aria-label="Options" aria-haspopup="true" aria-expanded="false">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
+                    </svg>
+                </button>
+                <div class="file-icon-large app-icon" style="color:white;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M14 4.5V11h-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5zm-6.839 9.688v-.522a1.5 1.5 0 0 0-.117-.641.86.86 0 0 0-.322-.387.86.86 0 0 0-.469-.129.87.87 0 0 0-.471.13.87.87 0 0 0-.32.386 1.5 1.5 0 0 0-.117.641v.522q0 .384.117.641a.87.87 0 0 0 .32.387.9.9 0 0 0 .471.126.9.9 0 0 0 .469-.126.86.86 0 0 0 .322-.386 1.55 1.55 0 0 0 .117-.642m.803-.516v.513q0 .563-.205.973a1.47 1.47 0 0 1-.589.627q-.381.216-.917.216a1.86 1.86 0 0 1-.92-.216 1.46 1.46 0 0 1-.589-.627 2.15 2.15 0 0 1-.205-.973v-.513q0-.569.205-.975.205-.411.59-.627.386-.22.92-.22.535 0 .916.22.383.219.59.63.204.406.204.972M1 15.925v-3.999h1.459q.609 0 1.005.235.396.233.589.68.196.445.196 1.074q0 .634-.196 1.084-.197.451-.595.689-.396.237-.999.237zm1.354-3.354H1.79v2.707h.563q.277 0 .483-.082a.8.8 0 0 0 .334-.252q.132-.17.196-.422a2.3 2.3 0 0 0 .068-.592q0-.45-.118-.753a.9.9 0 0 0-.354-.454q-.237-.152-.61-.152Zm6.756 1.116q0-.373.103-.633a.87.87 0 0 1 .301-.398.8.8 0 0 1 .475-.138q.225 0 .398.097a.7.7 0 0 1 .273.26.85.85 0 0 1 .12.381h.765v-.073a1.33 1.33 0 0 0-.466-.964 1.4 1.4 0 0 0-.49-.272 1.8 1.8 0 0 0-.606-.097q-.534 0-.911.223-.375.222-.571.633-.197.41-.197.978v.498q0 .568.194.976.195.406.571.627.375.216.914.216.44 0 .785-.164t.551-.454a1.27 1.27 0 0 0 .226-.674v-.076h-.765a.8.8 0 0 1-.117.364.7.7 0 0 1-.273.248.9.9 0 0 1-.401.088.85.85 0 0 1-.478-.131.83.83 0 0 1-.298-.393 1.7 1.7 0 0 1-.103-.627zm5.092-1.76h.894l-1.275 2.006 1.254 1.992h-.908l-.85-1.415h-.035l-.852 1.415h-.862l1.24-2.015-1.228-1.984h.932l.832 1.439h.035z"/>
+                    </svg>
+                </div>
+                <p class="file-name">${escapeHtml(doc.title)}</p>
+                <p class="file-size">${formatDate(doc.updated_at)}</p>
+                <p class="file-size">${formatBytes(doc.size_bytes)}</p>
+            </div>
+            <div class="dropdown-menu" id="dropdown-${doc.id}" role="menu">
+                <button class="dropdown-item" onclick="editDocument(${doc.id}, event)" role="menuitem">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    Edit
+                </button>
+                <button class="dropdown-item" onclick="showShareModal(${doc.id})" role="menuitem">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                    </svg>
+                    Share
+                </button>
+                <button class="dropdown-item" onclick="openDownloadModal(${doc.id})" role="menuitem">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Download
+                </button>
+                <button class="dropdown-item danger" onclick="deleteDocument(${doc.id}, event)" role="menuitem">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Delete
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function renderFileCard2(doc) {
+    return `
+        <div class="file-card" onclick="loadDocument(${doc.id})" role="listitem" data-file-id="${doc.id}">
+            <button class="file-menu-btn" onclick="toggleDropdown(event, ${doc.id})" aria-label="Options" aria-haspopup="true" aria-expanded="false">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
+                </svg>
+            </button>
+            <div class="dropdown-menu" id="dropdown-${doc.id}" role="menu">
+                <button class="dropdown-item" onclick="editDocument(${doc.id}, event)" role="menuitem">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    Edit
+                </button>
+                <button class="dropdown-item" onclick="showShareModal(${doc.id})" role="menuitem">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                    </svg>
+                    Share
+                </button>
+                <button class="dropdown-item" onclick="openDownloadModal(${doc.id})" role="menuitem">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Download
+                </button>
+                <button class="dropdown-item danger" onclick="deleteDocument(${doc.id}, event)" role="menuitem">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Delete
+                </button>
+            </div>
+            <div class="file-icon-large app-icon" style="color:white;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M14 4.5V11h-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5zm-6.839 9.688v-.522a1.5 1.5 0 0 0-.117-.641.86.86 0 0 0-.322-.387.86.86 0 0 0-.469-.129.87.87 0 0 0-.471.13.87.87 0 0 0-.32.386 1.5 1.5 0 0 0-.117.641v.522q0 .384.117.641a.87.87 0 0 0 .32.387.9.9 0 0 0 .471.126.9.9 0 0 0 .469-.126.86.86 0 0 0 .322-.386 1.55 1.55 0 0 0 .117-.642m.803-.516v.513q0 .563-.205.973a1.47 1.47 0 0 1-.589.627q-.381.216-.917.216a1.86 1.86 0 0 1-.92-.216 1.46 1.46 0 0 1-.589-.627 2.15 2.15 0 0 1-.205-.973v-.513q0-.569.205-.975.205-.411.59-.627.386-.22.92-.22.535 0 .916.22.383.219.59.63.204.406.204.972M1 15.925v-3.999h1.459q.609 0 1.005.235.396.233.589.68.196.445.196 1.074 0 .634-.196 1.084-.197.451-.595.689-.396.237-.999.237zm1.354-3.354H1.79v2.707h.563q.277 0 .483-.082a.8.8 0 0 0 .334-.252q.132-.17.196-.422a2.3 2.3 0 0 0 .068-.592q0-.45-.118-.753a.9.9 0 0 0-.354-.454q-.237-.152-.61-.152Zm6.756 1.116q0-.373.103-.633a.87.87 0 0 1 .301-.398.8.8 0 0 1 .475-.138q.225 0 .398.097a.7.7 0 0 1 .273.26.85.85 0 0 1 .12.381h.765v-.073a1.33 1.33 0 0 0-.466-.964 1.4 1.4 0 0 0-.49-.272 1.8 1.8 0 0 0-.606-.097q-.534 0-.911.223-.375.222-.571.633-.197.41-.197.978v.498q0 .568.194.976.195.406.571.627.375.216.914.216.44 0 .785-.164t.551-.454a1.27 1.27 0 0 0 .226-.674v-.076h-.765a.8.8 0 0 1-.117.364.7.7 0 0 1-.273.248.9.9 0 0 1-.401.088.85.85 0 0 1-.478-.131.83.83 0 0 1-.298-.393 1.7 1.7 0 0 1-.103-.627zm5.092-1.76h.894l-1.275 2.006 1.254 1.992h-.908l-.85-1.415h-.035l-.852 1.415h-.862l1.24-2.015-1.228-1.984h.932l.832 1.439h.035z"/>
+                </svg>
+            </div>
+            <p class="file-name">${escapeHtml(doc.title)}</p>
+            <p class="file-size">${formatDate(doc.updated_at)}</p>
+            <p class="file-size">${formatBytes(doc.size_bytes)}</p>
+        </div>
+    `;
+}
+
+function renderFileListItem(doc) {
+    return `
+        <div class="file-card-wrapper" data-file-id="${doc.id}">
+            <div class="file-card" onclick="loadDocument(${doc.id})" role="listitem">
+                <div class="file-icon-large doc-file">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+                    </svg>
+                </div>
+                <div class="file-info">
+                    <p class="file-name">${escapeHtml(doc.title)}</p>
+                    <p class="file-size">${formatBytes(doc.size_bytes)} • ${formatDate(doc.updated_at)}</p>
+                </div>
+                <button class="file-menu-btn" onclick="toggleDropdown(event, ${doc.id})" aria-label="Options" aria-haspopup="true">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="dropdown-menu" id="dropdown-${doc.id}" role="menu">
+                <button class="dropdown-item" onclick="editDocument(${doc.id}, event)" role="menuitem">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    Edit
+                </button>
+                <button class="dropdown-item" onclick="showShareModal(${doc.id})" role="menuitem">
+                    <svg fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5m-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3"/>
+                    </svg>
+                    Share
+                </button>
+                <button class="dropdown-item" onclick="openDownloadModal(${doc.id})" role="menuitem">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Download
+                </button>
+                <button class="dropdown-item danger" onclick="deleteDocument(${doc.id}, event)" role="menuitem">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Delete
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function renderFileListItem2(doc) {
+    return `
+        <div class="file-card" onclick="loadDocument(${doc.id})" role="listitem" data-file-id="${doc.id}">
+            <div class="file-icon-large doc-file">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+                </svg>
+            </div>
+            <div class="file-info">
+                <p class="file-name">${escapeHtml(doc.title)}</p>
+                <p class="file-size">${formatBytes(doc.size_bytes)} • ${formatDate(doc.updated_at)}</p>
+            </div>
+            <div class="file-menu-container">
+                <button class="file-menu-btn" onclick="toggleDropdown(event, ${doc.id})" aria-label="Options" aria-haspopup="true">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"/>
+                    </svg>
+                </button>
+                <div class="dropdown-menu" id="dropdown-${doc.id}" role="menu">
+                    <button class="dropdown-item" onclick="editDocument(${doc.id}, event)" role="menuitem">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        Edit
+                    </button>
+                    <button class="dropdown-item" onclick="showShareModal(${doc.id})" role="menuitem">
+                        <svg fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5m-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3"/>
+                        </svg>
+                        Share
+                    </button>
+                    <button class="dropdown-item" onclick="openDownloadModal(${doc.id})" role="menuitem">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Download
+                    </button>
+                    <button class="dropdown-item danger" onclick="deleteDocument(${doc.id}, event)" role="menuitem">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ===========================
+// API: CARGAR DOCUMENTO
+// ===========================
+async function loadDocument(docId) {
+    try {
+        showLoading('Cargando documento...');
+        
+        const response = await fetch(`/document_bp/api/document/${docId}/load?user_email=${AppState.currentUserEmail}`);
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Error cargando documento');
+        }
+        
+        const data = await response.json();
+        
+        AppState.currentDocumentId = docId;
+        
+        // Si existe quill y documentTitle en la página
+        if (typeof quill !== 'undefined' && document.getElementById('documentTitle')) {
+            document.getElementById('documentTitle').value = data.title;
+            
+            if (data.delta && data.delta.ops) {
+                quill.setContents(data.delta);
+            } else {
+                quill.setContents([]);
+            }
+            
+            if (typeof updateStatus !== 'undefined') {
+                updateStatus('saved', 'Documento cargado');
+            }
+            if (typeof updateDocumentInfo !== 'undefined') {
+                updateDocumentInfo(data);
+            }
+        } else {
+            // Si no hay editor, redirigir
+            window.location.href = `/editor?doc=${docId}`;
+        }
+        
+        hideLoading();
+        showNotification('Documento cargado correctamente', 'success');
+        
+    } catch (error) {
+        console.error('Error:', error);
+        hideLoading();
+        showNotification(error.message, 'error');
+    }
+}
+
+// ===========================
+// API: DOCUMENTO COMPARTIDO
+// ===========================
+function checkForSharedDocument() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedToken = urlParams.get('shared_token');
+    const docId = urlParams.get('doc_id');
+    const permission = urlParams.get('permission');
+    
+    if (sharedToken && docId) {
+        AppState.isSharedDocument = true;
+        loadSharedDocument(sharedToken);
+        
+        if (permission === 'read') {
+            showReadonlyBanner();
+        }
+    }
+}
+
+async function loadSharedDocument(token) {
+    try {
+        showLoading('Cargando documento compartido...');
+        
+        const response = await fetch(`/share_bp/api/shared-document/${token}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Error cargando documento compartido');
+        }
+        
+        AppState.currentDocumentId = data.id;
+        AppState.sharedDocumentInfo = data.share_info;
+        
+        hideLoading();
+        showNotification(`Documento compartido por ${data.share_info?.shared_by || 'usuario'}`, 'info');
+        
+    } catch (error) {
+        console.error('Error:', error);
+        hideLoading();
+        showNotification(error.message, 'error');
+    }
+}
+
+function showReadonlyBanner() {
+    console.log('Document is read-only');
+    showNotification('Este documento es de solo lectura', 'warning');
+}
+
+// ===========================
+// ACCIONES DE DOCUMENTOS
+// ===========================
+function editDocument(docId, event) {
+    if (event) event.stopPropagation();
+    closeAllDropdowns();
+    showNotification(`Abriendo editor para documento ${docId}...`, 'info');
+    setTimeout(() => {
+        window.location.href = `/editor?doc=${docId}`;
+    }, 500);
+}
+
+function deleteDocument(docId, event) {
+    if (event) event.stopPropagation();
+    closeAllDropdowns();
+    openDeleteModal(docId);
+}
+
+function createNewDocument() {
+    openCreateDocModal();
+}
+
+function handleUpload() {
+    openUploadModal();
+}
+
+function openAssignment(assignmentId) {
+    showNotification(`Opening assignment: ${assignmentId}`, 'info');
+}
+
+function editAssignment(assignmentId, event) {
+    if (event) event.stopPropagation();
+    showNotification(`Editing assignment: ${assignmentId}`, 'warning');
+}
+
+// ===========================
+// MODALES - SHARE
+// ===========================
+function showShareModal(docId) {
+    if (event) event.stopPropagation();
+    closeAllDropdowns();
+    AppState.currentShareDocId = docId;
+    const modal = document.getElementById('shareModal');
+    if (modal) {
+        modal.classList.add('show');
+        const emailInput = document.getElementById('recipientEmail');
+        if (emailInput) emailInput.focus();
+    }
+}
+
+function hideShareModal() {
+    const modal = document.getElementById('shareModal');
+    const form = document.getElementById('shareForm');
+    const errorDiv = document.getElementById('emailError');
+    
+    if (modal) modal.classList.remove('show');
+    if (form) form.reset();
+    if (errorDiv) errorDiv.style.display = 'none';
+    AppState.currentShareDocId = null;
+}
+
+function validateEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+}
+
+function handleShare(event) {
+    event.preventDefault();
+    
+    const emailInput = document.getElementById('recipientEmail');
+    const errorDiv = document.getElementById('emailError');
+    const submitBtn = document.getElementById('shareSubmitBtn');
+    const loading = document.getElementById('shareLoading');
+    
+    if (!emailInput || !errorDiv || !submitBtn || !loading) {
+        console.error('Required elements not found');
+        return;
+    }
+    
+    const email = emailInput.value;
+    
+    // Validar email
+    if (!validateEmail(email)) {
+        errorDiv.textContent = 'Please enter a valid email address';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    errorDiv.style.display = 'none';
+    
+    // Mostrar loading
+    loading.style.display = 'inline-block';
+    submitBtn.disabled = true;
+    
+    // Simular llamada API
+    setTimeout(() => {
+        const permission = document.getElementById('permissionLevel')?.value || 'read';
+        const message = document.getElementById('shareMessage')?.value || '';
+        const expires = document.getElementById('expirationDays')?.value || '7';
+        
+        console.log('Sharing document:', {
+            docId: AppState.currentShareDocId,
+            email,
+            permission,
+            message,
+            expires
+        });
+        
+        loading.style.display = 'none';
+        submitBtn.disabled = false;
+        
+        showNotification(`Document shared with ${email}!`, 'success');
+        hideShareModal();
+    }, 1500);
+}
+
+// ===========================
+// MODALES - TRASH
+// ===========================
+function openTrash() {
+    const offcanvas = document.getElementById('trashOffcanvas');
+    const backdrop = document.getElementById('trashBackdrop');
+    if (offcanvas && backdrop) {
+        closeAllModals();
+        offcanvas.classList.add('show');
+        backdrop.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        setupFocusTrap(offcanvas);
+    }
+}
+
+function closeTrash() {
+    const offcanvas = document.getElementById('trashOffcanvas');
+    const backdrop = document.getElementById('trashBackdrop');
+    if (offcanvas && backdrop) {
+        offcanvas.classList.remove('show');
+        backdrop.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+}
+
+function restoreDocument(docId) {
+    openRestoreModal(docId);
+}
+
+function deletePermanent(docId) {
+    openDeleteForeverModal(docId);
+}
+
+// ===========================
+// MODALES - CREATE DOCUMENT
+// ===========================
+function openCreateDocModal() {
+    const backdrop = document.getElementById('createDocModalBackdrop');
+    if (backdrop) {
+        backdrop.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        
+        setTimeout(() => {
+            const input = document.getElementById('newDocName');
+            if (input) input.focus();
+        }, 300);
+    }
+}
+
+function closeCreateDocModal() {
+    const backdrop = document.getElementById('createDocModalBackdrop');
+    if (backdrop) {
+        backdrop.classList.remove('show');
+        document.body.style.overflow = '';
+        const input = document.getElementById('newDocName');
+        const checkbox = document.getElementById('shareNewDoc');
+        if (input) input.value = '';
+        if (checkbox) checkbox.checked = false;
+    }
+}
+
+function handleCreateDocSubmit() {
+    const docName = document.getElementById('newDocName')?.value.trim();
+    if (!docName) {
+        showNotification('Please enter a document name', 'warning');
+        return;
+    }
+
+    const shareDoc = document.getElementById('shareNewDoc')?.checked || false;
+    const btn = event?.target;
+    const loading = document.getElementById('createDocLoading');
+    const btnText = document.getElementById('createDocBtnText');
+    
+    if (btn) btn.disabled = true;
+    if (loading) loading.style.display = 'inline-block';
+    if (btnText) btnText.textContent = 'Creating...';
+    
+    setTimeout(() => {
+        const newFile = {
+            id: AppState.files.length + 1,
+            title: docName,
+            name: docName + '.docx',
+            size_bytes: 0,
+            updated_at: new Date().toISOString(),
+            type: 'doc'
+        };
+        
+        AppState.files.unshift(newFile);
+        renderDocumentsList();
+        
+        if (loading) loading.style.display = 'none';
+        if (btnText) btnText.textContent = 'Create';
+        if (btn) btn.disabled = false;
+        
+        closeCreateDocModal();
+        
+        if (shareDoc) {
+            setTimeout(() => {
+                showShareModal(newFile.id);
+            }, 300);
+        } else {
+            showNotification('Document created successfully!', 'success');
+        }
+    }, 1000);
+}
+
+// ===========================
+// MODALES - UPLOAD
+// ===========================
+function openUploadModal() {
+    const backdrop = document.getElementById('uploadModalBackdrop');
+    if (backdrop) {
+        backdrop.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        AppState.selectedFile = null;
+        const uploadBtn = document.getElementById('uploadBtn');
+        if (uploadBtn) uploadBtn.disabled = true;
+        setTimeout(() => {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) fileInput.focus();
+        }, 300);
+    }
+}
+
+function closeUploadModal() {
+    const backdrop = document.getElementById('uploadModalBackdrop');
+    if (backdrop) {
+        backdrop.classList.remove('show');
+        document.body.style.overflow = '';
+        const preview = document.getElementById('uploadPreview');
+        const fileInfo = document.getElementById('fileInfoContainer');
+        if (preview) preview.classList.remove('has-file');
+        if (fileInfo) {
+            fileInfo.style.display = 'none';
+            fileInfo.innerHTML = '';
+        }
+    }
+}
+
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    AppState.selectedFile = file;
+    const uploadBtn = document.getElementById('uploadBtn');
+    if (uploadBtn) uploadBtn.disabled = false;
+    
+    const preview = document.getElementById('uploadPreview');
+    if (preview) preview.classList.add('has-file');
+    
+    const fileSize = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+    const fileInfoContainer = document.getElementById('fileInfoContainer');
+    if (fileInfoContainer) {
+        fileInfoContainer.style.display = 'block';
+        fileInfoContainer.innerHTML = `
+            <div class="modal-file-info">
+                <div class="modal-file-icon">
+                    <svg fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+                    </svg>
+                </div>
+                <div class="modal-file-details">
+                    <div class="modal-file-name">${file.name}</div>
+                    <div class="modal-file-size">${fileSize}</div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function handleUploadSubmit() {
+    if (!AppState.selectedFile) return;
+    
+    const btn = document.getElementById('uploadBtn');
+    const loading = document.getElementById('uploadLoading');
+    const btnText = document.getElementById('uploadBtnText');
+    
+    if (btn) btn.disabled = true;
+    if (loading) loading.style.display = 'inline-block';
+    if (btnText) btnText.textContent = 'Uploading...';
+    
+    setTimeout(() => {
+        const newFile = {
+            id: AppState.files.length + 1,
+            title: AppState.selectedFile.name,
+            name: AppState.selectedFile.name,
+            size_bytes: AppState.selectedFile.size,
+            updated_at: new Date().toISOString(),
+            type: 'doc'
+        };
+        
+        AppState.files.unshift(newFile);
+        renderDocumentsList();
+        
+        if (loading) loading.style.display = 'none';
+        if (btnText) btnText.textContent = 'Upload';
+        if (btn) btn.disabled = false;
+        
+        closeUploadModal();
+        showNotification('File uploaded successfully!', 'success');
+    }, 1500);
+}
+
+// ===========================
+// MODALES - RENAME
+// ===========================
+function openRenameModal(fileId) {
+    closeAllDropdowns();
+    const file = AppState.files.find(f => f.id === fileId);
+    if (!file) return;
+
+    AppState.currentFileId = fileId;
+    const backdrop = document.getElementById('renameModalBackdrop');
+    const input = document.getElementById('renameInput');
+    
+    if (input) input.value = file.title || file.name;
+    if (backdrop) {
+        backdrop.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        
+        setTimeout(() => {
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        }, 300);
+    }
+}
+
+function closeRenameModal() {
+    const backdrop = document.getElementById('renameModalBackdrop');
+    if (backdrop) {
+        backdrop.classList.remove('show');
+        document.body.style.overflow = '';
+        AppState.currentFileId = null;
+    }
+}
+
+function handleRenameSubmit() {
+    const newName = document.getElementById('renameInput')?.value.trim();
+    if (!newName || !AppState.currentFileId) return;
+
+    const btn = event?.target;
+    const loading = document.getElementById('renameLoading');
+    const btnText = document.getElementById('renameBtnText');
+    
+    if (btn) btn.disabled = true;
+    if (loading) loading.style.display = 'inline-block';
+    if (btnText) btnText.textContent = 'Renaming...';
+    
+    setTimeout(() => {
+        const file = AppState.files.find(f => f.id === AppState.currentFileId);
+        if (file) {
+            file.title = newName;
+            file.name = newName;
+            renderDocumentsList();
+        }
+        
+        if (loading) loading.style.display = 'none';
+        if (btnText) btnText.textContent = 'Rename';
+        if (btn) btn.disabled = false;
+        
+        closeRenameModal();
+        showNotification('Document renamed successfully!', 'success');
+    }, 800);
+}
+
+// ===========================
+// MODALES - DELETE
+// ===========================
+function openDeleteModal(fileId) {
+    closeAllDropdowns();
+    const file = AppState.files.find(f => f.id === fileId);
+    if (!file) return;
+
+    AppState.currentFileId = fileId;
+    const fileName = document.getElementById('deleteFileName');
+    if (fileName) fileName.textContent = file.title || file.name;
+    
+    const backdrop = document.getElementById('deleteModalBackdrop');
+    if (backdrop) {
+        backdrop.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeDeleteModal() {
+    const backdrop = document.getElementById('deleteModalBackdrop');
+    if (backdrop) {
+        backdrop.classList.remove('show');
+        document.body.style.overflow = '';
+        AppState.currentFileId = null;
+    }
+}
+
+function handleDeleteSubmit() {
+    if (!AppState.currentFileId) return;
+
+    const btn = event?.target;
+    const loading = document.getElementById('deleteLoading');
+    const btnText = document.getElementById('deleteBtnText');
+    
+    if (btn) btn.disabled = true;
+    if (loading) loading.style.display = 'inline-block';
+    if (btnText) btnText.textContent = 'Deleting...';
+    
+    setTimeout(() => {
+        const index = AppState.files.findIndex(f => f.id === AppState.currentFileId);
+        if (index > -1) {
+            AppState.files.splice(index, 1);
+            performSearch(AppState.searchTerm);
+        }
+        
+        if (loading) loading.style.display = 'none';
+        if (btnText) btnText.textContent = 'Move to Trash';
+        if (btn) btn.disabled = false;
+        
+        closeDeleteModal();
+        showNotification('Document moved to trash', 'success');
+    }, 800);
+}
+
+// ===========================
+// MODALES - DOWNLOAD
+// ===========================
+function openDownloadModal(fileId) {
+    closeAllDropdowns();
+    const file = AppState.files.find(f => f.id === fileId);
+    if (!file) return;
+
+    AppState.currentFileId = fileId;
+    const fileName = document.getElementById('downloadFileName');
+    const fileSize = document.getElementById('downloadFileSize');
+    if (fileName) fileName.textContent = file.title || file.name;
+    if (fileSize) fileSize.textContent = formatBytes(file.size_bytes || 0);
+    
+    const backdrop = document.getElementById('downloadModalBackdrop');
+    if (backdrop) {
+        backdrop.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeDownloadModal() {
+    const backdrop = document.getElementById('downloadModalBackdrop');
+    if (backdrop) {
+        backdrop.classList.remove('show');
+        document.body.style.overflow = '';
+        AppState.currentFileId = null;
+    }
+}
+
+function handleDownloadSubmit() {
+    if (!AppState.currentFileId) return;
+
+    const btn = event?.target;
+    const loading = document.getElementById('downloadLoading');
+    const btnText = document.getElementById('downloadBtnText');
+    
+    if (btn) btn.disabled = true;
+    if (loading) loading.style.display = 'inline-block';
+    if (btnText) btnText.textContent = 'Downloading...';
+    
+    setTimeout(() => {
+        if (loading) loading.style.display = 'none';
+        if (btnText) btnText.textContent = 'Download';
+        if (btn) btn.disabled = false;
+        
+        closeDownloadModal();
+        showNotification('Download started!', 'success');
+    }, 1200);
+}
+
+// ===========================
+// MODALES - RESTORE
+// ===========================
+function openRestoreModal(docId) {
+    AppState.currentFileId = docId;
+    
+    const docName = docId === 101 ? 'Old Report 2023' : 
+                   docId === 102 ? 'Draft Ideas' : 
+                   'Marketing Plan 2023';
+    const docDate = docId === 101 ? 'Deleted: Oct 15, 2024' :
+                   docId === 102 ? 'Deleted: Oct 12, 2024' :
+                   'Deleted: Oct 08, 2024';
+    
+    const fileName = document.getElementById('restoreFileName');
+    const fileDate = document.getElementById('restoreFileDate');
+    if (fileName) fileName.textContent = docName;
+    if (fileDate) fileDate.textContent = docDate;
+    
+    const backdrop = document.getElementById('restoreModalBackdrop');
+    if (backdrop) {
+        backdrop.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeRestoreModal() {
+    const backdrop = document.getElementById('restoreModalBackdrop');
+    if (backdrop) {
+        backdrop.classList.remove('show');
+        document.body.style.overflow = '';
+        AppState.currentFileId = null;
+    }
+}
+
+function handleRestoreSubmit() {
+    if (!AppState.currentFileId) return;
+
+    const btn = event?.target;
+    const loading = document.getElementById('restoreLoading');
+    const btnText = document.getElementById('restoreBtnText');
+    
+    if (btn) btn.disabled = true;
+    if (loading) loading.style.display = 'inline-block';
+    if (btnText) btnText.textContent = 'Restoring...';
+    
+    setTimeout(() => {
+        if (loading) loading.style.display = 'none';
+        if (btnText) btnText.textContent = 'Restore';
+        if (btn) btn.disabled = false;
+        
+        closeRestoreModal();
+        showNotification(`Document ${AppState.currentFileId} restored successfully!`, 'success');
+    }, 1200);
+}
+
+// ===========================
+// MODALES - DELETE FOREVER
+// ===========================
+function openDeleteForeverModal(docId) {
+    AppState.currentFileId = docId;
+    
+    const docName = docId === 101 ? 'Old Report 2023' : 
+                   docId === 102 ? 'Draft Ideas' : 
+                   'Marketing Plan 2023';
+    
+    const fileName = document.getElementById('deleteForeverFileName');
+    if (fileName) fileName.textContent = docName;
+    
+    const backdrop = document.getElementById('deleteForeverModalBackdrop');
+    if (backdrop) {
+        backdrop.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeDeleteForeverModal() {
+    const backdrop = document.getElementById('deleteForeverModalBackdrop');
+    if (backdrop) {
+        backdrop.classList.remove('show');
+        document.body.style.overflow = '';
+        AppState.currentFileId = null;
+    }
+}
+
+function handleDeleteForeverSubmit() {
+    if (!AppState.currentFileId) return;
+
+    const btn = event?.target;
+    const loading = document.getElementById('deleteForeverLoading');
+    const btnText = document.getElementById('deleteForeverBtnText');
+    
+    if (btn) btn.disabled = true;
+    if (loading) loading.style.display = 'inline-block';
+    if (btnText) btnText.textContent = 'Deleting...';
+    
+    setTimeout(() => {
+        if (loading) loading.style.display = 'none';
+        if (btnText) btnText.textContent = 'Delete Forever';
+        if (btn) btn.disabled = false;
+        
+        closeDeleteForeverModal();
+        showNotification(`Document ${AppState.currentFileId} permanently deleted!`, 'success');
+    }, 1500);
+}
+
+// ===========================
+// OFF-CANVAS - SHARE
+// ===========================
+function openShare(fileId) {
+    closeAllDropdowns();
+    const offcanvas = document.getElementById('shareOffcanvas');
+    const backdrop = document.getElementById('shareBackdrop');
+    
+    if (offcanvas && backdrop) {
+        closeAllModals();
+        offcanvas.classList.add('show');
+        backdrop.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        setupFocusTrap(offcanvas);
+        
+        setTimeout(() => {
+            const firstInput = offcanvas.querySelector('input:not([readonly])');
+            if (firstInput) firstInput.focus();
+        }, 300);
+    }
+}
+
+function closeShare() {
+    const offcanvas = document.getElementById('shareOffcanvas');
+    const backdrop = document.getElementById('shareBackdrop');
+    
+    if (offcanvas && backdrop) {
+        offcanvas.classList.remove('show');
+        backdrop.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+}
+
+function copyShareLink() {
+    const linkInput = document.getElementById('shareLink');
+    const copyBtn = document.getElementById('copyLinkBtn');
+    const copyBtnText = document.getElementById('copyBtnText');
+    
+    if (linkInput) {
+        linkInput.select();
+        document.execCommand('copy');
+    }
+    
+    if (copyBtn && copyBtnText) {
+        copyBtn.classList.add('copied');
+        copyBtnText.textContent = 'Copied!';
+        
+        setTimeout(() => {
+            copyBtn.classList.remove('copied');
+            copyBtnText.textContent = 'Copy';
+        }, 2000);
+    }
+}
+
+// ===========================
+// OFF-CANVAS - SHARED FILES
+// ===========================
+function openSharedFiles() {
+    const offcanvas = document.getElementById('sharedOffcanvas');
+    const backdrop = document.getElementById('sharedBackdrop');
+    
+    if (offcanvas && backdrop) {
+        closeAllModals();
+        offcanvas.classList.add('show');
+        backdrop.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        setupFocusTrap(offcanvas);
+        
+        setTimeout(() => {
+            const firstCard = offcanvas.querySelector('.classroom-card');
+            if (firstCard) firstCard.focus();
+        }, 300);
+    }
+}
+
+function closeSharedFiles() {
+    const offcanvas = document.getElementById('sharedOffcanvas');
+    const backdrop = document.getElementById('sharedBackdrop');
+    
+    if (offcanvas && backdrop) {
+        offcanvas.classList.remove('show');
+        backdrop.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+}
+
+// ===========================
+// UTILITY FUNCTIONS
+// ===========================
+function closeAllModals() {
+    closeTrash();
+    closeShare();
+    closeSharedFiles();
+    closeUploadModal();
+    closeRenameModal();
+    closeDeleteModal();
+    closeDownloadModal();
+    closeCreateDocModal();
+    closeRestoreModal();
+    closeDeleteForeverModal();
+    hideShareModal();
+}
+
+function setupFocusTrap(container) {
+    if (!container) return;
+    
+    const focusableElements = container.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    
+    if (focusableElements.length === 0) return;
+    
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    
+    const trapStart = container.querySelector('.focus-trap-start');
+    const trapEnd = container.querySelector('.focus-trap-end');
+    
+    if (trapStart) {
+        trapStart.onfocus = () => lastElement.focus();
+    }
+    
+    if (trapEnd) {
+        trapEnd.onfocus = () => firstElement.focus();
+    }
+}
+
+// ===========================
+// KEYBOARD SHORTCUTS
+// ===========================
+document.addEventListener('keydown', (e) => {
+    // Escape key
+    if (e.key === 'Escape') {
+        if (document.getElementById('sharedOffcanvas')?.classList.contains('show')) {
+            closeSharedFiles();
+        } else if (document.getElementById('shareOffcanvas')?.classList.contains('show')) {
+            closeShare();
+        } else if (document.getElementById('trashOffcanvas')?.classList.contains('show')) {
+            closeTrash();
+        } else if (document.getElementById('uploadModalBackdrop')?.classList.contains('show')) {
+            closeUploadModal();
+        } else if (document.getElementById('renameModalBackdrop')?.classList.contains('show')) {
+            closeRenameModal();
+        } else if (document.getElementById('deleteModalBackdrop')?.classList.contains('show')) {
+            closeDeleteModal();
+        } else if (document.getElementById('downloadModalBackdrop')?.classList.contains('show')) {
+            closeDownloadModal();
+        } else if (document.getElementById('createDocModalBackdrop')?.classList.contains('show')) {
+            closeCreateDocModal();
+        } else if (document.getElementById('restoreModalBackdrop')?.classList.contains('show')) {
+            closeRestoreModal();
+        } else if (document.getElementById('deleteForeverModalBackdrop')?.classList.contains('show')) {
+            closeDeleteForeverModal();
+        } else if (document.getElementById('shareModal')?.classList.contains('show')) {
+            hideShareModal();
+        } else {
+            closeAllDropdowns();
+            
+            // Cerrar notificaciones
+            const notifications = document.querySelectorAll('.notification');
+            notifications.forEach(notification => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            });
+        }
+    }
+    
+    // Ctrl/Cmd + F para buscar
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f' && searchInput) {
+        e.preventDefault();
+        searchInput.focus();
+    }
+    
+    // Ctrl/Cmd + K para buscar
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k' && searchInput) {
+        e.preventDefault();
+        searchInput.focus();
+    }
+    
+    // Ctrl/Cmd + U para upload
+    if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
+        e.preventDefault();
+        handleUpload();
+    }
+    
+    // Ctrl/Cmd + N para nuevo documento
+    if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        createNewDocument();
+    }
+    
+    // Navegación de dropdowns
+    if (!AppState.activeDropdown) return;
+
+    const dropdown = document.getElementById(`dropdown-${AppState.activeDropdown}`);
+    if (!dropdown || !dropdown.classList.contains('show')) return;
+
+    const items = Array.from(dropdown.querySelectorAll('.dropdown-item'));
+    const currentIndex = items.indexOf(document.activeElement);
+
+    switch(e.key) {
+        case 'ArrowDown':
+            e.preventDefault();
+            const nextIndex = (currentIndex + 1) % items.length;
+            items[nextIndex].focus();
+            break;
+        case 'ArrowUp':
+            e.preventDefault();
+            const prevIndex = currentIndex <= 0 ? items.length - 1 : currentIndex - 1;
+            items[prevIndex].focus();
+            break;
+        case 'Home':
+            e.preventDefault();
+            items[0].focus();
+            break;
+        case 'End':
+            e.preventDefault();
+            items[items.length - 1].focus();
+            break;
+    }
+});
+
+// Enter key support for inputs
+const renameInput = document.getElementById('renameInput');
+if (renameInput) {
+    renameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleRenameSubmit();
+        }
+    });
+}
+
+const newDocName = document.getElementById('newDocName');
+if (newDocName) {
+    newDocName.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleCreateDocSubmit();
+        }
+    });
+}
+
+// ===========================
+// ANIMATIONS & EFFECTS
+// ===========================
+function addRippleEffect() {
+    document.querySelectorAll('.file-card, .classroom-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+            if (e.target.closest('.edit-btn') || e.target.closest('.file-menu-btn')) return;
+            
+            const ripple = document.createElement('div');
+            const rect = this.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = e.clientX - rect.left - size / 2;
+            const y = e.clientY - rect.top - size / 2;
+            
+            ripple.style.cssText = `
+                position: absolute;
+                border-radius: 50%;
+                background: rgba(22, 33, 255, 0.1);
+                transform: scale(0);
+                animation: ripple 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+                width: ${size}px;
+                height: ${size}px;
+                left: ${x}px;
+                top: ${y}px;
+                pointer-events: none;
+                z-index: 10;
+            `;
+            
+            this.style.position = 'relative';
+            this.appendChild(ripple);
+            
+            setTimeout(() => {
+                if (ripple.parentNode) {
+                    ripple.remove();
+                }
+            }, 600);
+        });
+    });
+}
+
+function setupIntersectionObserver() {
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.shared-section').forEach(section => {
+        observer.observe(section);
+    });
+}
+
+// ===========================
+// ANIMACIONES CSS
+// ===========================
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes ripple {
+        to {
+            transform: scale(4);
+            opacity: 0;
+        }
+    }
+    
+    .classroom-card, .file-card {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .animate-spin {
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+    
+    .fade-out {
+        opacity: 0.5;
+        transition: opacity 0.15s ease;
+    }
+`;
+document.head.appendChild(style);
+
+// ===========================
+// INICIALIZACIÓN
+// ===========================
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ MarkTrack Enhanced initialized');
+    
+    // Cargar email y verificar documentos compartidos
+    loadUserEmail();
+    checkForSharedDocument();
+    
+    // Cargar lista de documentos desde API
+    loadDocumentsList();
+    
+    // Configurar vista inicial
+    switchView(AppState.currentView);
+    
+    // Agregar efectos visuales
+    setupIntersectionObserver();
+    addRippleEffect();
+    
+    // Scroll suave
+    document.documentElement.style.scrollBehavior = 'smooth';
+});
+
+// Smooth scroll global
+document.documentElement.style.scrollBehavior = 'smooth';
+ </script>
+</body>
+</html>

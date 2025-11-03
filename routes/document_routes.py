@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 import json
 import uuid
 from io import BytesIO
+from datetime import datetime
+import json
 
 from settings.extensions import db, limiter, logger
 from models.models import Document, DocumentVersion, User, DocumentActivity
@@ -14,128 +16,128 @@ from settings.utils import (
     set_autosave_lock, get_autosave_lock
 )
 
-document_bp = Blueprint('documents', __name__)
+document_bp = Blueprint('document_bp', __name__)
 
-@document_bp.route('/document', methods=['POST'])
-@limiter.limit("30/minute")
+@document_bp.route('/api/document', methods=['POST'])
+#@limiter.limit("30/minute")
 def create_document():
     """Crear nuevo documento"""
-    try:
-        data = request.get_json() or {}
-        title = data.get('title', 'Sin título')
-        owner_email = data.get('owner_email')
-        
-        # Crear o obtener usuario si se proporciona email
-        owner = None
-        if owner_email:
-            owner = User.get_or_create(owner_email)
-        
-        doc = Document(
-            title=title,
-            owner_id=owner.id if owner else None,
-            document_type='created'
-        )
-        db.session.add(doc)
-        db.session.commit()
-        
-        # Registrar actividad
-        DocumentActivity.log_activity(
-            doc_id, user_email, 'restored', 
-            f'Documento "{doc.title}" restaurado', request
-        )
-        
-        logger.info(f"Documento {doc_id} restaurado por {user_email}")
-        
-        return jsonify({
-            'status': 'restored',
-            'message': 'Documento restaurado correctamente'
-        })
-        
-    except Exception as e:
-        logger.error(f"Error restaurando documento {doc_id}: {e}")
-        return jsonify({'error': 'Error restaurando documento'}), 500
+    #try:
+    data = request.get_json() or {}
+    title = data.get('title', 'Sin título')
+    owner_email = data.get('owner_email')
+    
+    # Crear o obtener usuario si se proporciona email
+    owner = None
+    if owner_email:
+        owner = User.get_or_create(owner_email)
+    
+    doc = Document(
+        title=title,
+        owner_id=owner.id if owner else None,
+        document_type='created'
+    )
+    db.session.add(doc)
+    db.session.commit()
+    
+    # Registrar actividad
+    #DocumentActivity.log_activity(
+    #    doc_id, user_email, 'restored', 
+    #    f'Documento "{doc.title}" restaurado', request
+    #)
+    
+    #logger.info(f"Documento {doc_id} restaurado por {user_email}")
+    
+    return jsonify({
+        'status': 'restored',
+        'message': 'Documento restaurado correctamente'
+    })
+    
+    #except Exception as e:
+    #    logger.error(f"Error restaurando documento {doc_id}: {e}")
+    #    return jsonify({'error': 'Error restaurando documento'}), 500
 
-@document_bp.route('/document/<int:doc_id>/export/<format_type>', methods=['GET'])
+@document_bp.route('/api/document/<int:doc_id>/export/<format_type>', methods=['GET'])
 @limiter.limit("20/minute")
 def export_document(doc_id, format_type):
     """Exportar documento a PDF o DOCX"""
+    #try:
+    if format_type not in ['pdf', 'docx']:
+        return jsonify({'error': 'Formato no soportado'}), 400
+    
+    user_email = request.args.get('user_email', 'anonymous')
+    
+    doc = Document.query.get_or_404(doc_id)
+    
+    if doc.is_deleted:
+        return jsonify({'error': 'Documento no encontrado'}), 404
+    
+    # Cargar contenido
+    if doc.storage_type == 'database':
+        html = doc.content_html or ''
+    else:
+        delta, html = load_from_minio_compressed(doc.minio_path)
+        if html is None:
+            return jsonify({'error': 'Error cargando documento'}), 500
+    
+    # Generar archivo
+    if format_type == 'pdf':
+        file_buffer = export_to_pdf(html, doc.title)
+        mimetype = 'application/pdf'
+        filename = f"{doc.title}.pdf"
+    else:  # docx
+        file_buffer = export_to_docx(html, doc.title)
+        mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        filename = f"{doc.title}.docx"
+    
+    if not file_buffer:
+        return jsonify({'error': 'Error generando archivo'}), 500
+    
     try:
-        if format_type not in ['pdf', 'docx']:
-            return jsonify({'error': 'Formato no soportado'}), 400
+        from settings.extensions import minio_client
         
-        user_email = request.args.get('user_email', 'anonymous')
+        # Guardar en Minio para descarga
+        export_filename = f"{doc_id}_{uuid.uuid4().hex}.{format_type}"
         
-        doc = Document.query.get_or_404(doc_id)
+        minio_client.put_object(
+            bucket_name='exports',
+            object_name=export_filename,
+            data=file_buffer,
+            length=file_buffer.getbuffer().nbytes,
+            content_type=mimetype
+        )
         
-        if doc.is_deleted:
-            return jsonify({'error': 'Documento no encontrado'}), 404
+        # Generar URL de descarga temporal
+        download_url = minio_client.presigned_get_object(
+            'exports', 
+            export_filename, 
+            expires=timedelta(hours=1)
+        )
         
-        # Cargar contenido
-        if doc.storage_type == 'database':
-            html = doc.content_html or ''
-        else:
-            delta, html = load_from_minio_compressed(doc.minio_path)
-            if html is None:
-                return jsonify({'error': 'Error cargando documento'}), 500
+        # Registrar actividad
+        DocumentActivity.log_activity(
+            doc_id, user_email, 'exported', 
+            f'Documento exportado a {format_type.upper()}', request
+        )
         
-        # Generar archivo
-        if format_type == 'pdf':
-            file_buffer = export_to_pdf(html, doc.title)
-            mimetype = 'application/pdf'
-            filename = f"{doc.title}.pdf"
-        else:  # docx
-            file_buffer = export_to_docx(html, doc.title)
-            mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-            filename = f"{doc.title}.docx"
+        logger.info(f"Documento {doc_id} exportado a {format_type} por {user_email}")
         
-        if not file_buffer:
-            return jsonify({'error': 'Error generando archivo'}), 500
-        
-        try:
-            from settings.extensions import minio_client
-            
-            # Guardar en Minio para descarga
-            export_filename = f"{doc_id}_{uuid.uuid4().hex}.{format_type}"
-            
-            minio_client.put_object(
-                bucket_name='exports',
-                object_name=export_filename,
-                data=file_buffer,
-                length=file_buffer.getbuffer().nbytes,
-                content_type=mimetype
-            )
-            
-            # Generar URL de descarga temporal
-            download_url = minio_client.presigned_get_object(
-                'exports', 
-                export_filename, 
-                expires=timedelta(hours=1)
-            )
-            
-            # Registrar actividad
-            DocumentActivity.log_activity(
-                doc_id, user_email, 'exported', 
-                f'Documento exportado a {format_type.upper()}', request
-            )
-            
-            logger.info(f"Documento {doc_id} exportado a {format_type} por {user_email}")
-            
-            return jsonify({
-                'download_url': download_url,
-                'filename': filename,
-                'format': format_type,
-                'expires_in': '1 hora'
-            })
-            
-        except Exception as e:
-            logger.error(f"Error exportando documento: {e}")
-            return jsonify({'error': 'Error generando exportación'}), 500
+        return jsonify({
+            'download_url': download_url,
+            'filename': filename,
+            'format': format_type,
+            'expires_in': '1 hora'
+        })
         
     except Exception as e:
-        logger.error(f"Error en exportación: {e}")
-        return jsonify({'error': 'Error en exportación'}), 500
+        logger.error(f"Error exportando documento: {e}")
+        return jsonify({'error': 'Error generando exportación'}), 500
+        
+    #except Exception as e:
+    #    logger.error(f"Error en exportación: {e}")
+    #    return jsonify({'error': 'Error en exportación'}), 500
 
-@document_bp.route('/image/<filename>')
+@document_bp.route('/api/image/<filename>')
 def serve_image(filename):
     """Servir imágenes desde Minio"""
     try:
@@ -162,7 +164,7 @@ def serve_image(filename):
         logger.error(f"Error sirviendo imagen {filename}: {e}")
         return jsonify({'error': 'Imagen no encontrada'}), 404
 
-@document_bp.route('/documents', methods=['GET'])
+@document_bp.route('/api/documents', methods=['GET'])
 def list_documents():
     """Listar documentos con filtros y paginación"""
     try:
@@ -228,14 +230,13 @@ def list_documents():
         logger.error(f"Error listando documentos: {e}")
         return jsonify({'error': 'Error cargando documentos'}), 500
 
-@document_bp.route('/document/<int:doc_id>/versions', methods=['GET'])
+@document_bp.route('/api/document/<int:doc_id>/versions', methods=['GET'])
 def list_document_versions(doc_id):
     """Listar versiones de un documento"""
     try:
         doc = Document.query.get_or_404(doc_id)
         
-        versions = DocumentVersion.query.filter_by(document_id=doc_id)\
-            .order_by(DocumentVersion.created_at.desc()).all()
+        versions = DocumentVersion.query.filter_by(document_id=doc_id).order_by(DocumentVersion.created_at.desc()).all()
         
         return jsonify({
             'document_id': doc_id,
@@ -248,7 +249,7 @@ def list_document_versions(doc_id):
         logger.error(f"Error listando versiones: {e}")
         return jsonify({'error': 'Error cargando versiones'}), 500
 
-@document_bp.route('/document/<int:doc_id>/version/<int:version_id>/restore', methods=['POST'])
+@document_bp.route('/api/document/<int:doc_id>/version/<int:version_id>/restore', methods=['POST'])
 @limiter.limit("5/minute")
 def restore_document_version(doc_id, version_id):
     """Restaurar una versión específica del documento"""
@@ -307,7 +308,7 @@ def restore_document_version(doc_id, version_id):
         logger.error(f"Error restaurando versión: {e}")
         return jsonify({'error': 'Error restaurando versión'}), 500
 
-@document_bp.route('/document/<int:doc_id>/activity', methods=['GET'])
+@document_bp.route('/api/document/<int:doc_id>/activity', methods=['GET'])
 def get_document_activity(doc_id):
     """Obtener historial de actividad del documento"""
     try:
@@ -333,7 +334,7 @@ def get_document_activity(doc_id):
         logger.error(f"Error obteniendo actividad: {e}")
         return jsonify({'error': 'Error cargando actividad'}), 500
 
-@document_bp.route('/stats', methods=['GET'])
+@document_bp.route('/api/stats', methods=['GET'])
 def get_stats():
     """Estadísticas del sistema"""
     try:
@@ -398,113 +399,113 @@ def get_stats():
         logger.error(f"Error creando documento: {e}")
         return jsonify({'error': 'Error creando documento'}), 500
 
-@document_bp.route('/document/<int:doc_id>/save', methods=['POST'])
+@document_bp.route('/api/document/<int:doc_id>/save', methods=['POST'])
 @limiter.limit("100/minute")
 def save_document(doc_id):
     """Guardar documento con sistema híbrido y auto-guardado"""
-    try:
-        data = request.get_json()
+    #try:
+    data = request.get_json()
+    
+    if not data:
+        return jsonify({'error': 'No se enviaron datos'}), 400
+    
+    delta = data.get('delta')
+    html = data.get('html')
+    title = data.get('title', 'Sin título')
+    user_email = data.get('user_email', 'anonymous')
+    is_autosave = data.get('is_autosave', False)
+    
+    if not delta:
+        return jsonify({'error': 'Delta requerido'}), 400
+    
+    # Validar delta
+    is_valid, message = validate_delta(delta)
+    if not is_valid:
+        return jsonify({'error': message}), 400
+    
+    # Buscar documento
+    doc = Document.query.get_or_404(doc_id)
+    
+    # Verificar bloqueo de auto-guardado
+    if is_autosave:
+        existing_lock = get_autosave_lock(doc_id)
+        if existing_lock and existing_lock.get('user_email') != user_email:
+            return jsonify({
+                'error': 'Documento siendo editado por otro usuario',
+                'locked_by': existing_lock.get('user_email')
+            }), 409
         
-        if not data:
-            return jsonify({'error': 'No se enviaron datos'}), 400
+        # Establecer bloqueo
+        set_autosave_lock(doc_id, user_email)
+    
+    # Crear respaldo de versión antes de modificar (solo si no es auto-guardado)
+    if not is_autosave:
+        create_version_backup(doc)
+    
+    # Procesar imágenes
+    delta = extract_and_upload_images(delta)
+    
+    # Actualizar documento
+    doc.title = title
+    content_size = get_content_size(delta, html)
+    doc.size_bytes = content_size
+    doc.updated_at = datetime.utcnow()
+    
+    # Decidir almacenamiento basado en tamaño
+    from flask import current_app
+    
+    if content_size <= current_app.config['MAX_DB_SIZE']:
+        # Guardar en base de datos
+        doc.content_delta = json.dumps(delta)
+        doc.content_html = html
+        doc.storage_type = 'database'
         
-        delta = data.get('delta')
-        html = data.get('html')
-        title = data.get('title', 'Sin título')
-        user_email = data.get('user_email', 'anonymous')
-        is_autosave = data.get('is_autosave', False)
-        
-        if not delta:
-            return jsonify({'error': 'Delta requerido'}), 400
-        
-        # Validar delta
-        is_valid, message = validate_delta(delta)
-        if not is_valid:
-            return jsonify({'error': message}), 400
-        
-        # Buscar documento
-        doc = Document.query.get_or_404(doc_id)
-        
-        # Verificar bloqueo de auto-guardado
-        if is_autosave:
-            existing_lock = get_autosave_lock(doc_id)
-            if existing_lock and existing_lock.get('user_email') != user_email:
-                return jsonify({
-                    'error': 'Documento siendo editado por otro usuario',
-                    'locked_by': existing_lock.get('user_email')
-                }), 409
-            
-            # Establecer bloqueo
-            set_autosave_lock(doc_id, user_email)
-        
-        # Crear respaldo de versión antes de modificar (solo si no es auto-guardado)
-        if not is_autosave:
-            create_version_backup(doc)
-        
-        # Procesar imágenes
-        delta = extract_and_upload_images(delta)
-        
-        # Actualizar documento
-        doc.title = title
-        content_size = get_content_size(delta, html)
-        doc.size_bytes = content_size
-        doc.updated_at = datetime.utcnow()
-        
-        # Decidir almacenamiento basado en tamaño
-        from flask import current_app
-        
-        if content_size <= current_app.config['MAX_DB_SIZE']:
-            # Guardar en base de datos
-            doc.content_delta = json.dumps(delta)
-            doc.content_html = html
-            doc.storage_type = 'database'
-            
-            # Limpiar Minio si existía
-            if doc.minio_path:
-                try:
-                    from settings.extensions import minio_client
-                    minio_client.remove_object('documents', doc.minio_path)
-                except:
-                    pass
-                doc.minio_path = None
-        else:
-            # Guardar en Minio
-            minio_path = save_to_minio_compressed(delta, html)
-            doc.minio_path = minio_path
-            doc.storage_type = 'minio'
-            doc.content_delta = None
-            doc.content_html = None
-        
-        db.session.commit()
-        
-        # Invalidar cache
-        invalidate_document_cache(doc_id)
-        
-        # Registrar actividad (solo si no es auto-guardado)
-        if not is_autosave:
-            DocumentActivity.log_activity(
-                doc_id, 
-                user_email, 
-                'updated', 
-                f'Documento actualizado manualmente',
-                request
-            )
-        
-        logger.info(f"Documento {doc_id} guardado en {doc.storage_type}, tamaño: {content_size}")
-        
-        return jsonify({
-            'status': 'saved',
-            'storage_type': doc.storage_type,
-            'size_bytes': content_size,
-            'updated_at': doc.updated_at.isoformat(),
-            'is_autosave': is_autosave
-        })
-        
-    except Exception as e:
-        logger.error(f"Error guardando documento {doc_id}: {e}")
-        return jsonify({'error': 'Error guardando documento'}), 500
+        # Limpiar Minio si existía
+        if doc.minio_path:
+            try:
+                from settings.extensions import minio_client
+                minio_client.remove_object('documents', doc.minio_path)
+            except:
+                pass
+            doc.minio_path = None
+    else:
+        # Guardar en Minio
+        minio_path = save_to_minio_compressed(delta, html)
+        doc.minio_path = minio_path
+        doc.storage_type = 'minio'
+        doc.content_delta = None
+        doc.content_html = None
+    
+    db.session.commit()
+    
+    # Invalidar cache
+    invalidate_document_cache(doc_id)
+    
+    # Registrar actividad (solo si no es auto-guardado)
+    if not is_autosave:
+        DocumentActivity.log_activity(
+            doc_id, 
+            user_email, 
+            'updated', 
+            f'Documento actualizado manualmente',
+            request
+        )
+    
+    logger.info(f"Documento {doc_id} guardado en {doc.storage_type}, tamaño: {content_size}")
+    
+    return jsonify({
+        'status': 'saved',
+        'storage_type': doc.storage_type,
+        'size_bytes': content_size,
+        'updated_at': doc.updated_at.isoformat(),
+        'is_autosave': is_autosave
+    })
+    
+    #except Exception as e:
+    #    logger.error(f"Error guardando documento {doc_id}: {e}")
+    #    return jsonify({'error': 'Error guardando documento'}), 500
 
-@document_bp.route('/document/<int:doc_id>/load', methods=['GET'])
+@document_bp.route('/api/document/<int:doc_id>/load', methods=['GET'])
 def load_document(doc_id):
     """Cargar documento con cache"""
     try:
@@ -563,7 +564,7 @@ def load_document(doc_id):
         logger.error(f"Error cargando documento {doc_id}: {e}")
         return jsonify({'error': 'Error cargando documento'}), 500
 
-@document_bp.route('/document/<int:doc_id>/delete', methods=['DELETE'])
+@document_bp.route('/api/document/<int:doc_id>/delete', methods=['DELETE'])
 @limiter.limit("10/minute")
 def delete_document(doc_id):
     """Borrado suave de documento"""

@@ -13,149 +13,149 @@ from settings.utils import (
 
 upload_bp = Blueprint('upload', __name__)
 
-@upload_bp.route('/document/upload', methods=['POST'])
+@upload_bp.route('/api/document/upload', methods=['POST'])
 @limiter.limit("10/minute")
 def upload_document():
     """Subir documento DOCX/DOC y convertir a formato del editor"""
-    try:
+    #try:
         # Verificar que se subió un archivo
-        if 'file' not in request.files:
-            return jsonify({'error': 'No se seleccionó archivo'}), 400
+    if 'file' not in request.files:
+        return jsonify({'error': 'No se seleccionó archivo'}), 400
+    
+    file = request.files['file']
+    
+    if file.filename == '':
+        return jsonify({'error': 'No se seleccionó archivo'}), 400
+    
+    # Obtener metadatos adicionales
+    owner_email = request.form.get('owner_email', '').strip()
+    custom_title = request.form.get('title', '').strip()
+    
+    # Validar email del propietario si se proporciona
+    owner = None
+    if owner_email:
+        if not validate_email(owner_email):
+            return jsonify({'error': 'Email del propietario no válido'}), 400
+        owner = User.get_or_create(owner_email)
+    
+    # Validar archivo
+    if not allowed_file(file.filename, {'doc', 'docx'}):
+        return jsonify({
+            'error': 'Tipo de archivo no soportado. Solo se permiten archivos .doc y .docx'
+        }), 400
+    
+    # Verificar tamaño del archivo
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+    
+    from flask import current_app
+    if file_size > current_app.config['MAX_CONTENT_LENGTH']:
+        max_size_mb = current_app.config['MAX_CONTENT_LENGTH'] / (1024 * 1024)
+        return jsonify({
+            'error': f'Archivo demasiado grande. Máximo {max_size_mb:.1f}MB'
+        }), 400
+    
+    # Generar nombre seguro para el archivo
+    original_filename = secure_filename(file.filename)
+    safe_filename = generate_safe_filename(original_filename)
+    
+    # Guardar archivo temporalmente
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    os.makedirs(upload_folder, exist_ok=True)
+    
+    temp_file_path = os.path.join(upload_folder, safe_filename)
+    file.save(temp_file_path)
+    
+    try:
+        # Procesar archivo según extensión
+        file_ext = original_filename.rsplit('.', 1)[1].lower()
         
-        file = request.files['file']
+        if file_ext in ['docx', 'doc']:
+            delta, html, error = process_docx_upload(temp_file_path)
+            
+            if error:
+                return jsonify({'error': f'Error procesando documento: {error}'}), 400
+            
+            if not delta or not html:
+                return jsonify({'error': 'No se pudo extraer contenido del documento'}), 400
         
-        if file.filename == '':
-            return jsonify({'error': 'No se seleccionó archivo'}), 400
+        else:
+            return jsonify({'error': 'Formato de archivo no soportado'}), 400
         
-        # Obtener metadatos adicionales
-        owner_email = request.form.get('owner_email', '').strip()
-        custom_title = request.form.get('title', '').strip()
+        # Determinar título del documento
+        if custom_title:
+            doc_title = custom_title
+        else:
+            # Usar nombre del archivo sin extensión
+            doc_title = original_filename.rsplit('.', 1)[0]
         
-        # Validar email del propietario si se proporciona
-        owner = None
-        if owner_email:
-            if not validate_email(owner_email):
-                return jsonify({'error': 'Email del propietario no válido'}), 400
-            owner = User.get_or_create(owner_email)
+        # Crear documento en la base de datos
+        doc = Document(
+            title=doc_title,
+            document_type='uploaded',
+            original_filename=original_filename,
+            mime_type=f'application/vnd.openxmlformats-officedocument.wordprocessingml.document' if file_ext == 'docx' else 'application/msword',
+            owner_id=owner.id if owner else None
+        )
         
-        # Validar archivo
-        if not allowed_file(file.filename, {'doc', 'docx'}):
-            return jsonify({
-                'error': 'Tipo de archivo no soportado. Solo se permiten archivos .doc y .docx'
-            }), 400
+        # Calcular tamaño del contenido
+        content_size = get_content_size(delta, html)
+        doc.size_bytes = content_size
         
-        # Verificar tamaño del archivo
-        file.seek(0, os.SEEK_END)
-        file_size = file.tell()
-        file.seek(0)
+        # Decidir almacenamiento
+        if content_size <= current_app.config['MAX_DB_SIZE']:
+            # Guardar en base de datos
+            import json
+            doc.content_delta = json.dumps(delta)
+            doc.content_html = html
+            doc.storage_type = 'database'
+        else:
+            # Guardar en Minio
+            from settings.utils import save_to_minio_compressed
+            minio_path = save_to_minio_compressed(delta, html)
+            doc.minio_path = minio_path
+            doc.storage_type = 'minio'
         
-        from flask import current_app
-        if file_size > current_app.config['MAX_CONTENT_LENGTH']:
-            max_size_mb = current_app.config['MAX_CONTENT_LENGTH'] / (1024 * 1024)
-            return jsonify({
-                'error': f'Archivo demasiado grande. Máximo {max_size_mb:.1f}MB'
-            }), 400
+        db.session.add(doc)
+        db.session.commit()
         
-        # Generar nombre seguro para el archivo
-        original_filename = secure_filename(file.filename)
-        safe_filename = generate_safe_filename(original_filename)
+        # Registrar actividad
+        DocumentActivity.log_activity(
+            doc.id, 
+            owner_email or 'anonymous', 
+            'uploaded', 
+            f'Documento "{original_filename}" subido y convertido',
+            request
+        )
         
-        # Guardar archivo temporalmente
-        upload_folder = current_app.config['UPLOAD_FOLDER']
-        os.makedirs(upload_folder, exist_ok=True)
+        logger.info(f"Documento subido: ID {doc.id}, archivo: {original_filename}, tamaño: {content_size}")
         
-        temp_file_path = os.path.join(upload_folder, safe_filename)
-        file.save(temp_file_path)
+        return jsonify({
+            'id': doc.id,
+            'title': doc.title,
+            'original_filename': original_filename,
+            'document_type': 'uploaded',
+            'storage_type': doc.storage_type,
+            'size_bytes': content_size,
+            'created_at': doc.created_at.isoformat(),
+            'owner_email': owner.email if owner else None,
+            'message': f'Documento "{original_filename}" subido y convertido exitosamente'
+        })
         
+    finally:
+        # Limpiar archivo temporal
         try:
-            # Procesar archivo según extensión
-            file_ext = original_filename.rsplit('.', 1)[1].lower()
-            
-            if file_ext in ['docx', 'doc']:
-                delta, html, error = process_docx_upload(temp_file_path)
-                
-                if error:
-                    return jsonify({'error': f'Error procesando documento: {error}'}), 400
-                
-                if not delta or not html:
-                    return jsonify({'error': 'No se pudo extraer contenido del documento'}), 400
-            
-            else:
-                return jsonify({'error': 'Formato de archivo no soportado'}), 400
-            
-            # Determinar título del documento
-            if custom_title:
-                doc_title = custom_title
-            else:
-                # Usar nombre del archivo sin extensión
-                doc_title = original_filename.rsplit('.', 1)[0]
-            
-            # Crear documento en la base de datos
-            doc = Document(
-                title=doc_title,
-                document_type='uploaded',
-                original_filename=original_filename,
-                mime_type=f'application/vnd.openxmlformats-officedocument.wordprocessingml.document' if file_ext == 'docx' else 'application/msword',
-                owner_id=owner.id if owner else None
-            )
-            
-            # Calcular tamaño del contenido
-            content_size = get_content_size(delta, html)
-            doc.size_bytes = content_size
-            
-            # Decidir almacenamiento
-            if content_size <= current_app.config['MAX_DB_SIZE']:
-                # Guardar en base de datos
-                import json
-                doc.content_delta = json.dumps(delta)
-                doc.content_html = html
-                doc.storage_type = 'database'
-            else:
-                # Guardar en Minio
-                from settings.utils import save_to_minio_compressed
-                minio_path = save_to_minio_compressed(delta, html)
-                doc.minio_path = minio_path
-                doc.storage_type = 'minio'
-            
-            db.session.add(doc)
-            db.session.commit()
-            
-            # Registrar actividad
-            DocumentActivity.log_activity(
-                doc.id, 
-                owner_email or 'anonymous', 
-                'uploaded', 
-                f'Documento "{original_filename}" subido y convertido',
-                request
-            )
-            
-            logger.info(f"Documento subido: ID {doc.id}, archivo: {original_filename}, tamaño: {content_size}")
-            
-            return jsonify({
-                'id': doc.id,
-                'title': doc.title,
-                'original_filename': original_filename,
-                'document_type': 'uploaded',
-                'storage_type': doc.storage_type,
-                'size_bytes': content_size,
-                'created_at': doc.created_at.isoformat(),
-                'owner_email': owner.email if owner else None,
-                'message': f'Documento "{original_filename}" subido y convertido exitosamente'
-            })
-            
-        finally:
-            # Limpiar archivo temporal
-            try:
-                if os.path.exists(temp_file_path):
-                    os.remove(temp_file_path)
-            except:
-                pass
+            if os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
+        except:
+            pass
         
-    except Exception as e:
-        logger.error(f"Error subiendo documento: {e}")
-        return jsonify({'error': 'Error procesando archivo'}), 500
+    #except Exception as e:
+    #    logger.error(f"Error subiendo documento: {e}")
+    #    return jsonify({'error': 'Error procesando archivo'}), 500
 
-@upload_bp.route('/document/<int:doc_id>/replace', methods=['POST'])
+@upload_bp.route('/api/document/<int:doc_id>/replace', methods=['POST'])
 @limiter.limit("5/minute")
 def replace_document_content(doc_id):
     """Reemplazar contenido de un documento existente con archivo subido"""

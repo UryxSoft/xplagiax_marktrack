@@ -7,6 +7,694 @@
     
     <!-- Quill.js CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css" rel="stylesheet">
+     <!-- Estilos personalizados -->
+    <style>
+
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f0f0f0;
+    color: #333;
+    line-height: 1.6;
+    padding: 1.2rem;
+    min-height: 100vh;
+}
+
+.editor-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.header {
+    padding: 30px 40px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: center;
+}
+
+.header h1 {
+    font-size: 1.8rem;
+    font-weight: 300;
+    color: #2c3e50;
+    letter-spacing: -0.5px;
+}
+
+.demo-navbar {
+    background: white;
+    padding: 0.6rem 0.6rem 0.09rem 0.6rem;
+    border-radius: 1rem;
+    box-shadow: rgba(149, 157, 165, 0.1) 0px 4px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+    position: fixed;
+    top: 0px;
+    left: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 120px);
+}
+
+.app-icon {
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(135deg, #007AFF 0%, #0051D5 100%);
+    border-radius: 26px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 
+        0 10px 30px rgba(0, 122, 255, 0.3),
+        0 4px 15px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.app-icon::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+    border-radius: 26px 26px 0 0;
+}
+
+.icon-svg {
+    width: 64px;
+    height: 64px;
+    color: white;
+    z-index: 1;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Different sizes */
+.size-small { width: 40px; height: 40px; border-radius: 9px; }
+.size-small .icon-svg { width: 22px; height: 22px; }
+.size-small::before { border-radius: 9px 9px 0 0; }
+
+.size-medium { width: 90px; height: 90px; border-radius: 20px; }
+.size-medium .icon-svg { width: 48px; height: 48px; }
+.size-medium::before { border-radius: 20px 20px 0 0; }
+
+.demo-container {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.label {
+    text-align: center;
+    margin-top: 10px;
+    color: #666;
+    font-size: 12px;
+}
+
+.icon-group {
+    text-align: center;
+}
+
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.navbar-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.brand-text {
+    line-height: 1;
+}
+
+.toolbar-container {
+    padding: 20px 40px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fff;
+}
+
+/* Custom Tooltip Styles */
+.custom-tooltip {
+    display: none;
+    position: absolute;
+    background: rgba(220, 160, 255, 0.95);
+    color: white;
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 12px rgba(113, 4, 255, 0.3);
+    z-index: 9999;
+    pointer-events: none;
+    max-width: 300px;
+    white-space: normal;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-3px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.source-highlight {
+    background: rgba(220, 160, 255, 0.2);
+    border-bottom: 1px dotted #9c27b0;
+    cursor: help;
+    position: relative;
+}
+
+/* Page Styles */
+.pages-container {
+    background: #f5f5f5;
+    padding: 40px 20px;
+    min-height: calc(100vh - 200px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+}
+
+.page {
+    background: white;
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto 20px auto;
+    padding: 20mm;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    box-sizing: border-box;
+    position: relative;
+    border-radius: 4px;
+}
+
+.page-number {
+    position: absolute;
+    bottom: 10mm;
+    right: 20mm;
+    font-size: 10px;
+    color: #666;
+    font-family: monospace;
+}
+
+.page .ql-editor {
+    min-height: 100%;
+    padding: 0 !important;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 12pt;
+    line-height: 1.5;
+    color: #2c3e50;
+    overflow: visible;
+}
+
+.page .ql-container {
+    border: none !important;
+    font-family: inherit;
+    height: auto;
+}
+
+.ql-toolbar {
+    border: none !important;
+    padding: 6px !important;
+    font-family: inherit;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    align-items: center;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.ql-toolbar .ql-picker-options {
+    position: absolute !important;
+    top: 100% !important;
+    left: 0 !important;
+    z-index: 999999 !important;
+    background: white;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.ql-toolbar {
+    overflow: visible !important;
+}
+
+.horizontal-menu {
+    overflow: visible !important;
+    z-index: 1000;
+}
+
+.ql-toolbar .ql-formats {
+    margin: 0;
+    padding: 6px 8px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+
+.ql-toolbar select,
+.ql-toolbar .ql-picker {
+    min-width: 110px;
+    margin: 0 2px;
+    font-size: 12px;
+}
+
+.ql-picker-label svg {
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.ql-toolbar button {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 2px;
+}
+
+.cols-2 {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    gap: 10px;
+    align-items: center;
+}
+
+.cols-2 select {
+    min-width: 120px;
+    white-space: nowrap;
+}
+
+.custom-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.control-group {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.minimal-btn {
+    padding: 8px 16px;
+    border: 1px solid #e0e0e0;
+    background: white;
+    border-radius: 4px;
+    color: #555;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.minimal-btn:hover {
+    border-color: #2c3e50;
+    color: #2c3e50;
+}
+
+.minimal-btn.primary {
+    background: #2c3e50;
+    color: white;
+    border-color: #2c3e50;
+}
+
+.minimal-btn.primary:hover {
+    background: #34495e;
+}
+
+.stats {
+    display: flex;
+    gap: 20px;
+    font-size: 0.85rem;
+    color: #888;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    white-space: nowrap;
+}
+
+.export-section {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 5px 10px;
+    background: #fafafa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #f0f0f0;
+    flex-wrap: wrap;
+    gap: 15px;
+    z-index: 1000; 
+}
+
+.export-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.export-btn {
+    padding: 5px 10px;
+    border: 1px solid #e0e0e0;
+    background: white;
+    border-radius: 4px;
+    color: #555;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    text-decoration: none;
+}
+
+.export-btn:hover {
+    border-color: #2c3e50;
+    color: #2c3e50;
+}
+
+.status {
+    font-size: 0.85rem;
+    color: #888;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #27ae60;
+}
+
+/* Dark mode */
+body.dark {
+    background: #1a1a1a;
+    color: #e0e0e0;
+}
+
+body.dark .pages-container {
+    background: #1a1a1a;
+}
+
+body.dark .page {
+    background: #2d2d2d;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+body.dark .editor-container {
+    background: #2d2d2d;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+}
+
+body.dark .header {
+    border-color: #404040;
+}
+
+body.dark .header h1 {
+    color: #e0e0e0;
+}
+
+body.dark .toolbar-container {
+    background: #2d2d2d;
+    border-color: #404040;
+}
+
+body.dark .ql-toolbar .ql-formats {
+    background: #3a3a3a;
+    border-color: #555;
+}
+
+body.dark .custom-controls {
+    border-color: #404040;
+}
+
+body.dark .ql-editor {
+    background: transparent;
+    color: #e0e0e0;
+}
+
+body.dark .ql-editor h1,
+body.dark .ql-editor h2,
+body.dark .ql-editor h3 {
+    color: #e0e0e0;
+}
+
+body.dark .export-section {
+    background: #262626;
+    border-color: #404040;
+}
+
+body.dark .minimal-btn,
+body.dark .export-btn {
+    background: #3d3d3d;
+    border-color: #555;
+    color: #e0e0e0;
+}
+
+body.dark .minimal-btn:hover,
+body.dark .export-btn:hover {
+    border-color: #888;
+}
+
+body.dark .minimal-btn.primary {
+    background: #4a4a4a;
+    border-color: #4a4a4a;
+}
+
+body.dark .ql-toolbar button:hover {
+    background: #404040;
+    border-color: #555;
+}
+
+body.dark .ql-toolbar button.ql-active {
+    background: #555;
+}
+
+body.dark .ql-toolbar .ql-picker:hover {
+    background: #404040;
+    border-color: #555;
+}
+
+/* Syntax highlighting for code blocks */
+.ql-editor pre.ql-syntax {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 16px;
+    margin: 16px 0;
+    font-family: 'Courier New', Monaco, monospace;
+    font-size: 14px;
+    overflow-x: auto;
+}
+
+body.dark .ql-editor pre.ql-syntax {
+    background: #2d2d2d;
+    border-color: #555;
+    color: #e0e0e0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .page {
+        width: 95%;
+        min-height: auto;
+        padding: 15mm;
+    }
+
+    .editor-container {
+        margin: 20px;
+        border-radius: 0;
+    }
+
+    .header,
+    .toolbar-container,
+    .export-section {
+        padding: 20px 25px;
+    }
+
+    .ql-toolbar {
+        justify-content: center;
+    }
+
+    .ql-toolbar .ql-formats {
+        margin-bottom: 12px;
+    }
+
+    .custom-controls {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+
+    .stats {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .export-section {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .export-buttons {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+}
+
+/* Focus states */
+.ql-editor:focus {
+    outline: none;
+}
+
+/* Clean up Quill's default styles */
+.ql-snow .ql-tooltip {
+    border-radius: 4px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e0e0;
+    z-index: 1001;
+}
+
+body.dark .ql-snow .ql-tooltip {
+    background: #3d3d3d;
+    border-color: #555;
+    color: #e0e0e0;
+}
+
+/* Animation */
+.editor-container {
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Horizontal Menu */
+.horizontal-menu {
+    padding: 0.3rem 0.8rem;
+    border-radius: 1rem;
+    box-shadow: rgba(149, 157, 165, 0.1) 0px 4px 12px;
+    position: fixed;
+    top: 65px;
+    left: 20px;
+    right: 20px;
+    z-index: 999;
+    display: flex;
+    gap: 1rem;
+}
+
+.menu-item {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    position: relative;
+    color: #666;
+    font-weight: 500;
+}
+
+.menu-item:hover {
+    background-color: #f5f5f5;
+    color: var(--primary);
+}
+
+.menu-item.active {
+    background-color: var(--primary);
+    color: #0051D5;
+}
+
+/* Dropdown */
+.dropdown {
+    position: fixed;
+    top: 130px;
+    left: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 1rem;
+    box-shadow: rgba(149, 157, 165, 0.15) 0px 8px 24px;
+    padding: 1rem;
+    z-index: 998;
+    display: none;
+    max-height: 300px;
+    overflow-x: auto;
+    width: 100%;
+}
+
+.dropdown.show {
+    display: block;
+}
+
+.dropdown-item {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+.brand-text {
+    line-height: 1;
+}
+
+    </style>
 </head>
 <body>
     <!-- Demo Navbar -->
@@ -158,7 +846,450 @@
             <span id="lastSaved">Auto-saved</span>
         </div>
     </div>
+
     <!-- Quill.js JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js"></script>
+
+   <script>
+   // === CONFIGURACIÓN Y CONSTANTES ===
+const MM_TO_PX = 3.779527559; // Conversión precisa de mm a px
+const PAGE_CONTENT_HEIGHT_MM = 257; // 297 - 40 (márgenes superior + inferior)
+const PAGE_HEIGHT_PX = PAGE_CONTENT_HEIGHT_MM * MM_TO_PX;
+
+// Variables globales
+let currentPage = 1;
+let editors = {};           // { 1: Quill, 2: Quill, ... }
+let activeEditor = null;   // Editor con foco actual
+let autoSaveInterval;
+
+// === BLOT PERSONALIZADO PARA FUENTE ===
+const Inline = Quill.import('blots/inline');
+class SourceBlot extends Inline {
+    static create(value) {
+        const node = super.create();
+        node.setAttribute('data-url', value.url);
+        node.setAttribute('data-site', value.site);
+        node.classList.add('source-highlight');
+        return node;
+    }
+    static formats(node) {
+        return {
+            url: node.getAttribute('data-url'),
+            site: node.getAttribute('data-site')
+        };
+    }
+}
+SourceBlot.blotName = 'source';
+SourceBlot.tagName = 'span';
+Quill.register(SourceBlot);
+
+// === CREAR EDITOR QUILL ===
+function createQuillEditor(containerId) {
+    const quill = new Quill(`#${containerId}`, {
+        modules: {
+            toolbar: '#toolbar',
+            history: { delay: 2000, maxStack: 500, userOnly: true }
+        },
+        theme: 'snow',
+        placeholder: 'Continúa escribiendo...'
+    });
+
+    // === INTERCEPTAR PEGADO PARA RESALTAR FUENTE ===
+    quill.clipboard.addMatcher(Node.ELEMENT_NODE, (node, delta) => {
+        const html = node.outerHTML || '';
+        const urlMatch = html.match(/https?:\/\/[^\s"']+/);
+        let siteName = '';
+
+        if (urlMatch) {
+            try {
+                const url = new URL(urlMatch[0]);
+                siteName = url.hostname.replace(/^www\./, '');
+            } catch (e) {
+                siteName = 'Fuente web';
+            }
+        } else if (html.includes('class=') || html.includes('style=')) {
+            siteName = 'Contenido web';
+        }
+
+        if (siteName) {
+            delta.ops.forEach(op => {
+                if (op.insert && typeof op.insert === 'string') {
+                    op.attributes = {
+                        ...op.attributes,
+                        source: {
+                            url: urlMatch ? urlMatch[0] : 'unknown',
+                            site: siteName
+                        }
+                    };
+                }
+            });
+        }
+        return delta;
+    });
+
+    // === CAMBIO DE TEXTO ===
+    quill.on('text-change', (delta, oldDelta, source) => {
+        if (source === 'user') {
+            updateStats();
+            document.getElementById('lastSaved').textContent = 'Cambios sin guardar';
+
+            const pageNum = getPageNumberFromEditor(quill);
+            checkPageOverflow(quill, pageNum);
+
+            // Verificar si la página quedó vacía
+            setTimeout(() => {
+                if (pageNum > 1 && isPageEmpty(quill)) {
+                    deleteEmptyPage(pageNum);
+                }
+            }, 50);
+        }
+    });
+
+    // === CAMBIO DE SELECCIÓN ===
+    quill.on('selection-change', (range) => {
+        if (range) {
+            activeEditor = quill;
+            const pageNum = getPageNumberFromEditor(quill);
+            updateCurrentPageDisplay(pageNum);
+        }
+    });
+
+    // === MANEJO DE TECLADO (Backspace/Delete) ===
+    const editorEl = quill.container.querySelector('.ql-editor');
+    editorEl.addEventListener('keydown', (e) => {
+        const pageNum = getPageNumberFromEditor(quill);
+
+        if (e.key === 'Backspace' && pageNum > 1) {
+            const atStart = isCursorAtBeginning(quill);
+            const isEmpty = isPageEmpty(quill);
+
+            if (isEmpty) {
+                e.preventDefault();
+                deleteEmptyPage(pageNum);
+                return;
+            }
+
+            if (atStart && quill.getLength() > 1) {
+                e.preventDefault();
+                mergePageWithPrevious(pageNum);
+                return;
+            }
+        }
+
+        if (e.key === 'Delete' && pageNum > 1 && isPageEmpty(quill)) {
+            e.preventDefault();
+            deleteEmptyPage(pageNum);
+        }
+    });
+
+    return quill;
+}
+
+// === UTILIDADES ===
+function getPageNumberFromEditor(quill) {
+    return parseInt(quill.container.closest('.page').id.split('-')[1]);
+}
+
+function isPageEmpty(quill) {
+    const text = quill.getText();
+    return text === '\n' || text.trim() === '';
+}
+
+function isCursorAtBeginning(quill) {
+    const range = quill.getSelection();
+    return range && range.index === 0;
+}
+
+// === CREAR NUEVA PÁGINA ===
+function createNewPage() {
+    currentPage++;
+    const container = document.querySelector('.pages-container');
+    const page = document.createElement('div');
+    page.className = 'page';
+    page.id = `page-${currentPage}`;
+    page.innerHTML = `
+        <div class="page-number">${currentPage}</div>
+        <div id="editor-${currentPage}"></div>
+    `;
+    container.appendChild(page);
+
+    editors[currentPage] = createQuillEditor(`editor-${currentPage}`);
+    updatePageCount();
+
+    // Enfocar nueva página
+    setTimeout(() => {
+        editors[currentPage].focus();
+        editors[currentPage].setSelection(0);
+    }, 100);
+}
+
+// === VERIFICAR DESBORDE ===
+function checkPageOverflow(quill, pageNum) {
+    const editorEl = quill.root;
+    if (editorEl.scrollHeight <= PAGE_HEIGHT_PX) return;
+
+    const nextPage = pageNum + 1;
+    if (!editors[nextPage]) createNewPage();
+
+    moveOverflowToNextPage(quill, pageNum, nextPage);
+}
+
+// === MOVER DESBORDE A PÁGINA SIGUIENTE ===
+function moveOverflowToNextPage(currentQuill, fromPage, toPage) {
+    const nextEditor = editors[toPage];
+    const ops = currentQuill.getContents().ops.slice();
+    const editorEl = currentQuill.root;
+
+    while (editorEl.scrollHeight > PAGE_HEIGHT_PX && ops.length > 1) {
+        const lastOp = ops.pop();
+        if (!lastOp.insert) continue;
+
+        const text = typeof lastOp.insert === 'string' ? lastOp.insert : '\n';
+        nextEditor.insertText(0, text);
+        if (lastOp.attributes) {
+            nextEditor.formatText(0, text.length, lastOp.attributes);
+        }
+        currentQuill.setContents({ ops });
+    }
+}
+
+// === ELIMINAR PÁGINA VACÍA ===
+function deleteEmptyPage(pageNum) {
+    if (pageNum === 1 || !editors[pageNum]) return false;
+
+    const pageEl = document.getElementById(`page-${pageNum}`);
+    if (!pageEl || !isPageEmpty(editors[pageNum])) return false;
+
+    const prevEditor = editors[pageNum - 1];
+    pageEl.remove();
+    delete editors[pageNum];
+
+    renumberPages();
+
+    if (prevEditor) {
+        setTimeout(() => {
+            prevEditor.focus();
+            prevEditor.setSelection(prevEditor.getLength() - 1);
+        }, 50);
+    }
+
+    updatePageCount();
+    return true;
+}
+
+// === RENumerar páginas ===
+function renumberPages() {
+    const pages = document.querySelectorAll('.page');
+    const newEditors = {};
+    let newNum = 1;
+
+    pages.forEach(page => {
+        const oldNum = parseInt(page.id.split('-')[1]);
+        const newId = `page-${newNum}`;
+        const newEditorId = `editor-${newNum}`;
+
+        page.id = newId;
+        page.querySelector('.page-number').textContent = newNum;
+
+        const editorDiv = page.querySelector(`#editor-${oldNum}`);
+        if (editorDiv) editorDiv.id = newEditorId;
+
+        if (editors[oldNum]) {
+            newEditors[newNum] = editors[oldNum];
+        }
+        newNum++;
+    });
+
+    editors = newEditors;
+    currentPage = newNum - 1;
+    updatePageCount();
+}
+
+// === UNIR PÁGINA CON ANTERIOR (Backspace al inicio) ===
+function mergePageWithPrevious(pageNum) {
+    if (pageNum <= 1) return;
+
+    const current = editors[pageNum];
+    const prev = editors[pageNum - 1];
+    if (!current || !prev) return;
+
+    const content = current.getContents();
+    const pos = prev.getLength() - 1;
+
+    content.ops.forEach(op => {
+        if (op.insert) {
+            const text = typeof op.insert === 'string' ? op.insert : '\n';
+            prev.insertText(pos, text);
+            if (op.attributes) {
+                prev.formatText(pos, text.length, op.attributes);
+            }
+        }
+    });
+
+    deleteEmptyPage(pageNum);
+}
+
+// === ESTADÍSTICAS ===
+function updateStats() {
+    let totalText = '';
+    Object.values(editors).forEach(ed => {
+        totalText += ed.getText();
+    });
+
+    const words = totalText.trim() ? totalText.trim().split(/\s+/).length : 0;
+    const chars = Math.max(0, totalText.length - 1);
+    const paragraphs = totalText.split('\n').filter(p => p.trim()).length || 1;
+    const readingTime = Math.max(1, Math.ceil(words / 200));
+
+    document.getElementById('wordCount').textContent = words;
+    document.getElementById('charCount').textContent = chars;
+    document.getElementById('paragraphCount').textContent = paragraphs;
+    document.getElementById('readingTime').textContent = readingTime;
+}
+
+function updateCurrentPageDisplay(pageNum) {
+    document.getElementById('currentPageDisplay').textContent = pageNum;
+}
+
+function updatePageCount() {
+    const total = Object.keys(editors).length;
+    document.getElementById('totalPagesDisplay').textContent = total;
+}
+
+// === TOOLTIPS DE FUENTE ===
+function initializeTooltips() {
+    const tooltip = document.getElementById('source-tooltip');
+    document.addEventListener('mouseover', e => {
+        if (e.target.classList.contains('source-highlight')) {
+            const url = e.target.dataset.url;
+            const site = e.target.dataset.site;
+            tooltip.innerHTML = `<strong>${site}</strong><br><a href="${url}" target="_blank" style="color:#00d4ff">${url}</a>`;
+            tooltip.style.display = 'block';
+        }
+    });
+    document.addEventListener('mousemove', e => {
+        if (tooltip.style.display === 'block') {
+            tooltip.style.top = (e.pageY + 15) + 'px';
+            tooltip.style.left = (e.pageX + 15) + 'px';
+        }
+    });
+    document.addEventListener('mouseout', e => {
+        if (e.target.classList.contains('source-highlight')) {
+            tooltip.style.display = 'none';
+        }
+    });
+}
+
+// === AUTO-GUARDADO ===
+function initializeAutoSave() {
+    autoSaveInterval = setInterval(() => {
+        const time = new Date().toLocaleTimeString();
+        document.getElementById('lastSaved').textContent = `Auto-guardado a las ${time}`;
+    }, 30000);
+}
+
+// === MODO OSCURO ===
+function toggleDarkMode() {
+    const dark = !document.body.classList.contains('dark');
+    document.body.classList.toggle('dark', dark);
+    try { localStorage.setItem('darkMode', dark); } catch (e) {}
+}
+
+// === EXPORTAR ===
+function exportAsHTML() {
+    let html = '';
+    Object.keys(editors).sort((a, b) => a - b).forEach(num => {
+        html += `<div class="page-break"><h3>Página ${num}</h3>`;
+        html += editors[num].root.innerHTML + '</div>';
+    });
+    const full = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Documento</title><style>
+        body{font-family:Georgia,serif;line-height:1.8;max-width:800px;margin:40px auto;padding:20px;color:#2c3e50;}
+        .page-break{page-break-before:always;margin-top:2em;}
+        .page-break:first-child{page-break-before:auto;margin-top:0;}
+        .source-highlight{background:rgba(220,160,255,0.2);border-bottom:1px dotted #9c27b0;}
+        @media print{.page-break{page-break-before:always;}}
+    </style></head><body>${html}</body></html>`;
+    downloadFile(full, 'documento.html', 'text/html');
+}
+
+function exportAsText() {
+    let txt = '';
+    Object.keys(editors).sort((a, b) => a - b).forEach(num => {
+        txt += `\n\n--- Página ${num} ---\n\n` + editors[num].getText();
+    });
+    downloadFile(txt, 'documento.txt', 'text/plain');
+}
+
+function exportAsMarkdown() {
+    let md = '';
+    Object.keys(editors).sort((a, b) => a - b).forEach(num => {
+        md += `\n\n## Página ${num}\n\n`;
+        const delta = editors[num].getContents();
+        delta.ops.forEach(op => {
+            if (typeof op.insert !== 'string') return;
+            let text = op.insert;
+            if (op.attributes?.header) {
+                text = '#'.repeat(op.attributes.header) + ' ' + text.trim() + '\n\n';
+            } else {
+                if (op.attributes?.bold) text = `**${text}**`;
+                if (op.attributes?.italic) text = `*${text}*`;
+                md += text;
+            }
+        });
+    });
+    downloadFile(md, 'documento.md', 'text/markdown');
+}
+
+function downloadFile(content, name, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// === INICIALIZACIÓN ===
+document.addEventListener('DOMContentLoaded', () => {
+    // Editor inicial
+    editors[1] = createQuillEditor('editor-1');
+    activeEditor = editors[1];
+
+    // Modo oscuro guardado
+    try {
+        if (localStorage.getItem('darkMode') === 'true') toggleDarkMode();
+    } catch (e) {}
+
+    initializeTooltips();
+    updateStats();
+    initializeAutoSave();
+
+    // Enfocar al inicio
+    setTimeout(() => {
+        activeEditor.focus();
+        activeEditor.setSelection(activeEditor.getLength() - 1);
+    }, 300);
+
+    // Atajos
+    document.addEventListener('keydown', e => {
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            document.getElementById('lastSaved').textContent = 'Guardado manualmente';
+        }
+        if (e.ctrlKey && e.key === 'd') {
+            e.preventDefault();
+            toggleDarkMode();
+        }
+    });
+
+    // Prevenir salida con cambios
+    window.addEventListener('beforeunload', e => {
+        if (document.getElementById('lastSaved').textContent.includes('sin guardar')) {
+            e.preventDefault();
+            e.returnValue = 'Tienes cambios sin guardar';
+        }
+    });
+});
+   </script>
 </body>
 </html>

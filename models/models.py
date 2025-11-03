@@ -11,7 +11,7 @@ class User(db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False)
     name = db.Column(db.String(100), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    is_active = db.Column(db.Boolean, default=True)
+    isactive = db.Column(db.Boolean, default=True)
     
     # Relaciones
     owned_documents = db.relationship('Document', backref='owner', lazy='dynamic')
@@ -23,7 +23,7 @@ class User(db.Model):
             'email': self.email,
             'name': self.name,
             'created_at': self.created_at.isoformat(),
-            'is_active': self.is_active
+            'isactive': self.isactive
         }
     
     @staticmethod
@@ -38,7 +38,7 @@ class User(db.Model):
 
 class Document(db.Model):
     """Modelo principal de documento"""
-    __tablename__ = 'documents'
+    __tablename__ = 'marktrack_documents'
     
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False, default='Sin título')
@@ -111,10 +111,10 @@ class Document(db.Model):
 
 class DocumentVersion(db.Model):
     """Modelo para versiones de documento"""
-    __tablename__ = 'document_versions'
+    __tablename__ = 'marktrack_document_versions'
     
     id = db.Column(db.Integer, primary_key=True)
-    document_id = db.Column(db.Integer, db.ForeignKey('documents.id'), nullable=False)
+    document_id = db.Column(db.Integer, db.ForeignKey('marktrack_documents.id'), nullable=False)
     version_number = db.Column(db.Integer, nullable=False)
     
     # Contenido de la versión
@@ -143,10 +143,10 @@ class DocumentVersion(db.Model):
 
 class DocumentShare(db.Model):
     """Modelo para compartir documentos"""
-    __tablename__ = 'document_shares'
+    __tablename__ = 'marktrack_document_shares'
     
     id = db.Column(db.Integer, primary_key=True)
-    document_id = db.Column(db.Integer, db.ForeignKey('documents.id'), nullable=False)
+    document_id = db.Column(db.Integer, db.ForeignKey('marktrack_documents.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     # Permisos
@@ -214,10 +214,10 @@ class DocumentShare(db.Model):
 
 class DocumentActivity(db.Model):
     """Modelo para registrar actividad en documentos"""
-    __tablename__ = 'document_activities'
+    __tablename__ = 'marktrack_document_activities'
     
     id = db.Column(db.Integer, primary_key=True)
-    document_id = db.Column(db.Integer, db.ForeignKey('documents.id'), nullable=False)
+    document_id = db.Column(db.Integer, db.ForeignKey('marktrack_documents.id'), nullable=False)
     user_email = db.Column(db.String(255), nullable=False)
     
     # Tipo de actividad
@@ -261,4 +261,4 @@ class DocumentActivity(db.Model):
         
         db.session.add(activity)
         db.session.commit()
-        return activity
+        return

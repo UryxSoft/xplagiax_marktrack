@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XplagiaX - MarkTrack</title>
+    
+    <!-- Quill.js CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css" rel="stylesheet">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f0f0; color: #333; line-height: 1.6; padding: 1.2rem; min-height: 100vh; }
+        .editor-container { max-width: 1000px; margin: 40px auto; background: white; border-radius: 8px; box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08); overflow: hidden; }
+        .header { padding: 30px 40px 20px; border-bottom: 1px solid #f0f0f0; text-align: center; }
+        .header h1 { font-size: 1.8rem; font-weight: 300; color: #2c3e50; letter-spacing: -0.5px; }
+
+        .demo-navbar {
+            background: white; padding: 0.6rem; border-radius: 1rem; box-shadow: rgba(149, 157, 165, 0.1) 0px 4px 12px;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; position: fixed; top: 0px; left: 20px; right: 20px; z-index: 1000; flex-wrap: wrap; gap: 1rem;
+        }
+        .navbar-left { display: flex; align-items: center; gap: 1rem; }
+        .navbar-right { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        .document-title-input { padding: 0.5rem 1rem; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; min-width: 200px; transition: border-color 0.3s; }
+        .document-title-input:focus { outline: none; border-color: #007AFF; box-shadow: 0 0 0 3px rgba(0,123,255,0.25); }
+
+        .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.3s ease; position: relative; overflow: hidden; }
+        .btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); transition: left 0.5s; }
+        .btn:hover::before { left: 100%; }
+        .btn-primary {  color: #0051D5 }
+        .btn-secondary { background: linear-gradient(135deg, #6c757d, #545b62); color: white; }
+        .btn-success { background: linear-gradient(135deg, #28a745, #1e7e34); color: white; }
+        .btn-warning { color: #e0a800; }
+        .btn-info { background: linear-gradient(135deg, #17a2b8, #3498db); color: white; }
+        .btn-danger { background: linear-gradient(135deg, #dc3545, #c82333); color: white; }
+        /*.btn:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0,0,0,0.2); }*/
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
+        .btn-small { padding: 0.3rem 0.6rem; font-size: 0.7rem; border-radius: 6px; }
+
+        .app-icon { width: 120px; height: 120px; background: linear-gradient(135deg, #007AFF 0%, #0051D5 100%); border-radius: 26px; display: flex; justify-content: center; align-items: center; box-shadow: 0 10px 30px rgba(0, 122, 255, 0.3), 0 4px 15px rgba(0, 0, 0, 0.1); position: relative; overflow: hidden; }
+        .app-icon::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 40%; background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%); border-radius: 26px 26px 0 0; }
+        .icon-svg { width: 64px; height: 64px; color: white; z-index: 1; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2)); }
+        .size-small { width: 40px; height: 40px; border-radius: 9px; } .size-small .icon-svg { width: 22px; height: 22px; } .size-small::before { border-radius: 9px 9px 0 0; }
+
+        .toolbar-container { padding: 20px 40px; border-bottom: 1px solid #f0f0f0; background: #fff; }
+        .custom-tooltip { display: none; position: absolute; background: rgba(220, 160, 255, 0.95); color: white; font-size: 12px; padding: 8px 12px; border-radius: 8px; box-shadow: 0px 4px 12px rgba(113, 4, 255, 0.3); z-index: 9999; pointer-events: none; max-width: 300px; white-space: normal; animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
+        .source-highlight { background: rgba(220, 160, 255, 0.2); border-bottom: 1px dotted #9c27b0; cursor: help; position: relative; }
+
+        .pages-container { background: #f5f5f5; padding: 40px 20px; min-height: calc(100vh - 200px); display: flex; flex-direction: column; align-items: center; gap: 30px; }
+        .page { background: white; width: 210mm; min-height: 297mm; margin: 0 auto 20px auto; padding: 20mm; box-shadow: 0 4px 20px rgba(0,0,0,0.15); box-sizing: border-box; position: relative; border-radius: 4px; }
+        .page-number { position: absolute; bottom: 10mm; right: 20mm; font-size: 10px; color: #666; font-family: monospace; }
+        .page .ql-editor { min-height: 100%; padding: 0 !important; font-family: Georgia, 'Times New Roman', serif; font-size: 12pt; line-height: 1.5; color: #2c3e50; overflow: visible; }
+        .page .ql-container { border: none !important; font-family: inherit; height: auto; }
+
+        .ql-toolbar { border: none !important; padding: 6px !important; font-family: inherit; display: flex; flex-wrap: nowrap; gap: 8px; align-items: center; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .ql-toolbar .ql-picker-options { position: absolute !important; top: 100% !important; left: 0 !important; z-index: 999999 !important; background: white; border: 1px solid #ccc; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        .ql-toolbar { overflow: visible !important; }
+        .horizontal-menu { overflow: visible !important; z-index: 1000; }
+        .ql-toolbar .ql-formats { margin: 0; padding: 6px 8px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e9ecef; display: inline-flex; gap: 8px; align-items: center; white-space: nowrap; flex: 0 0 auto; }
+        .ql-toolbar select, .ql-toolbar .ql-picker { min-width: 110px; margin: 0 2px; font-size: 12px; }
+        .ql-picker-label svg { width: 16px; height: 16px; display: inline-block; vertical-align: middle; }
+        .ql-toolbar button { width: 32px; height: 32px; border-radius: 4px; border: 1px solid transparent; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; margin: 0 2px; }
+
+        .stats { display: flex; gap: 20px; font-size: 0.85rem; color: #888; flex-wrap: wrap; }
+        .stat-item { white-space: nowrap; }
+
+        .export-section { position: fixed; bottom: 0; left: 0; width: 100%; padding: 5px 10px; background: #fafafa; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f0f0f0; flex-wrap: wrap; gap: 15px; z-index: 1000; }
+        .export-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+        .export-btn { padding: 5px 10px; border: 1px solid #e0e0e0; background: white; border-radius: 4px; color: #555; font-size: 0.7rem; cursor: pointer; transition: all 0.2s ease; font-family: inherit; text-decoration: none; }
+        .export-btn:hover { border-color: #2c3e50; color: #2c3e50; }
+
+        .status { font-size: 0.85rem; color: #888; display: flex; align-items: center; gap: 8px; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #27ae60; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+        .horizontal-menu { padding: 0.3rem 0.8rem; border-radius: 1rem; box-shadow: rgba(149, 157, 165, 0.1) 0px 4px 12px; position: fixed; top: 65px; left: 20px; right: 20px; z-index: 999; display: flex; gap: 1rem; background: white; }
+
+        .documents-sidebar { position: fixed; left: -350px; top: 0; width: 350px; height: 100vh; background: white; border-right: 1px solid #ddd; transition: left 0.4s; z-index: 1500; box-shadow: 2px 0 20px rgba(0,0,0,0.1); }
+        .documents-sidebar.open { left: 0; }
+        .sidebar-header { padding: 1.5rem; border-bottom: 1px solid #e0e0e0; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center; }
+        .sidebar-content { padding: 1rem; height: calc(100vh - 80px); overflow-y: auto; }
+        .document-item { padding: 1rem; border: 1px solid #e0e0e0; border-radius: 12px; margin-bottom: 0.7rem; cursor: pointer; transition: all 0.3s; background: white; }
+        .document-item:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); border-color: #007AFF; }
+        .document-item.active { background: #e3f2fd; border-color: #2196f3; }
+        .document-item h4 { margin: 0 0 0.5rem 0; font-size: 1rem; color: #2c3e50; font-weight: 600; }
+        .document-meta { font-size: 0.75rem; color: #666; display: flex; justify-content: space-between; align-items: center; }
+        .document-actions { margin-top: 0.5rem; display: flex; gap: 0.5rem; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1400; }
+        .overlay.show { display: block; }
+
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); }
+        .modal-content { background: white; margin: 5% auto; padding: 2rem; border-radius: 16px; width: 90%; max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .close { color: #999; float: right; font-size: 24px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: #dc3545; }
+
+        .notification { position: fixed; top: 20px; right: 20px; padding: 1rem 1.5rem; border-radius: 12px; color: white; z-index: 2500; transform: translateX(400px); transition: transform 0.4s; max-width: 350px; }
+        .notification.show { transform: translateX(0); }
+        .notification.success { background: linear-gradient(135deg, #28a745, #20c997); }
+        .notification.error { background: linear-gradient(135deg, #dc3545, #e74c3c); }
+        .notification.info { background: linear-gradient(135deg, #17a2b8, #3498db); }
+        .notification.warning { background: linear-gradient(135deg, #ffc107, #f39c12); color: #212529; }
+
+        .dropdown { position: relative; }
+        .dropdown-content { position: absolute; top: 100%; right: 0; background: white; border: 1px solid #ddd; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 1000; min-width: 180px; display: none; overflow: hidden; }
+        .dropdown-content.show { display: block; }
+        .dropdown-item { padding: 0.8rem 1rem; cursor: pointer; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 0.7rem; transition: background-color 0.3s; }
+        .dropdown-item:hover { background: #f8f9fa; }
+        .dropdown-item:last-child { border-bottom: none; }
+
+        .form-group { margin-bottom: 1rem; }
+        .form-label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #2c3e50; }
+        .form-control { width: 100%; padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.9rem; transition: all 0.3s ease; }
+        .form-control:focus { outline: none; border-color: #007AFF; box-shadow: 0 0 0 3px rgba(0,123,255,0.25); }
+
+        .upload-zone { border: 2px dashed #007AFF; border-radius: 12px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.3s ease; background: rgba(0,123,255,0.05); }
+        .upload-zone:hover { border-color: #0051D5; background: rgba(0,123,255,0.1); transform: translateY(-2px); }
+        .upload-zone.drag-over { border-color: #28a745; background: rgba(40,167,69,0.1); }
+
+        .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(0,123,255,0.3); border-top: 3px solid #007AFF; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .readonly-banner { background: linear-gradient(135deg, #fff3cd, #ffeaa7); border: 1px solid #ffc107; color: #856404; padding: 0.8rem; text-align: center; font-weight: 600; border-radius: 8px; margin: 0 20px 1rem; }
+
+        @media (max-width: 768px) {
+            .page { width: 95%; padding: 15mm; }
+            .demo-navbar { flex-direction: column; }
+            .documents-sidebar { width: 300px; left: -300px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Demo Navbar -->
+    <div class="demo-navbar">
+        <div class="navbar-left">
+
+            <div class="app-icon size-small" onclick="toggleSidebar()"">
+                <svg class="icon-svg" viewBox="0 0 16 16" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0"/>
+                    <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1z"/>
+                </svg>
+            </div>
+            <input type="text" id="documentTitle" class="document-title-input" placeholder="Título del documento" value="Sin título">
+            <button class="btn btn-primary" onclick="saveDocument()" id="saveBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-save" viewBox="0 0 16 16">
+                   <path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v7.293l2.646-2.647a.5.5 0 0 1 .708.708l-3.5 3.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L7.5 9.293V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1z"/>
+                </svg>
+                Save
+            </button>
+        </div>
+        <div class="navbar-right">
+            <button class="btn btn-primary" onclick="showUploadModal()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cloud-upload" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M4.406 1.342A5.53 5.53 0 0 1 8 0c2.69 0 4.923 2 5.166 4.579C14.758 4.804 16 6.137 16 7.773 16 9.569 14.502 11 12.687 11H10a.5.5 0 0 1 0-1h2.688C13.979 10 15 8.988 15 7.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 2.825 10.328 1 8 1a4.53 4.53 0 0 0-2.941 1.1c-.757.652-1.153 1.438-1.153 2.055v.448l-.445.049C2.064 4.805 1 5.952 1 7.318 1 8.785 2.23 10 3.781 10H6a.5.5 0 0 1 0 1H3.781C1.708 11 0 9.366 0 7.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383"/>
+                    <path fill-rule="evenodd" d="M7.646 4.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V14.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708z"/>
+                </svg>
+                Upload
+            </button>
+            <div class="dropdown">
+                <button class="btn btn-primary" onclick="toggleExportMenu()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upload" viewBox="0 0 16 16">
+                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+                        <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/>
+                    </svg>
+                    Export ▼
+                </button>
+                <div class="dropdown-content" id="exportDropdown">
+                    <div class="dropdown-item" onclick="exportDocument('pdf')">📄 PDF</div>
+                    <div class="dropdown-item" onclick="exportDocument('docx')">📝 DOCX</div>
+                    <div class="dropdown-item" onclick="exportAsHTML()">🌐 HTML</div>
+                    <div class="dropdown-item" onclick="exportAsText()">📃 Texto</div>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="showShareModal()" id="shareBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-share" viewBox="0 0 16 16">
+                  <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5m-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3"/>
+                </svg>
+                Share</button>
+            <div class="stats">
+                <div class="stat-item"><span id="wordCount">0</span> words</div>
+                <div class="stat-item"><span id="charCount">0</span> characters</div>
+                <div class="stat-item">Page <span id="currentPageDisplay">1</span> of <span id="totalPagesDisplay">1</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Readonly Banner -->
+    <div id="readonlyBanner" class="readonly-banner" style="display: none;">
+        🔒 Documento compartido en modo solo lectura
+    </div>
+
+    <!-- Sidebar -->
+    <div class="documents-sidebar" id="documentsSidebar">
+        <div class="sidebar-header">
+            <h3>My Documents</h3>
+            <button class="btn btn-primary btn-small" onclick="createNewDocument()">+ New</button>
+        </div>
+        <div class="sidebar-content" id="documentsList">
+            <div class="loading" style="margin: 2rem auto;"></div>
+        </div>
+    </div>
+    <div class="overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Horizontal Menu -->
+    <div class="horizontal-menu">
+        <div id="toolbar">
+            <span class="ql-formats"><select class="ql-font"><option selected>Sans Serif</option><option value="serif">Serif</option><option value="monospace">Monospace</option></select></span>
+            <span class="ql-formats"><select class="ql-size"><option value="small">Small</option><option selected>Normal</option><option value="large">Large</option><option value="huge">Huge</option></select></span>
+            <span class="ql-formats"><button class="ql-bold"></button><button class="ql-italic"></button><button class="ql-underline"></button><button class="ql-strike"></button></span>
+            <span class="ql-formats"><select class="ql-color"></select><select class="ql-background"></select></span>
+            <span class="ql-formats"><button class="ql-header" value="1"></button><button class="ql-header" value="2"></button><button class="ql-blockquote"></button><button class="ql-code-block"></button></span>
+            <span class="ql-formats"><button class="ql-list" value="ordered"></button><button class="ql-list" value="bullet"></button><button class="ql-indent" value="-1"></button><button class="ql-indent" value="+1"></button></span>
+            <span class="ql-formats"><select class="ql-align"><option selected></option><option value="center"></option><option value="right"></option><option value="justify"></option></select></span>
+            <span class="ql-formats"><button class="ql-link"></button><button class="ql-image"></button><button class="ql-video"></button></span>
+            <span class="ql-formats"><button class="ql-script" value="sub"></button><button class="ql-script" value="super"></button></span>
+            <span class="ql-formats"><button class="ql-clean"></button></span>
+        </div>
+    </div>
+
+    <!-- Pages Container -->
+    <div class="pages-container">
+        <div class="page" id="page-1">
+            <div class="page-number">1</div>
+            <div id="editor-1">
+                <h1>Welcome to the Enhanced Editor</h1>
+                <p>Full document management with cloud sync and sharing capabilities.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Section -->
+    <div class="export-section">
+        <div class="status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="lastSaved">Auto-saved</span>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="hideUploadModal()">×</span>
+            <h2>📤 Subir Documento</h2>
+            <p>Selecciona un archivo .doc o .docx</p>
+            
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                <p>📁 Haz clic aquí o arrastra un archivo</p>
+                <p style="font-size: 0.8rem; color: #666; margin-top: 0.5rem;">
+                    Formatos: .doc, .docx (máx. 16MB)
+                </p>
+            </div>
+            
+            <input type="file" id="fileInput" style="display: none;" accept=".doc,.docx" onchange="handleFileSelect(this.files[0])">
+            
+            <div id="uploadProgress" style="display: none; margin-top: 1rem;">
+                <div class="loading"></div>
+                <span id="uploadStatus">Subiendo archivo...</span>
+            </div>
+            
+            <div class="form-group" style="margin-top: 1rem;">
+                <label class="form-label">Título personalizado (opcional):</label>
+                <input type="text" id="customTitle" class="form-control" placeholder="Dejar vacío para usar el nombre del archivo">
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="shareModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="hideShareModal()">×</span>
+            <h2>🔗 Compartir Documento</h2>
+            
+            <form id="shareForm">
+                <div class="form-group">
+                    <label class="form-label">Email del destinatario *</label>
+                    <input type="email" id="recipientEmail" class="form-control" placeholder="ejemplo@email.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Nivel de permisos</label>
+                    <select id="permissionLevel" class="form-control">
+                        <option value="read">Solo lectura</option>
+                        <option value="write">Lectura y escritura</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Mensaje (opcional)</label>
+                    <textarea id="shareMessage" class="form-control" rows="3" placeholder="Mensaje para el destinatario..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Expira en (días)</label>
+                    <select id="expirationDays" class="form-control">
+                        <option value="1">1 día</option>
+                        <option value="3">3 días</option>
+                        <option value="7" selected>7 días</option>
+                        <option value="30">30 días</option>
+                        <option value="90">90 días</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                    <button type="button" class="btn btn-secondary" onclick="hideShareModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="shareSubmitBtn">
+                        <span class="loading" id="shareLoading" style="display: none;"></span>
+                        🔗 Compartir
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="modal">
+        <div class="modal-content" style="text-align: center;">
+            <div class="loading" style="margin: 0 auto 1rem;"></div>
+            <p id="loadingText">Procesando...</p>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
+
+    <!-- Quill.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js"></script>
+    <script>
+        // === CONFIG ===
+        const MM_TO_PX = 3.779527559;
+        const PAGE_CONTENT_HEIGHT_MM = 257;
+        const PAGE_HEIGHT_PX = PAGE_CONTENT_HEIGHT_MM * MM_TO_PX;
+
+        let currentPage = 1;
+        let editors = {};
+        let activeEditor = null;
+        let currentDocumentId = null;
+        let saveTimeout;
+        let documents = [];
+        let isSaving = false;
+        let isSharedDocument = false;
+        let sharedDocumentInfo = null;
+        let currentUserEmail = 'anonymous';
+
+        // === SOURCE BLOT ===
+        const Inline = Quill.import('blots/inline');
+        class SourceBlot extends Inline {
+            static create(value) {
+                const node = super.create();
+                node.setAttribute('data-url', value.url);
+                node.setAttribute('data-site', value.site);
+                node.classList.add('source-highlight');
+                return node;
+            }
+            static formats(node) {
+                return { url: node.getAttribute('data-url'), site: node.getAttribute('data-site') };
+            }
+        }
+        SourceBlot.blotName = 'source'; SourceBlot.tagName = 'span'; Quill.register(SourceBlot);
+
+        // === QUILL EDITOR SETUP ===
+        function createQuillEditor(containerId) {
+            const quill = new Quill(`#${containerId}`, {
+                modules: { toolbar: '#toolbar', history: { delay: 2000 } },
+                theme: 'snow'
+            });
+
+            quill.clipboard.addMatcher(Node.ELEMENT_NODE, (node, delta) => {
+                const html = node.outerHTML || '';
+                const urlMatch = html.match(/https?:\/\/[^\s"']+/);
+                let siteName = urlMatch ? new URL(urlMatch[0]).hostname.replace(/^www\./, '') : 'Web';
+                if (siteName) {
+                    delta.ops.forEach(op => {
+                        if (op.insert && typeof op.insert === 'string') {
+                            op.attributes = { ...op.attributes, source: { url: urlMatch?.[0] || '', site: siteName } };
+                        }
+                    });
+                }
+                return delta;
+            });
+
+            quill.on('text-change', () => {
+                updateStats();
+                checkPageOverflow(quill, getPageNumberFromEditor(quill));
+                
+                // Auto-save functionality
+                if (currentDocumentId && !isReadonly()) {
+                    clearTimeout(saveTimeout);
+                    updateStatus('saving', 'Guardando...');
+                    saveTimeout = setTimeout(() => {
+                        saveDocument(false, true);
+                    }, 2000);
+                }
+            });
+
+            quill.on('selection-change', range => {
+                if (range) {
+                    activeEditor = quill;
+                    updateCurrentPageDisplay(getPageNumberFromEditor(quill));
+                }
+            });
+
+            if (isReadonly()) {
+                quill.disable();
+            }
+
+            return quill;
+        }
+
+        // === PAGINATION ===
+        function getPageNumberFromEditor(quill) {
+            return parseInt(quill.container.closest('.page').id.split('-')[1]);
+        }
+
+        function createNewPage() {
+            currentPage++;
+            const newPage = document.createElement('div');
+            newPage.className = 'page';
+            newPage.id = `page-${currentPage}`;
+            newPage.innerHTML = `
+                <div class="page-number">${currentPage}</div>
+                <div id="editor-${currentPage}"></div>
+            `;
+            document.querySelector('.pages-container').appendChild(newPage);
+            editors[currentPage] = createQuillEditor(`editor-${currentPage}`);
+            document.getElementById('totalPagesDisplay').textContent = currentPage;
+            return currentPage;
+        }
+
+        function checkPageOverflow(quill, pageNum) {
+            const editor = quill.root;
+            const page = document.getElementById(`page-${pageNum}`);
+            if (editor.scrollHeight > PAGE_HEIGHT_PX) {
+                const range = quill.getSelection();
+                const overflowIndex = quill.getIndex(quill.getLeaf(quill.getLength() - 1)[0]);
+                const overflowDelta = quill.getContents(overflowIndex);
+                quill.deleteText(overflowIndex, quill.getLength());
+
+                let nextPage = pageNum + 1;
+                if (!document.getElementById(`page-${nextPage}`)) {
+                    createNewPage();
+                }
+                const nextEditor = editors[nextPage];
+                nextEditor.setContents(overflowDelta);
+                nextEditor.setSelection(0);
+                checkPageOverflow(nextEditor, nextPage);
+            }
+        }
+
+        function updateCurrentPageDisplay(pageNum) {
+            document.getElementById('currentPageDisplay').textContent = pageNum;
+        }
+
+        // === STATS ===
+        function updateStats() {
+            let totalWords = 0, totalChars = 0, totalParagraphs = 0;
+            Object.keys(editors).forEach(key => {
+                const text = editors[key].getText();
+                totalWords += text.trim().split(/\s+/).filter(w => w).length;
+                totalChars += text.length;
+                totalParagraphs += text.split('\n').filter(p => p.trim()).length;
+            });
+            document.getElementById('wordCount').textContent = totalWords;
+            document.getElementById('charCount').textContent = totalChars;
+            document.getElementById('totalPagesDisplay').textContent = Object.keys(editors).length;
+        }
+
+        // === DOCUMENT MANAGEMENT ===
+        function checkForSharedDocument() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sharedToken = urlParams.get('shared_token');
+            const docId = urlParams.get('doc_id');
+            const permission = urlParams.get('permission');
+            
+            if (sharedToken && docId) {
+                isSharedDocument = true;
+                loadSharedDocument(sharedToken);
+                
+                if (permission === 'read') {
+                    showReadonlyBanner();
+                }
+            }
+        }
+
+        async function loadSharedDocument(token) {
+            try {
+                showLoading('Cargando documento compartido...');
+                
+                const response = await fetch(`/share_bp/api/shared-document/${token}`);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Error cargando documento compartido');
+                }
+                
+                currentDocumentId = data.id;
+                sharedDocumentInfo = data.share_info;
+                
+                document.getElementById('documentTitle').value = data.title;
+                document.getElementById('documentTitle').disabled = true;
+                
+                if (data.delta && data.delta.ops) {
+                    activeEditor.setContents(data.delta);
+                }
+                
+                updateStatus('saved', 'Documento compartido cargado');
+                
+                if (data.share_info.readonly) {
+                    disableEditorForReadonly();
+                }
+                
+                hideLoading();
+                showNotification(`Documento compartido por ${data.share_info.shared_by}`, 'info');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                hideLoading();
+                showNotification(error.message, 'error');
+            }
+        }
+
+        function showReadonlyBanner() {
+            document.getElementById('readonlyBanner').style.display = 'block';
+        }
+
+        function disableEditorForReadonly() {
+            Object.values(editors).forEach(editor => editor.disable());
+            document.getElementById('saveBtn').disabled = true;
+            document.getElementById('shareBtn').disabled = true;
+        }
+
+        function isReadonly() {
+            return isSharedDocument && sharedDocumentInfo && sharedDocumentInfo.readonly;
+        }
+
+        function loadUserEmail() {
+            currentUserEmail = localStorage.getItem('userEmail') || prompt('Ingresa tu email:') || 'anonymous';
+            if (currentUserEmail !== 'anonymous') {
+                localStorage.setItem('userEmail', currentUserEmail);
+            }
+        }
+
+        async function createNewDocument() {
+            if (isSharedDocument) {
+                showNotification('No puedes crear documentos en modo compartido', 'warning');
+                return;
+            }
+            
+            try {
+                showLoading('Creando nuevo documento...');
+                
+                const response = await fetch('/document_bp/api/document', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: 'Sin título',
+                        owner_email: currentUserEmail
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Error creando documento');
+                }
+                
+                const data = await response.json();
+                currentDocumentId = data.id;
+                
+                activeEditor.setContents([]);
+                document.getElementById('documentTitle').value = data.title;
+                document.getElementById('documentTitle').disabled = false;
+                
+                updateStatus('saved', 'Nuevo documento');
+                
+                await loadDocumentsList();
+                hideLoading();
+                
+                showNotification('Nuevo documento creado', 'success');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                hideLoading();
+                showNotification(error.message, 'error');
+            }
+        }
+
+        async function saveDocument(showFeedback = true, isAutosave = false) {
+            if (!currentDocumentId || isSaving || isReadonly()) return;
+            
+            try {
+                isSaving = true;
+                
+                if (showFeedback) {
+                    updateStatus('saving', 'Guardando...');
+                }
+                
+                // Combinar contenido de todas las páginas
+                let fullDelta = { ops: [] };
+                Object.keys(editors).sort((a, b) => parseInt(a) - parseInt(b)).forEach(key => {
+                    const delta = editors[key].getContents();
+                    fullDelta.ops = fullDelta.ops.concat(delta.ops);
+                });
+                
+                const html = Object.keys(editors).map(k => editors[k].root.innerHTML).join('');
+                const title = document.getElementById('documentTitle').value || 'Sin título';
+                
+                const response = await fetch(`/document_bp/api/document/${currentDocumentId}/save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        delta: fullDelta,
+                        html: html,
+                        title: title,
+                        user_email: currentUserEmail,
+                        is_autosave: isAutosave
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Error guardando');
+                }
+                
+                const data = await response.json();
+                
+                updateStatus('saved', isAutosave ? 'Auto-guardado' : 'Guardado');
+                
+                if (showFeedback) {
+                    showNotification(isAutosave ? 'Auto-guardado' : 'Documento guardado', 'success');
+                }
+                
+                await loadDocumentsList();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                updateStatus('error', 'Error al guardar');
+                if (showFeedback) {
+                    showNotification(error.message, 'error');
+                }
+            } finally {
+                isSaving = false;
+            }
+        }
+
+        async function loadDocument(docId) {
+            try {
+                showLoading('Cargando documento...');
+                
+                const response = await fetch(`/document_bp/api/document/${docId}/load?user_email=${currentUserEmail}`);
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Error cargando documento');
+                }
+                
+                const data = await response.json();
+                
+                currentDocumentId = docId;
+                document.getElementById('documentTitle').value = data.title;
+                
+                if (data.delta && data.delta.ops) {
+                    activeEditor.setContents(data.delta);
+                }
+                
+                updateStatus('saved', 'Documento cargado');
+                hideLoading();
+                
+                updateActiveDocument(docId);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                hideLoading();
+                showNotification(error.message, 'error');
+            }
+        }
+
+        async function deleteDocument(docId) {
+            if (!confirm('¿Estás seguro de que quieres eliminar este documento?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/document_bp/api/document/${docId}/delete?user_email=${currentUserEmail}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Error eliminando documento');
+                }
+                
+                showNotification('Documento eliminado', 'success');
+                
+                if (currentDocumentId === docId) {
+                    await createNewDocument();
+                }
+                
+                await loadDocumentsList();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification(error.message, 'error');
+            }
+        }
+
+        async function loadDocumentsList() {
+            if (isSharedDocument) return;
+            
+            try {
+                const response = await fetch(`/document_bp/api/documents?owner_email=${currentUserEmail}&per_page=50`);
+                
+                if (!response.ok) {
+                    throw new Error('Error cargando lista de documentos');
+                }
+                
+                const data = await response.json();
+                documents = data.documents || [];
+                
+                renderDocumentsList();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('Error cargando documentos', 'error');
+            }
+        }
+
+        function renderDocumentsList() {
+            const container = document.getElementById('documentsList');
+            
+            if (documents.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666;">No hay documentos</p>';
+                return;
+            }
+            
+            const html = documents.map(doc => `
+                <div class="document-item ${doc.id === currentDocumentId ? 'active' : ''}" onclick="loadDocument(${doc.id})">
+                    <h4>${escapeHtml(doc.title)}</h4>
+                    <div class="document-meta">
+                        <span>${formatDate(doc.updated_at)}</span>
+                        <span>${formatBytes(doc.size_bytes || 0)}</span>
+                    </div>
+                    <div class="document-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-danger btn-small" onclick="deleteDocument(${doc.id})">🗑️</button>
+                        <button class="btn btn-secondary btn-small" onclick="loadDocument(${doc.id})">📄</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = html;
+        }
+
+        function updateActiveDocument(docId) {
+            document.querySelectorAll('.document-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            const activeItem = document.querySelector(`.document-item[onclick="loadDocument(${docId})"]`);
+            if (activeItem) {
+                activeItem.classList.add('active');
+            }
+        }
+
+        // === EXPORT FUNCTIONS ===
+        function exportAsHTML() {
+            let html = '';
+            Object.keys(editors).forEach(k => {
+                html += `<div style="page-break-after: always;">${editors[k].root.innerHTML}</div>`;
+            });
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'document.html'; a.click();
+            showNotification('Documento exportado como HTML', 'success');
+        }
+
+        function exportAsText() {
+            let text = '';
+            Object.keys(editors).forEach(k => text += editors[k].getText() + '\n\n');
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'document.txt'; a.click();
+            showNotification('Documento exportado como texto', 'success');
+        }
+
+        async function exportDocument(format) {
+            if (!currentDocumentId) {
+                showNotification('No hay documento para exportar', 'warning');
+                return;
+            }
+            
+            try {
+                showLoading(`Exportando a ${format.toUpperCase()}...`);
+                
+                const response = await fetch(`/document_bp/api/document/${currentDocumentId}/export/${format}?user_email=${currentUserEmail}`);
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Error exportando documento');
+                }
+                
+                const data = await response.json();
+                
+                const link = document.createElement('a');
+                link.href = data.download_url;
+                link.download = data.filename;
+                link.click();
+                
+                hideLoading();
+                showNotification(`Documento exportado a ${format.toUpperCase()}`, 'success');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                hideLoading();
+                showNotification(error.message, 'error');
+            }
+        }
+
+        // === SHARE FUNCTIONS ===
+        async function shareDocumentSubmit() {
+            if (!currentDocumentId) {
+                showNotification('No hay documento para compartir', 'warning');
+                return;
+            }
+            
+            try {
+                const recipientEmail = document.getElementById('recipientEmail').value;
+                const permissionLevel = document.getElementById('permissionLevel').value;
+                const message = document.getElementById('shareMessage').value;
+                const expiresInDays = parseInt(document.getElementById('expirationDays').value);
+                
+                const shareData = {
+                    recipient_email: recipientEmail,
+                    shared_by_email: currentUserEmail,
+                    permission_level: permissionLevel,
+                    message: message,
+                    expires_in_days: expiresInDays
+                };
+                
+                document.getElementById('shareLoading').style.display = 'inline-block';
+                document.getElementById('shareSubmitBtn').disabled = true;
+                
+                const response = await fetch(`/document_bp/api/document/${currentDocumentId}/share`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(shareData)
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Error compartiendo documento');
+                }
+                
+                const data = await response.json();
+                
+                showNotification(`Documento compartido con ${recipientEmail}`, 'success');
+                hideShareModal();
+                
+                if (data.share_url) {
+                    prompt('URL de compartir (copiado al portapapeles):', data.share_url);
+                    navigator.clipboard.writeText(data.share_url).catch(() => {});
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification(error.message, 'error');
+            } finally {
+                document.getElementById('shareLoading').style.display = 'none';
+                document.getElementById('shareSubmitBtn').disabled = false;
+            }
+        }
+
+        // === UPLOAD FUNCTIONS ===
+        async function uploadDocument(file, customTitle = '') {
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('owner_email', currentUserEmail);
+                if (customTitle) {
+                    formData.append('title', customTitle);
+                }
+                
+                showUploadProgress('Subiendo archivo...');
+                
+                const response = await fetch('/upload_bp/api/document/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Error subiendo archivo');
+                }
+                
+                const data = await response.json();
+                
+                await loadDocument(data.id);
+                await loadDocumentsList();
+                
+                hideUploadModal();
+                showNotification(`Documento "${data.original_filename}" subido exitosamente`, 'success');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                hideUploadProgress();
+                showNotification(error.message, 'error');
+            }
+        }
+
+        function handleFileSelect(file) {
+            if (!file) return;
+            
+            const customTitle = document.getElementById('customTitle').value.trim();
+            uploadDocument(file, customTitle);
+        }
+
+        function setupDragAndDrop() {
+            const uploadZone = document.getElementById('uploadZone');
+            
+            uploadZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadZone.classList.add('drag-over');
+            });
+            
+            uploadZone.addEventListener('dragleave', function() {
+                uploadZone.classList.remove('drag-over');
+            });
+            
+            uploadZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadZone.classList.remove('drag-over');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFileSelect(files[0]);
+                }
+            });
+        }
+
+        // === UI FUNCTIONS ===
+        function toggleSidebar() {
+            const sidebar = document.getElementById('documentsSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
+            
+            if (sidebar.classList.contains('open') && !isSharedDocument) {
+                loadDocumentsList();
+            }
+        }
+
+        function toggleExportMenu() {
+            const dropdown = document.getElementById('exportDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        function showShareModal() {
+            if (!currentDocumentId) {
+                showNotification('No hay documento para compartir', 'warning');
+                return;
+            }
+            document.getElementById('shareModal').style.display = 'block';
+        }
+
+        function hideShareModal() {
+            document.getElementById('shareModal').style.display = 'none';
+            document.getElementById('shareForm').reset();
+        }
+
+        function showUploadModal() {
+            document.getElementById('uploadModal').style.display = 'block';
+        }
+
+        function hideUploadModal() {
+            document.getElementById('uploadModal').style.display = 'none';
+            hideUploadProgress();
+            document.getElementById('customTitle').value = '';
+        }
+
+        function showUploadProgress(text) {
+            document.getElementById('uploadProgress').style.display = 'block';
+            document.getElementById('uploadStatus').textContent = text;
+        }
+
+        function hideUploadProgress() {
+            document.getElementById('uploadProgress').style.display = 'none';
+        }
+
+        function showLoading(text) {
+            document.getElementById('loadingModal').style.display = 'block';
+            document.getElementById('loadingText').textContent = text;
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingModal').style.display = 'none';
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+
+        function updateStatus(status, text) {
+            const statusDot = document.getElementById('statusDot');
+            const lastSaved = document.getElementById('lastSaved');
+            
+            statusDot.className = `status-dot status-${status}`;
+            lastSaved.textContent = text;
+            
+            if (status === 'saved') {
+                lastSaved.textContent = text + ' - ' + new Date().toLocaleTimeString();
+            }
+        }
+
+        // === UTILITY FUNCTIONS ===
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // === EVENT LISTENERS ===
+        document.getElementById('shareForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            shareDocumentSubmit();
+        });
+
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+                    dropdown.classList.remove('show');
+                });
+            }
+        });
+
+        window.addEventListener('click', function(event) {
+            const modals = ['uploadModal', 'shareModal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+
+        document.addEventListener('keydown', function(event) {
+            if (event.ctrlKey || event.metaKey) {
+                switch(event.key) {
+                    case 's':
+                        event.preventDefault();
+                        saveDocument();
+                        break;
+                    case 'n':
+                        event.preventDefault();
+                        createNewDocument();
+                        break;
+                    case 'o':
+                        event.preventDefault();
+                        toggleSidebar();
+                        break;
+                }
+            }
+        });
+
+        // === INIT ===
+        document.addEventListener('DOMContentLoaded', () => {
+            editors[1] = createQuillEditor('editor-1');
+            activeEditor = editors[1];
+            updateStats();
+            checkForSharedDocument();
+            setupDragAndDrop();
+            loadUserEmail();
+            
+            if (!isSharedDocument) {
+                createNewDocument();
+            }
+        });
+    </script>
+    
+</body>
+</html>

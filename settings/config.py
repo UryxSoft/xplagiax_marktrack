@@ -56,7 +56,7 @@ class Config:
 class DevelopmentConfig(Config):
     DEBUG = True
     SECRET_KEY = '43RFCvfr5edc67TGBvfr'
-    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:@localhost/document_editor_db'
+    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:@localhost/xplagiax_db'
     
 class TestingConfig(Config):
     TESTING = True

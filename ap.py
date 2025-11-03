@@ -637,5 +637,4 @@ def initialize_database():
         db.create_all()
         app._database_initialized = True
 if __name__ == '__main__':
-    
     app.run(debug=True,host='127.0.0.1', port=5002)
