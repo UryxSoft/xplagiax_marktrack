@@ -61,7 +61,7 @@ graph TD
 
 ---
 
-## 🔄 3. Service & Endpoint Lifecycles / Ciclos de Vida de Servicios
+## 🔄 3. Detailed Service Lifecycles / Ciclos de Vida de Servicios
 
 ### 3.1 Global Security Middleware Flow
 ```mermaid
@@ -72,8 +72,8 @@ graph TD
     D -- No --> E[Clear Session & Force Logout]
     D -- Yes --> F{CSRF Header Present?}
     F -- No --> G[Reject 403 Forbidden]
-    F -- Yes --> H[Proceed to Route Logic]
-    H --> I[Execute Blueprint Logic]
+    F -- Yes --> H["Proceed to Route Logic"]
+    H --> I["Execute Blueprint Logic"]
 ```
 
 ### 3.2 Authentication Lifecycle (OAuth2/OIDC)
@@ -157,7 +157,7 @@ graph TD
     E --> F{Record exists?}
     F -- Yes --> G["Merge Incremental ABM via max()"]
     F -- No --> H[Create new Forensic Record]
-    G --> I[Update Totals (WPM, Ks, Backspaces)]
+    G --> I["Update Totals (WPM, Ks, Backspaces)"]
     H --> I
     I --> J[Invalidate Redis Detail Cache]
     J --> K[Return Success]
@@ -181,58 +181,49 @@ stateDiagram-v2
 ```mermaid
 graph TD
     A[Professor: Create Workspace] --> B[Generate 32-char Secure Token]
-    B --> C[Store Invitation Record (status=pending)]
-    C --> D[Dispatch Professional Email via Flask-Mail]
+    B --> C["Store Invitation Record (status=pending)"]
+    C --> D["Dispatch Professional Email via Flask-Mail"]
     D --> E[Student: Clicks link /invite/{token}]
     E --> F{Is Student Logged in?}
-    F -- No --> G[Redirect to /homework Login/Register]
+    F -- No --> G["Redirect to /homework Login/Register"]
     F -- Yes --> H{Is email match?}
     H -- No --> I[Show Authorization Error]
     H -- Yes --> J[Grant Access to Workspace Document]
-    J --> K[Mark Invitation status=active]
+    J --> K["Mark Invitation status=active"]
 ```
 
-### 3.9 Comment Interaction Lifecycle
+### 3.9 Recursive Folder Deletion Logic
+```mermaid
+graph TD
+    A[User: Delete Folder] --> B{Is Folder Empty?}
+    B -- No --> C[Recursive traversal of Subfolders]
+    B -- Yes --> D[Flag Documents for Batch Deletion]
+    C --> D
+    D --> E[Check SeaweedFS for S3-linked assets]
+    E --> F[Remove Metadata from MySQL]
+    F --> G[Invalidate Folder Cache Keys]
+    G --> H[Return Success]
+```
+
+### 3.10 Socket.IO Awareness (Cursor Tracking)
 ```mermaid
 sequenceDiagram
-    participant U as User (Editor)
-    participant API as comments_bp
-    participant DB as MySQL Store
-    participant N as NotificationService
-    participant S as Socket.IO
+    participant C as Client A
+    participant S as Socket.IO Server
+    participant R as Redis (Ephemeral)
+    participant O as Client B (Peer)
 
-    U->>API: POST /api/comments (doc_id, content, range)
-    API->>DB: Store Comment & Anchor Data
-    API->>N: Trigger Notification (Type: COMMENT_ADDED)
-    N->>S: Broadcast to all peers in room doc_{id}
-    S-->>U: Deliver real-time bubble update
-    Note right of N: Persistent Alert created for owner
+    C->>S: doc:cursor (x, y, color)
+    S->>R: SET awareness:{doc_id}:{user_id} TTL 30s
+    S->>O: doc:awareness_update (Peer Data)
+    O->>O: Render remote cursor bubble
 ```
 
 ---
 
-## 🛣️ 4. Exhaustive Blueprint Ecosystem / Ecosistema Detallado
+## 🛡️ 4. Security & Forensic Architecture / Seguridad y Arquitectura Forense
 
-### 4.1 Core Blueprints / Blueprints Principales
-| Blueprint | Domain | Responsibility (EN) | Responsabilidad (ES) |
-| :--- | :--- | :--- | :--- |
-| `auth_bp` | Identity | OAuth2 (Google/Microsoft), session logic. | Identidad OAuth2, lógica de sesión. |
-| `document_bp`| Documents | CRUD operations, hybrid persistence. | Operaciones CRUD, persistencia híbrida. |
-| `share_bp` | Sharing | Permission management, UUID sharing. | Gestión de permisos, compartición UUID. |
-| `workspace_bp`| Workspace | Professor-student relationship. | Relación profesor-estudiante. |
-
-### 4.2 Collaborative & Social Blueprints
-| Blueprint | Domain | Responsibility (EN) | Responsabilidad (ES) |
-| :--- | :--- | :--- | :--- |
-| `collaborators`| Real-time | Socket.IO room management & Yjs sync. | Gestión de salas Socket.IO y sincronización. |
-| `comments_bp` | Interaction | Inline comments and thread notifications. | Comentarios inline y notificaciones. |
-| `notifications`| Feedback | In-app alerts and activity tracking. | Alertas in-app y seguimiento. |
-
----
-
-## 🛡️ 5. Security & Forensic Architecture / Seguridad y Arquitectura Forense
-
-### 5.1 Academic Integrity Telemetry
+### 4.1 Academic Integrity Telemetry
 **[EN]** MarkTrack analyzes the "Cognitive Rhythm" of writing using high-fidelity metrics:
 *   **WPM Analysis**: Detects content bursts indicative of unauthorized copy-pasting.
 *   **Keystroke Dynamics**: Tracks `avg_hold_ms` and `avg_interkey_ms` to verify authorship.
@@ -240,9 +231,9 @@ sequenceDiagram
 
 ---
 
-## ⚙️ 6. Settings & Configuration Matrix / Matriz de Configuración
+## ⚙️ 5. Settings & Configuration Matrix / Matriz de Configuración
 
-### 6.1 Redis Partitioning Strategy
+### 5.1 Redis Partitioning Strategy
 | DB Index | Component | Responsibility |
 | :--- | :--- | :--- |
 | `0` | **Flask-Caching** | Hot cache for metadata and templates. |
@@ -252,9 +243,9 @@ sequenceDiagram
 
 ---
 
-## 🛠️ 7. Maintenance & Production Ops / Mantenimiento y Operaciones
+## 🛠️ 6. Maintenance & Production Ops / Mantenimiento y Operaciones
 
-### 7.1 Gunicorn + Eventlet Formulas
+### 6.1 Gunicorn + Eventlet Formulas
 **[EN]** Recommended configuration for 1,000+ concurrent users:
 ```bash
 gunicorn -k eventlet -w 9 --threads 2 --bind 0.0.0.0:5000 app:app
@@ -262,7 +253,7 @@ gunicorn -k eventlet -w 9 --threads 2 --bind 0.0.0.0:5000 app:app
 
 ---
 
-## ⚖️ 8. License & Credits / Licencia y Créditos
+## ⚖️ 7. License & Credits / Licencia y Créditos
 
 © 2026 UryxSoft. MIT Licensed.
 *Special thanks to the open-source communities behind Yjs, Quill, and Flask.*
