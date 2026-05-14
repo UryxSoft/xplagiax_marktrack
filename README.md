@@ -61,12 +61,9 @@ graph TD
 
 ---
 
-## 🔄 3. Detailed Service Lifecycles / Ciclos de Vida de Servicios
+## 🔄 3. Service & Endpoint Lifecycles / Ciclos de Vida de Servicios
 
 ### 3.1 Global Security Middleware Flow
-**[EN]** Every incoming request undergoes a strict security audit before reaching the route logic.
-**[ES]** Cada solicitud entrante se somete a una auditoría de seguridad estricta antes de llegar a la lógica de la ruta.
-
 ```mermaid
 graph TD
     A[Incoming Request] --> B{Is Authenticated?}
@@ -138,7 +135,7 @@ graph LR
 ### 3.5 Real-Time CRDT Pipeline (Redis-to-MySQL)
 ```mermaid
 graph LR
-    A[Collaborator A] -->|Update| B(Socket.IO)
+    A[Collaborator A] -->|Update| B("Socket.IO")
     C[Collaborator B] -->|Update| B
     B -->|Broadcast| A
     B -->|Broadcast| C
@@ -146,7 +143,7 @@ graph LR
     B -->|INCR| E[Redis yjs:dirty:id]
     E -->|Threshold = 50| F{Sync Worker}
     F -->|Merge Deltas| G[Yjs Engine]
-    G -->|Commit| H[(MySQL BLOB)]
+    G -->|Commit| H["(MySQL BLOB)"]
     H -->|Clear| D
 ```
 
@@ -158,7 +155,7 @@ graph TD
     C -- No --> D[Log Security Incident & Reject]
     C -- Yes --> E[Fetch existing record in MySQL]
     E --> F{Record exists?}
-    F -- Yes --> G[Merge Incremental ABM via max()]
+    F -- Yes --> G["Merge Incremental ABM via max()"]
     F -- No --> H[Create new Forensic Record]
     G --> I[Update Totals (WPM, Ks, Backspaces)]
     H --> I
@@ -178,6 +175,38 @@ stateDiagram-v2
     Rejected --> Overdue: Original Deadline Kept
     Active --> Submitted: Student submits document
     Submitted --> [*]
+```
+
+### 3.8 Workspace Invitation & Admission Flow
+```mermaid
+graph TD
+    A[Professor: Create Workspace] --> B[Generate 32-char Secure Token]
+    B --> C[Store Invitation Record (status=pending)]
+    C --> D[Dispatch Professional Email via Flask-Mail]
+    D --> E[Student: Clicks link /invite/{token}]
+    E --> F{Is Student Logged in?}
+    F -- No --> G[Redirect to /homework Login/Register]
+    F -- Yes --> H{Is email match?}
+    H -- No --> I[Show Authorization Error]
+    H -- Yes --> J[Grant Access to Workspace Document]
+    J --> K[Mark Invitation status=active]
+```
+
+### 3.9 Comment Interaction Lifecycle
+```mermaid
+sequenceDiagram
+    participant U as User (Editor)
+    participant API as comments_bp
+    participant DB as MySQL Store
+    participant N as NotificationService
+    participant S as Socket.IO
+
+    U->>API: POST /api/comments (doc_id, content, range)
+    API->>DB: Store Comment & Anchor Data
+    API->>N: Trigger Notification (Type: COMMENT_ADDED)
+    N->>S: Broadcast to all peers in room doc_{id}
+    S-->>U: Deliver real-time bubble update
+    Note right of N: Persistent Alert created for owner
 ```
 
 ---
@@ -209,24 +238,11 @@ stateDiagram-v2
 *   **Keystroke Dynamics**: Tracks `avg_hold_ms` and `avg_interkey_ms` to verify authorship.
 *   **Incremental Ingestion**: Uses `max()` merging for activity-by-minute data from fragmented sessions.
 
-### 5.2 Anti-IDOR & Token Protection
-**[EN]** Secure review views are protected via **Secure Token Wrapping** (`itsdangerous`). Direct resource IDs are never exposed; a signed payload with a 24h TTL is validated upon every request.
-
 ---
 
-## 📊 6. Database Schema & Persistence / Esquema de Datos
+## ⚙️ 6. Settings & Configuration Matrix / Matriz de Configuración
 
-### 6.1 Authoritative Entities
-*   **`users`**: Identity provider status, active session tokens, and account tier limits.
-*   **`documents`**: Central asset. Stores Quill Delta (JSON), Yjs State (BLOB), and Storage Type metadata.
-*   **`document_share`**: Permission matrix (Viewer, Editor, Admin) with TTL logic.
-*   **`essay_submission_metrics`**: Forensic audit logs, typing bursts, and digital signature.
-
----
-
-## ⚙️ 7. Settings & Configuration Matrix / Matriz de Configuración
-
-### 7.1 Redis Partitioning Strategy
+### 6.1 Redis Partitioning Strategy
 | DB Index | Component | Responsibility |
 | :--- | :--- | :--- |
 | `0` | **Flask-Caching** | Hot cache for metadata and templates. |
@@ -236,34 +252,17 @@ stateDiagram-v2
 
 ---
 
-## 🚀 8. Setup & Operations / Instalación y Operaciones
+## 🛠️ 7. Maintenance & Production Ops / Mantenimiento y Operaciones
 
-**[EN]**
+### 7.1 Gunicorn + Eventlet Formulas
+**[EN]** Recommended configuration for 1,000+ concurrent users:
 ```bash
-# 1. Environment
-cp .env.example .env
-docker compose up -d
-
-# 2. Virtualenv
-python3.12 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-
-# 3. Initialization
-flask db upgrade
-python app.py
+gunicorn -k eventlet -w 9 --threads 2 --bind 0.0.0.0:5000 app:app
 ```
 
 ---
 
-## 🗺️ 9. Roadmap / Hoja de Ruta
-
-*   **Q3 2026**: Integration with Gemini Pro for pedagogical feedback.
-*   **Q4 2026**: High-fidelity PDF annotations and peer-review workflows.
-*   **Q1 2027**: Enterprise SAML/SSO for global university clusters.
-
----
-
-## ⚖️ 10. License & Credits / Licencia y Créditos
+## ⚖️ 8. License & Credits / Licencia y Créditos
 
 © 2026 UryxSoft. MIT Licensed.
 *Special thanks to the open-source communities behind Yjs, Quill, and Flask.*
