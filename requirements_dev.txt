@@ -1,0 +1,91 @@
+# =============================================================================
+# requirements.txt — xplagiax / marktrack
+# PhD-grade production dependency list
+# Last updated: 2026-04-11
+#
+# Or simply: pip install -r requirements.txt  (Docker builder stage handles it)
+# =============================================================================
+
+
+# ── Web framework ─────────────────────────────────────────────────────────────
+Flask==3.0.3
+Werkzeug==3.0.3
+
+# ── WSGI server ───────────────────────────────────────────────────────────────
+gunicorn==22.0.0
+eventlet==0.36.1          # async worker for Gunicorn + SocketIO
+dnspython==2.6.1          # required by eventlet for DNS resolution
+
+# ── Real-time (WebSockets) ────────────────────────────────────────────────────
+Flask-SocketIO==5.3.6
+python-socketio==5.11.3
+python-engineio==4.9.1
+
+SQLAlchemy==2.0.30
+Flask-SQLAlchemy==3.1.1
+alembic==1.13.1           # schema migrations
+
+# ── Caching — two layers ──────────────────────────────────────────────────────
+# Layer 1: HTTP/route-level caching (Flask-Caching → Redis)
+Flask-Caching==2.3.0
+# Layer 2: ORM/query-level caching (dogpile.cache → Redis)
+dogpile.cache==1.3.3
+
+# ── Redis client ──────────────────────────────────────────────────────────────
+redis==5.0.4
+hiredis==2.3.2            # C-extension parser: ~5x faster Redis response parsing
+
+# ── Authentication & security ─────────────────────────────────────────────────
+Flask-Login==0.6.3
+Flask-WTF==1.2.1
+itsdangerous==2.2.0
+Authlib==1.3.0            # OAuth2 (Google / Microsoft)
+pyotp==2.9.0              # TOTP / 2FA
+bcrypt==4.1.3
+
+# ── Rate limiting ─────────────────────────────────────────────────────────────
+Flask-Limiter==3.7.0
+limits==3.12.0
+
+# ── Mail ──────────────────────────────────────────────────────────────────────
+Flask-Mail==0.10.0
+
+# ── Document processing ───────────────────────────────────────────────────────
+python-docx==1.1.2
+docx2python==3.5.0
+mammoth==1.8.0
+WeasyPrint==62.3          # HTML → PDF export
+beautifulsoup4==4.12.3
+lxml==5.2.2               # fast HTML/XML parser (bs4 backend)
+Pillow==10.3.0
+
+# ── Serialization / compression ───────────────────────────────────────────────
+msgpack==1.0.8            # dogpile.cache payload compression
+orjson==3.10.3            # 2-10x faster JSON than stdlib (drop-in for jsonify)
+
+# ── HTTP client ───────────────────────────────────────────────────────────────
+requests==2.32.2
+httpx==0.27.0             # async-capable HTTP (SeaweedFS calls)
+
+# ── AI / NLP (web-tier only — no heavy ML models loaded in the web process) ──
+google-generativeai==0.7.2   # Gemini API
+nltk==3.8.1
+blingfire==0.1.8             # ultra-fast tokenizer
+
+# ── Observability ─────────────────────────────────────────────────────────────
+prometheus-flask-exporter==0.23.1   # /metrics endpoint for Prometheus
+prometheus-client==0.20.0
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+python-dotenv==1.0.1      # load .env in development
+python-magic==0.4.27      # MIME type detection from file content
+urllib3==2.2.1
+certifi==2024.2.2
+charset-normalizer==3.3.2
+
+# ── Dev / lint (not installed in Docker production stage) ─────────────────────
+# autopep8
+# pytest
+# pytest-flask
+# pytest-cov
+pymysql
