@@ -1,0 +1,169 @@
+/* quill-bubble-toolbar.css */
+
+.qbt-toolbar {
+    position: absolute;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    background: rgba(26, 26, 26, 0.85); /* Darker Material 3 style */
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 
+                0 0 0 1px rgba(255, 255, 255, 0.05);
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+    transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1), 
+                transform 0.2s cubic-bezier(0.2, 0, 0, 1),
+                visibility 0.2s;
+    visibility: hidden;
+    user-select: none;
+    pointer-events: auto;
+}
+
+.qbt-toolbar.active {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    visibility: visible;
+}
+
+/* Groups and Dividers */
+.qbt-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.qbt-divider {
+    width: 1px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.15);
+    margin: 0 8px;
+}
+
+/* Button Styles */
+.qbt-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    padding: 0;
+}
+
+.qbt-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.qbt-btn.active {
+    background: rgba(59, 130, 246, 0.2); /* Soft blue for active state */
+    color: #60a5fa;
+}
+
+.qbt-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2.2px;
+}
+
+/* Special Button: Re-write */
+.qbt-btn-rewrite {
+    width: auto;
+    padding: 0 10px;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+    color: #fff;
+}
+
+.qbt-btn-rewrite svg {
+    color: #818cf8; /* Light indigo for sparkle */
+}
+
+.qbt-btn-rewrite:hover {
+    background: rgba(129, 140, 248, 0.15);
+}
+
+/* Dropdown: Paragraph */
+.qbt-dropdown {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 0 6px 0 10px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    transition: all 0.15s ease;
+    gap: 4px;
+}
+
+.qbt-dropdown:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.qbt-dropdown-menu {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 8px;
+    background: rgba(26, 26, 26, 0.95);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    min-width: 140px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    overflow: hidden;
+    display: none;
+    z-index: 2001;
+}
+
+.qbt-dropdown.open .qbt-dropdown-menu {
+    display: block;
+}
+
+.qbt-dropdown-item {
+    padding: 10px 14px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+    transition: all 0.1s ease;
+}
+
+.qbt-dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* Color Picker */
+.qbt-color-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    margin-right: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Tooltip Arrow (modern refined style) */
+.qbt-toolbar::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -6px;
+    border-width: 6px;
+    border-style: solid;
+    border-color: rgba(26, 26, 26, 0.85) transparent transparent transparent;
+}

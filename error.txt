@@ -1,0 +1,683 @@
+/Users/user/Documents/xplagiax_marktrack/venv_py311/lib/python3.11/site-packages/flask_limiter/extension.py:324: UserWarning: Using the in-memory storage for tracking rate limits as no storage was explicitly specified. This is not recommended for production use. See: https://flask-limiter.readthedocs.io#configuring-a-storage-backend for documentation about configuring the storage backend.
+  warnings.warn(
+/Users/user/Documents/xplagiax_marktrack/routes/ai_writing_routes.py:9: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:language_tool_python.server:language_tool_python initializing with port: 8262
+INFO:routes.ai_writing_routes:LanguageTool initialized.
+/Users/user/Documents/xplagiax_marktrack/venv_py311/lib/python3.11/site-packages/huggingface_hub/file_download.py:949: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+INFO:sentence_transformers.SentenceTransformer:Load pretrained SentenceTransformer: clip-ViT-B-32
+INFO:appp:Database tables created
+Usando dispositivo: cpu
+Cargando modelo AI/Human: Ateeqq/ai-vs-human-image-detector
+Cargando modelo CLIP: clip-ViT-B-32
+✓ Modelo SigLIP cargado exitosamente
+✓ Modelo CLIP cargado exitosamente
+Status: 302
+Data: <!doctype html>
+<html lang=en>
+<title>Redirecting...</title>
+<h1>Redirecting...</h1>
+<p>You should be redirected automatically to the target URL: <a href="/auth_bp/login?next=%2Fapi%2Ffolder">/auth_bp/login?next=%2Fapi%2Ffolder</a>. If not, click the link.
+
+INFO:language_tool_python.server:Terminating 1 LanguageTool server process(es) at exit
+
+
+
+dame un prompt ultra profesional nivel senior con phd en python,flask ui/ux design:
+
+analisa la pantalla invite, quiero crear una pantalla llamada 'homework' esta pantalla sera la primera pantalla que el. estudiante vera cuando
+el profesor usario cree un Workspaces al enviar el correo con el link de invitacion 
+esta pantalla debera terner la biemvenida que tiene la pantalla 'invite' (<!-- ----------------------------------------------------------------
+     REGISTRATION OVERLAY — shown when student has not registered yet
+     [JINJA] needs_registration flag controls visibility
+---------------------------------------------------------------- -->
+{% if needs_registration %}
+<div class="registration-overlay" id="registrationOverlay">
+    <div class="registration-modal">
+        <h2 style="display:flex;align-items:center;gap:10px;"><i data-lucide="user-check" style="color:var(--primary);"></i> Welcome</h2>
+        <p>To continue, we need to verify your identity. Please complete the fields below.</p>
+
+        <div class="workspace-info">
+            <!-- [JINJA] workspace.title, workspace.classroom, workspace.deadline -->
+            <h3>{{ workspace.title }}</h3>
+            <div class="meta">
+                {% if workspace.classroom %}Classroom: {{ workspace.classroom }} · {% endif %}
+                Deadline: {{ workspace.deadline.strftime('%d/%m/%Y %H:%M') }}
+            </div>
+        </div>
+
+        <form id="registrationForm" onsubmit="handleRegistration(event)">
+            <div class="form-group">
+                <label for="firstName">First Name</label>
+                <input type="text" id="firstName" placeholder="Enter your first name" required autocomplete="given-name">
+                <div class="form-error" id="firstNameError">First name is required</div>
+            </div>
+            <div class="form-group">
+                <label for="lastName">Last Name</label>
+                <input type="text" id="lastName" placeholder="Enter your last name" required autocomplete="family-name">
+                <div class="form-error" id="lastNameError">Last name is required</div>
+            </div>
+            <button type="submit" class="btn-register" id="registerBtn">Continue to Document</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+) en donde el estudiante 
+coloca su NOMBRE Y APELLIDO, pero esta tendra 3 inputs nuevos EMAIL(el inpout ya tendra el email del estiante pero bloqueado para editar) y el campo
+PASSWORD  Y REPEAT PASSWORD  con un validador de nivel de seguridad del mismo PASSWORDPARA ESTO DEBERAS CREAR UN A TABLAS  EXCLUSIVA PARA LOS USERS_STUDENTS_WORKSPACES, SIEMPRE QUE el usuario estudiante entre a la pantalla 'homework' si el login no esta guardado,
+mostrara un modal que pedira el usuario y contrasena , sino mostrara la pantalla 'homework'. 
+ la pantalla  'homerwork' tendra todos los documentos/'workspaces' tendra el disenio similar
+a la pantalla 'http://127.0.0.1:5000/home' pero sin el id='sidebarPanel', sin el 'Folders' list, tendra un (<nav class="nav-rail">
+    <div class="" data-tip="Files">
+      <div class="app-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="icon-svg  bi bi-pencil-square" viewBox="0 0 16 16">
+            <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"></path>
+            <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"></path>
+        </svg>
+      </div>
+    </div>
+    <br>
+    <a href="/home" class="nav-btn active" data-tip="Home"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></a>
+    <div class="nav-spacer"></div>
+
+    <!-- ── NOTIFICATION BELL ─────────────────────────────────── -->
+    <div class="notif-bell-wrapper" id="notifBellWrapper" style="position:relative;">
+      <div class="nav-btn" data-tip="Notifications" onclick="notifToggle()" role="button" aria-label="Notifications" tabindex="0" style="position:relative;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="bell" aria-hidden="true" class="lucide lucide-bell"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg>
+        <span class="notif-badge" id="notifBadge" style="display: flex;">1</span>
+      </div>
+
+      <!-- DROPDOWN -->
+      <div class="notif-dropdown" id="notifDropdown" style="display:none">
+        <!-- Header (Unified with review design) -->
+        <div class="notif-header">
+          <span style="font-weight:600;font-size:13px;">Notifications</span>
+          <button onclick="notifMarkAllRead()" class="notif-link-btn" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--accent-glow,#6366f1);padding:0;">Mark all read</button>
+        </div>
+
+        <!-- Filters -->
+        <div class="notif-filters">
+          <button class="notif-filter-pill active" data-cat="all" onclick="notifSetFilter(this,'all')">All</button>
+          <button class="notif-filter-pill" data-cat="unread" onclick="notifSetFilter(this,'unread')">Unread</button>
+          <button class="notif-filter-pill" data-cat="collaboration" onclick="notifSetFilter(this,'collaboration')">Collaboration</button>
+          <button class="notif-filter-pill" data-cat="feedback" onclick="notifSetFilter(this,'feedback')">Feedback</button>
+        </div>
+
+        <!-- List -->
+        <div class="notif-list" id="notifList">
+          <div class="notif-loading" id="notifLoading">Loading…</div>
+        </div>
+
+        <!-- Footer (Unified with review design) -->
+        <div class="notif-footer">
+          <a href="/notifications" style="font-size:11px;color:rgba(255,255,255,.5);text-decoration:none;">View all notifications →</a>
+          <a href="/notifications/preferences" style="font-size:11px;color:rgba(255,255,255,.3);text-decoration:none;margin-left:auto;display:flex;align-items:center;gap:4px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="settings" aria-hidden="true" style="width:12px;height:12px;" class="lucide lucide-settings"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+    <!-- ── /NOTIFICATION BELL ──────────────────────────────────── -->
+
+    <div class="nav-btn" data-tip="Settings" id="sidebarSettingsBtn" onclick="openSettingsModal()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg></div>
+  </nav>. ) esta tendra los documentos creados por el profesor por medio de la pantalla 'workspace' los documentos tendras el mismo disenio
+   (<div class="doc-outer" data-doc-idx="193" data-search-name="insideout_english uploaded">
+      <button class="doc-menu-btn" onclick="openCtx(event,'doc',193)" aria-label="Document menu">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5" fill="#555" stroke="none"></circle><circle cx="12" cy="12" r="1.5" fill="#555" stroke="none"></circle><circle cx="12" cy="19" r="1.5" fill="#555" stroke="none"></circle></svg>
+      </button>
+      <div class="doc-stack" onclick="if(typeof editDocument==='function') editDocument(193, event)" ondblclick="if(typeof editDocument==='function') editDocument(193, event)">
+        <div class="doc-page dp-b2"></div>
+        <div class="doc-page dp-b1"></div>
+        <div class="doc-page dp-front">
+          <div class="doc-tag tag-uploaded">Uploaded</div>
+          <div class="doc-title">InsideOut_English</div>
+          <div class="doc-preview doc-preview--empty">Empty document</div>
+          <div class="doc-footer">
+            <span class="doc-date">Mar 31, 2026</span>
+            <span class="doc-words">36477 words</span>
+          </div>
+        </div>
+      </div></div>) teste mostrara el titulo,el classrom. y en vez de mostrar el texto: (uploaded, create) solo mostrara si es 'NEW','CLOSSED','SOOM FINISH' Y EL USUARIO ESTUADIANTE AL DAR CLICK llevara. a la pantall 'invite/token' incluso si se envia el correco de creacion y es 'https://127.0.0.1:500/invite/token' si el usuario estudiante recive el correo de invitacion y da click y ya esta logueado en 'homework' lo llevara directo a este 'invite/token' sino mostrara el registro o el login
+
+
+
+
+Integrar un componente interactivo de análisis de detección de IA dentro de la vista review, específicamente en el tab AI DETECTION, permitiendo:
+
+Capturar el contenido activo del editor Quill.js
+Enviar dicho contenido a un servicio backend de análisis
+Procesar la respuesta JSON
+Renderizar dinámicamente los resultados en la UI existente sin alterar el diseño actual (HTML/CSS)
+      quiero que hagas lo siguiente agrega el siguiente boton (html y css del boton): (<!-- From Uiverse.io by ilkhoeri --> 
+<button type="button" class="button">
+  <span class="fold"></span>
+
+  <div class="points_wrapper">
+    <i class="point"></i>
+    <i class="point"></i>
+    <i class="point"></i>
+    <i class="point"></i>
+    <i class="point"></i>
+    <i class="point"></i>
+    <i class="point"></i>
+    <i class="point"></i>
+    <i class="point"></i>
+    <i class="point"></i>
+  </div>
+
+  <span class="inner"
+    ><svg
+      class="icon"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2.5"
+    >
+      <polyline
+        points="13.18 1.37 13.18 9.64 21.45 9.64 10.82 22.63 10.82 14.36 2.55 14.36 13.18 1.37"
+      ></polyline></svg
+    >Credits</span
+  >
+</button>/* From Uiverse.io by ilkhoeri */ 
+.button {
+  --h-button: 48px;
+  --w-button: 102px;
+  --round: 0.75rem;
+  cursor: pointer;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: all 0.25s ease;
+  background: radial-gradient(
+      65.28% 65.28% at 50% 100%,
+      rgba(223, 113, 255, 0.8) 0%,
+      rgba(223, 113, 255, 0) 100%
+    ),
+    linear-gradient(0deg, #7a5af8, #7a5af8);
+  border-radius: var(--round);
+  border: none;
+  outline: none;
+  padding: 12px 18px;
+}
+.button::before,
+.button::after {
+  content: "";
+  position: absolute;
+  inset: var(--space);
+  transition: all 0.5s ease-in-out;
+  border-radius: calc(var(--round) - var(--space));
+  z-index: 0;
+}
+.button::before {
+  --space: 1px;
+  background: linear-gradient(
+    177.95deg,
+    rgba(255, 255, 255, 0.19) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+.button::after {
+  --space: 2px;
+  background: radial-gradient(
+      65.28% 65.28% at 50% 100%,
+      rgba(223, 113, 255, 0.8) 0%,
+      rgba(223, 113, 255, 0) 100%
+    ),
+    linear-gradient(0deg, #7a5af8, #7a5af8);
+}
+.button:active {
+  transform: scale(0.95);
+}
+
+.fold {
+  z-index: 1;
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 1rem;
+  width: 1rem;
+  display: inline-block;
+  transition: all 0.5s ease-in-out;
+  background: radial-gradient(
+    100% 75% at 55%,
+    rgba(223, 113, 255, 0.8) 0%,
+    rgba(223, 113, 255, 0) 100%
+  );
+  box-shadow: 0 0 3px black;
+  border-bottom-left-radius: 0.5rem;
+  border-top-right-radius: var(--round);
+}
+.fold::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 150%;
+  height: 150%;
+  transform: rotate(45deg) translateX(0%) translateY(-18px);
+  background-color: #e8e8e8;
+  pointer-events: none;
+}
+.button:hover .fold {
+  margin-top: -1rem;
+  margin-right: -1rem;
+}
+
+.points_wrapper {
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.points_wrapper .point {
+  bottom: -10px;
+  position: absolute;
+  animation: floating-points infinite ease-in-out;
+  pointer-events: none;
+  width: 2px;
+  height: 2px;
+  background-color: #fff;
+  border-radius: 9999px;
+}
+@keyframes floating-points {
+  0% {
+    transform: translateY(0);
+  }
+  85% {
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(-55px);
+    opacity: 0;
+  }
+}
+.points_wrapper .point:nth-child(1) {
+  left: 10%;
+  opacity: 1;
+  animation-duration: 2.35s;
+  animation-delay: 0.2s;
+}
+.points_wrapper .point:nth-child(2) {
+  left: 30%;
+  opacity: 0.7;
+  animation-duration: 2.5s;
+  animation-delay: 0.5s;
+}
+.points_wrapper .point:nth-child(3) {
+  left: 25%;
+  opacity: 0.8;
+  animation-duration: 2.2s;
+  animation-delay: 0.1s;
+}
+.points_wrapper .point:nth-child(4) {
+  left: 44%;
+  opacity: 0.6;
+  animation-duration: 2.05s;
+}
+.points_wrapper .point:nth-child(5) {
+  left: 50%;
+  opacity: 1;
+  animation-duration: 1.9s;
+}
+.points_wrapper .point:nth-child(6) {
+  left: 75%;
+  opacity: 0.5;
+  animation-duration: 1.5s;
+  animation-delay: 1.5s;
+}
+.points_wrapper .point:nth-child(7) {
+  left: 88%;
+  opacity: 0.9;
+  animation-duration: 2.2s;
+  animation-delay: 0.2s;
+}
+.points_wrapper .point:nth-child(8) {
+  left: 58%;
+  opacity: 0.8;
+  animation-duration: 2.25s;
+  animation-delay: 0.2s;
+}
+.points_wrapper .point:nth-child(9) {
+  left: 98%;
+  opacity: 0.6;
+  animation-duration: 2.6s;
+  animation-delay: 0.1s;
+}
+.points_wrapper .point:nth-child(10) {
+  left: 65%;
+  opacity: 1;
+  animation-duration: 2.5s;
+  animation-delay: 0.2s;
+}
+
+.inner {
+  z-index: 2;
+  gap: 6px;
+  position: relative;
+  width: 100%;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+  transition: color 0.2s ease-in-out;
+}
+
+.inner svg.icon {
+  width: 18px;
+  height: 18px;
+  transition: fill 0.1s linear;
+}
+
+.button:focus svg.icon {
+  fill: white;
+}
+.button:hover svg.icon {
+  fill: transparent;
+  animation:
+    dasharray 1s linear forwards,
+    filled 0.1s linear forwards 0.95s;
+}
+@keyframes dasharray {
+  from {
+    stroke-dasharray: 0 0 0 0;
+  }
+  to {
+    stroke-dasharray: 68 68 0 0;
+  }
+}
+@keyframes filled {
+  to {
+    fill: white;
+  }
+}
+
+ ) dentro de la session en el tab  'AI DETECTION' en la pantalla
+      review. 
+
+      ese boton al  realizar click iniciar un analisis tomando todo el texto activo en el Edito quill.js y enviarlo
+      a un endpoint: 'http://[IP_ADDRESS]/ai/analyze/' POST en un route de analisis atrevez del requets siguiente:
+
+
+      response = requests.post(
+          "http://localhost:5006/analyze_document",
+          json={
+              "text": text,
+              "plugins": ["ai_detection","citation_check","stylometric_analysis"],
+          },
+      )
+
+    este retorna el JSON: 
+    
+    {
+  "plugins_requested": [
+    "ai_detection",
+    "perplexity_check",
+    "stylometric_analysis",
+    "citation_check"
+  ],
+  "results": {
+    "ai_detection": {
+      "data": {
+        "ai_percentage": 100,
+        "confidence": 100,
+        "detected_model": "gpt4",
+        "human_percentage": 0,
+        "overall_summary": {
+          "overall_prediction": "AI",
+          "total_ai_percentage": 99,
+          "total_human_percentage": 1
+        },
+        "prediction": "AI",
+        "raw_scores": {
+          "ai": 0,
+          "human": 0
+        },
+        "segments": [
+          {
+            "dominant_label": "AI",
+            "forensic_analysis": null,
+            "score": 99,
+            "segment_id": 1,
+            "status_note": null,
+            "text": "TEXTO_SEGMENTO_#1"
+          },
+          {
+            "dominant_label": "AI",
+            "forensic_analysis": null,
+            "score": 99,
+            "segment_id": 2,
+            "status_note": null,
+            "text": "TEXTO_SEGMENTO_#2"
+          },
+          {
+            "dominant_label": "AI",
+            "forensic_analysis": null,
+            "score": 98,
+            "segment_id": 3,
+            "status_note": null,
+            "text": "TEXTO_SEGMENTO_#3"
+          }
+        ],
+        "uncertainty_zone": false
+      },
+      "elapsed_ms": 2983.9,
+      "status": "ok"
+    },
+    "citation_check": {
+      "data": {
+        "ai_score": 0.0,
+        "feature_details": {
+          "chimeric_ratio": {
+            "display_name": "Chimeric Citation Ratio",
+            "explanation": "No chimeric references detected (0%).",
+            "level": "low",
+            "value": 0.0
+          },
+          "fabricated_ratio": {
+            "display_name": "Fabricated Citation Ratio",
+            "explanation": "All or nearly all references (0% unverifiable) were found in academic databases.",
+            "level": "low",
+            "value": 0.0
+          },
+          "mean_confidence": {
+            "display_name": "Mean Verification Confidence",
+            "explanation": "Very low mean confidence (0/100) across all references \u2014 most could not be reliably matched to real publications.",
+            "level": "high",
+            "value": 0.0
+          },
+          "ornamental_ratio": {
+            "display_name": "Ornamental Reference Ratio",
+            "explanation": "References are well-integrated with inline citations (0% ornamental).",
+            "level": "low",
+            "value": 0.0
+          }
+        },
+        "feature_values": {
+          "author_mismatch_count": 0.0,
+          "chimeric_ratio": 0.0,
+          "date_anomaly_count": 0.0,
+          "doi_fabrication_count": 0.0,
+          "fabricated_ratio": 0.0,
+          "mean_confidence": 0.0,
+          "min_confidence": 0.0,
+          "missing_inline_ratio": 0.0,
+          "network_enabled": true,
+          "ornamental_ratio": 0.0,
+          "partial_match_ratio": 0.0,
+          "references_extracted": 0,
+          "total_references": 0.0,
+          "verified_ratio": 0.0
+        },
+        "interpretation": "No references were found in the text for validation.",
+        "references": [],
+        "risk_level": "NO REFERENCES FOUND",
+        "severity_profile": {
+          "chimeric_ratio": "low",
+          "fabricated_ratio": "low",
+          "mean_confidence": "high",
+          "ornamental_ratio": "low"
+        },
+        "total_references": 0,
+        "validation_results": []
+      },
+      "elapsed_ms": 2.2,
+      "status": "ok"
+    },
+    "perplexity_check": {
+      "data": {
+        "ai_score": 0.4167,
+        "feature_details": {
+          "burstiness_perplexity": {
+            "display_name": "Predictability Variation Across Sections",
+            "explanation": "High predictability variation (0.181) \u2014 natural fluctuation in text complexity, typical of human writing.",
+            "level": "low",
+            "value": 0.180842
+          },
+          "curvature_score": {
+            "display_name": "AI Probability Signature (GPT-2)",
+            "explanation": "Low probability signature (0.19). The text does not match AI-typical probability patterns.",
+            "level": "low",
+            "value": 0.192469
+          },
+          "low_perplexity_ratio": {
+            "display_name": "AI-Typical Sections Ratio",
+            "explanation": "A large fraction of text sections (100%) show AI-typical predictability. Most of the document appears machine-generated.",
+            "level": "high",
+            "value": 1.0
+          },
+          "perplexity_valley_count": {
+            "display_name": "Predictability Drops (Hybrid Detection)",
+            "explanation": "Some predictability drops (1) present. Could indicate selective AI assistance.",
+            "level": "medium",
+            "value": 1.0
+          },
+          "proxy_perplexity_mean": {
+            "display_name": "Text Predictability Score",
+            "explanation": "Very low text predictability (15.91) \u2014 the word patterns are highly predictable, characteristic of AI-generated content.",
+            "level": "high",
+            "value": 15.91467
+          },
+          "token_entropy_mean": {
+            "display_name": "Word Distribution Diversity",
+            "explanation": "Healthy word diversity (5.267) \u2014 diverse, unpredictable word distribution typical of human writing.",
+            "level": "low",
+            "value": 5.267362
+          }
+        },
+        "feature_values": {
+          "burstiness_perplexity": 0.18084209844752192,
+          "curvature_score": 0.1924690455198288,
+          "hybrid_segment_ratio": 1.0,
+          "low_perplexity_ratio": 1.0,
+          "perplexity_curve_slope": 0.8621128724232139,
+          "perplexity_range": 6.4029263983116955,
+          "perplexity_valley_count": 1.0,
+          "proxy_perplexity_mean": 15.914670251165768,
+          "proxy_perplexity_std": 2.878042364321168,
+          "smoothing_factor": 0.003125,
+          "token_entropy_mean": 5.267361792512351,
+          "token_entropy_std": 0.11284002056159904,
+          "tokens_analysed": 320,
+          "window_count": 4
+        },
+        "interpretation": "Moderate AI perplexity indicators (2 HIGH, 1 MEDIUM features). Mean proxy perplexity=15.91, low-PPL window ratio=100%. Compatible with AI-assisted writing, heavily edited AI text, or methodical human composition. Analysis includes GPT-2 token-level perplexity and conditional curvature (Tier 2).",
+        "risk_level": "MEDIUM \u2014 Possible AI Involvement",
+        "severity_profile": {
+          "burstiness_perplexity": "low",
+          "curvature_score": "low",
+          "low_perplexity_ratio": "high",
+          "perplexity_valley_count": "medium",
+          "proxy_perplexity_mean": "high",
+          "token_entropy_mean": "low"
+        },
+        "tier": "tier2",
+        "tokens_analysed": 320,
+        "window_count": 4,
+        "window_ppls": [
+          13.56367589517206,
+          18.963118619224687,
+          12.560192220912992,
+          18.571694269353337
+        ]
+      },
+      "elapsed_ms": 2676.0,
+      "status": "ok"
+    },
+    "stylometric_analysis": {
+      "data": {
+        "avg_dep_distance": 0.0,
+        "avg_sentence_length": 16.0,
+        "avg_word_length": 5.525,
+        "burstiness": -0.5597098925291021,
+        "comma_rate": 1.25,
+        "complex_sentence_ratio": 0.0,
+        "hapax_legomena_ratio": 0.475,
+        "lexical_diversity": 0.7553393665158371,
+        "rare_word_ratio": 0.546875,
+        "sentence_length_variance": 20.4,
+        "vocabulary_richness": 0.7553393665158371
+      },
+      "elapsed_ms": 6.1,
+      "status": "ok"
+    }
+  },
+  "status": "ok",
+  "total_elapsed_ms": 8672.0,
+  "word_count": 320
+}
+    
+    ,
+      y al retornar el resultado del JSON en "result"  toma la session " "ai_detection":" debe de mostrarlo/agregarlo sin alterar el disenio y colores del html css  aqui:
+      <div class="tab-panel active" id="aiDetection" style="display: block;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                                <h2 style="margin:0; font-size:18px;">AI Detection Analysis</h2>
+                                <span class="score-badge score-low" style="font-size:10px;">High Probability</span>
+                            </div>
+                            
+                            <div class="ai-probability">
+                                <div class="circular-progress">
+                                    <svg viewBox="0 0 200 200">
+                                        <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="20"></circle>
+                                        <circle cx="100" cy="100" r="90" fill="none" stroke="#EF4444" stroke-width="20" stroke-dasharray="565" stroke-dashoffset="186" transform="rotate(-90 100 100)"></circle>
+                                        <text x="100" y="100" text-anchor="middle" dy="7">67%</text>
+                                    </svg>
+                                </div>
+                                <div class="probability-label">
+                                    <strong>AI Concentration</strong>
+                                    <p>Significant portions of the text match known LLM generative patterns.</p>
+                                </div>
+                            </div>
+
+                            <div class="section-breakdown">
+                                <h3 style="font-size:12px; text-transform:uppercase; letter-spacing:0.1em; color:rgba(255,255,255,0.4); margin-bottom:4px;">Section-by-Section Analysis</h3>
+                                <table class="analysis-table">
+                                    <thead><tr><th>Section</th><th style="text-align:right;">Words</th><th style="text-align:right;">Probability</th></tr></thead>
+                                    <tbody>
+                                        <tr class="score-high"><td>Paragraph 1: Introduction</td><td style="text-align:right;">247</td><td style="text-align:right; font-weight:700; color:#34d399;">23%</td></tr>
+                                        <tr class="score-low"><td>Paragraph 2: Methods</td><td style="text-align:right;">189</td><td style="text-align:right; font-weight:700; color:#f87171;">89%</td></tr>
+                                        <tr class="score-low"><td>Paragraph 3: Results</td><td style="text-align:right;">312</td><td style="text-align:right; font-weight:700; color:#f87171;">94%</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+      

@@ -1,0 +1,190 @@
+{% extends "home_base.html" %}
+{% block view_content %}
+    <!-- MAIN -->
+    <div class="main" id="homeMain" name="homeMain">
+      <div class="main-head" id="homeHead" name="homeHead">
+        <h1 id="homeGreeting" name="homeGreeting"></h1>
+        <div class="head-actions" id="homeActions" name="homeActions">
+
+          <!-- EXPANDABLE SEARCH -->
+          <div class="search-wrapper" id="searchWrapper" name="searchWrapper">
+            <div class="search-input-wrap" id="searchInputWrap" name="searchInputWrap">
+              <input class="search-input" id="searchInput" name="searchInput" oninput="performSearch(this.value)" type="text" placeholder="Search folders & docs…" autocomplete="off">
+            </div>
+            <div class="search-toggle" id="searchToggle" name="searchToggle" onclick="toggleSearch()">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+          </div>
+
+          <!-- REFRESH BUTTON (Corrected function name) -->
+          <button class="btn-refresh" id="homeRefreshBtn" aria-label="Refresh" data-tooltip="Refresh" onclick="RefreshManager.execute(this, loadDocuments)">
+            <svg viewBox="0 0 24 24"><path d="M21 2v6h-6"/><path d="M21 13a9 9 0 11-3-7.7L21 8"/></svg>
+          </button>
+
+          <!-- PLUS BUTTON + DROPDOWN -->
+          <div class="plus-wrapper" id="plusWrapper" name="plusWrapper">
+            <div class="plus-btn" id="plusBtn" name="plusBtn" onclick="toggleDropdown(event)">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+            <div class="plus-dropdown" id="plusDropdown" name="plusDropdown">
+              <div class="dd-item" id="ddNewDoc" name="ddNewDoc" onclick="ddAction('new-doc')">
+                <span class="dd-icon blue"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+                New Document
+              </div>
+              <div class="dd-item" id="ddUploadDoc" name="ddUploadDoc" onclick="ddAction('upload-doc')">
+                <span class="dd-icon violet"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
+                Upload Document
+              </div>
+              <div class="dd-divider"></div>
+              <div class="dd-item" id="ddNewFolder" name="ddNewFolder" onclick="ddAction('new-folder')">
+                <span class="dd-icon emerald"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></span>
+                New Folder
+              </div>
+              <div class="dd-item" id="ddUploadFolder" name="ddUploadFolder" onclick="ddAction('upload-folder')">
+                <span class="dd-icon amber"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><polyline points="12 8 12 16"/><polyline points="8 12 12 8 16 12"/></svg></span>
+                Upload Folder
+              </div>
+            </div>
+          </div>
+
+          <!-- From Uiverse.io by ilkhoeri --> 
+
+
+
+        </div>
+      </div>
+
+      <div class="content-scroll" id="homeContentScroll" name="homeContentScroll">
+
+        <!-- FOLDERS -->
+        <section id="homeFoldersSection" name="homeFoldersSection">
+          <div class="sec-label" id="homeFoldersLabel" name="homeFoldersLabel">
+            Folders
+            <button id="foldersToggle" class="folders-toggle" onclick="toggleFoldersGrid()" style="display: none;">
+              <span id="foldersToggleText">See all</span>
+              <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
+          <div class="folders-grid" id="foldersGrid" name="foldersGrid"></div>
+          <div class="no-results" id="foldersNoResults" name="foldersNoResults">
+            <div class="no-results-icon">🔍</div>
+            No folders match your search
+          </div>
+        </section>
+
+        <!-- INDEPENDENT DOCS -->
+        <section id="homeDocsSection" name="homeDocsSection">
+          <div class="sec-label" id="homeDocsLabel" name="homeDocsLabel">Independent Documents</div>
+          <div class="docs-grid" id="docsGrid" name="docsGrid"></div>
+          <div class="no-results" id="docsNoResults" name="docsNoResults">
+            <div class="no-results-icon">📄</div>
+            No documents match your search
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ════════════════════════════════════
+           LOCALIZED MODALS (Inside .main)
+      ════════════════════════════════════ -->
+
+      <!-- MODAL: RENAME DOCUMENT -->
+      <div class="modal-backdrop" id="renameModalBackdrop" onclick="closeRenameModal()" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);z-index:9000;align-items:center;justify-content:center;border-radius:28px;">
+        <div class="modal-box" onclick="event.stopPropagation()" style="background:linear-gradient(145deg,rgba(30,34,50,.97),rgba(20,24,40,.97));border:1px solid rgba(255,255,255,.14);border-top:1px solid rgba(255,255,255,.25);border-radius:20px;width:min(420px,90vw);padding:28px 28px 24px;animation:modalIn .3s cubic-bezier(0.34,1.56,0.64,1);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:36px;height:36px;border-radius:10px;background:rgba(0,122,255,.15);display:flex;align-items:center;justify-content:center;">
+                <svg width="16" height="16" fill="none" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </div>
+              <h3 style="font-size:15px;font-weight:600;color:#fff;margin:0;">Rename Document</h3>
+            </div>
+            <div onclick="closeRenameModal()" style="width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.5);font-size:18px;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.14)'" onmouseout="this.style.background='rgba(255,255,255,.07)'">×</div>
+          </div>
+          <p style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:14px;">Enter a new name for your document.</p>
+          <input type="text" id="renameInput" placeholder="New document name…" onkeydown="if(event.key==='Enter') handleRenameSubmit()"
+            style="width:100%;padding:10px 14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;transition:border-color .2s;"
+            onfocus="this.style.borderColor='rgba(0,122,255,.5)'" onblur="this.style.borderColor='rgba(255,255,255,.12)'">
+          <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+            <button onclick="closeRenameModal()" style="padding:9px 18px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.65);font-size:13px;font-weight:500;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.14)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">Cancel</button>
+            <button onclick="handleRenameSubmit()" style="padding:9px 18px;border-radius:10px;background:linear-gradient(135deg,rgba(0,122,255,.6),rgba(0,81,213,.5));border:1px solid rgba(0,122,255,.4);color:#fff;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;transition:opacity .15s;">
+              <span class="loading" id="renameLoading" style="display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;"></span>
+              <span id="renameBtnText">Rename</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL: DELETE DOCUMENT -->
+      <div class="modal-backdrop" id="deleteModalBackdrop" onclick="closeDeleteModal()" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);z-index:9000;align-items:center;justify-content:center;border-radius:28px;">
+        <div class="modal-box" onclick="event.stopPropagation()" style="background:linear-gradient(145deg,rgba(30,34,50,.97),rgba(20,24,40,.97));border:1px solid rgba(255,255,255,.14);border-top:1px solid rgba(255,255,255,.25);border-radius:20px;width:min(420px,90vw);padding:28px 28px 24px;animation:modalIn .3s cubic-bezier(0.34,1.56,0.64,1);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:36px;height:36px;border-radius:10px;background:rgba(239,68,68,.15);display:flex;align-items:center;justify-content:center;">
+                <svg width="16" height="16" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              </div>
+              <h3 style="font-size:15px;font-weight:600;color:#fff;margin:0;">Delete Document</h3>
+            </div>
+            <div onclick="closeDeleteModal()" style="width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.5);font-size:18px;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.14)'" onmouseout="this.style.background='rgba(255,255,255,.07)'">×</div>
+          </div>
+          <p style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:6px;">You are about to delete:</p>
+          <p style="font-size:14px;font-weight:600;color:#f87171;margin-bottom:10px;" id="deleteFileName"></p>
+          <p style="font-size:12px;color:rgba(255,255,255,.35);margin-bottom:0;">This will move the document to trash. You can restore it later.</p>
+          <div style="display:flex;gap:10px;margin-top:22px;justify-content:flex-end;">
+            <button onclick="closeDeleteModal()" style="padding:9px 18px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.65);font-size:13px;font-weight:500;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.14)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">Cancel</button>
+            <button onclick="handleDeleteSubmit()" style="padding:9px 18px;border-radius:10px;background:linear-gradient(135deg,rgba(239,68,68,.6),rgba(220,38,38,.5));border:1px solid rgba(239,68,68,.4);color:#fff;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;transition:opacity .15s;">
+              <span class="loading" id="deleteLoading" style="display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;"></span>
+              <span id="deleteBtnText">Move to Trash</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL: RESTORE FROM TRASH -->
+      <div class="modal-backdrop" id="restoreModalBackdrop" onclick="closeRestoreModal()" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);z-index:9500;align-items:center;justify-content:center;border-radius:28px;">
+        <div class="modal-box" onclick="event.stopPropagation()" style="background:linear-gradient(145deg,rgba(30,34,50,.97),rgba(20,24,40,.97));border:1px solid rgba(255,255,255,.14);border-top:1px solid rgba(255,255,255,.25);border-radius:20px;width:min(420px,90vw);padding:28px 28px 24px;animation:modalIn .3s cubic-bezier(0.34,1.56,0.64,1);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:36px;height:36px;border-radius:10px;background:rgba(52,211,153,.15);display:flex;align-items:center;justify-content:center;">
+                <svg width="16" height="16" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+              </div>
+              <h3 style="font-size:15px;font-weight:600;color:#fff;margin:0;">Restore Document</h3>
+            </div>
+            <div onclick="closeRestoreModal()" style="width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.5);font-size:18px;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.14)'" onmouseout="this.style.background='rgba(255,255,255,.07)'">×</div>
+          </div>
+          <p style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:6px;">Restore to your documents:</p>
+          <p style="font-size:14px;font-weight:600;color:#34d399;margin-bottom:6px;" id="restoreFileName"></p>
+          <p style="font-size:12px;color:rgba(255,255,255,.35);" id="restoreFileDate"></p>
+          <div style="display:flex;gap:10px;margin-top:22px;justify-content:flex-end;">
+            <button onclick="closeRestoreModal()" style="padding:9px 18px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.65);font-size:13px;font-weight:500;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.14)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">Cancel</button>
+            <button onclick="handleRestoreSubmit()" style="padding:9px 18px;border-radius:10px;background:linear-gradient(135deg,rgba(52,211,153,.55),rgba(16,185,129,.45));border:1px solid rgba(52,211,153,.4);color:#fff;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;transition:opacity .15s;">
+              <span class="loading" id="restoreLoading" style="display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;"></span>
+              <span id="restoreBtnText">Restore</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL: DELETE FOREVER FROM TRASH -->
+      <div class="modal-backdrop" id="deleteForeverModalBackdrop" onclick="closeDeleteForeverModal()" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(10px);z-index:9500;align-items:center;justify-content:center;border-radius:28px;">
+        <div class="modal-box" onclick="event.stopPropagation()" style="background:linear-gradient(145deg,rgba(30,34,50,.98),rgba(20,24,40,.98));border:1px solid rgba(239,68,68,.2);border-top:1px solid rgba(239,68,68,.3);border-radius:20px;width:min(420px,90vw);padding:28px 28px 24px;animation:modalIn .3s cubic-bezier(0.34,1.56,0.64,1);">
+          <div style="display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:20px;">
+            <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,rgba(239,68,68,.25),rgba(220,38,38,.15));border:1px solid rgba(239,68,68,.3);display:flex;align-items:center;justify-content:center;margin-bottom:14px;">
+              <svg width="22" height="22" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </div>
+            <h3 style="font-size:16px;font-weight:700;color:#fff;margin:0 0 8px;">Delete Forever?</h3>
+            <p style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:0px;">This action is <strong style="color:#f87171;">permanent</strong> and cannot be undone.</p>
+          </div>
+          <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:12px 14px;margin-bottom:20px;text-align:center;">
+            <p style="font-size:14px;font-weight:600;color:#f87171;margin:0;" id="deleteForeverFileName"></p>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button onclick="closeDeleteForeverModal()" style="padding:9px 18px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.65);font-size:13px;font-weight:500;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.14)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">Cancel</button>
+            <button onclick="handleDeleteForeverSubmit()" style="padding:9px 18px;border-radius:10px;background:linear-gradient(135deg,#ef4444,#dc2626);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 4px 14px rgba(239,68,68,.3);transition:box-shadow .15s,transform .1s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(239,68,68,.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 14px rgba(239,68,68,.3)'">
+              <span class="loading" id="deleteForeverLoading" style="display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;"></span>
+              <span id="deleteForeverBtnText">Delete Forever</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+{% endblock %}

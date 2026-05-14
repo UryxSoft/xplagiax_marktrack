@@ -1,0 +1,144 @@
+# =============================================================================
+# docker/proxysql.cnf — ProxySQL 2.6 configuration
+# =============================================================================
+# Key features configured here:
+#   • MySQL backend server registration (hostgroup 0 = writer, 1 = reader)
+#   • Connection pooling: max_connections, connection_max_age
+#   • Query cache: cache_ttl for identical SELECT fingerprints
+#   • Read/Write splitting rules: SELECTs → hostgroup 1, writes → hostgroup 0
+#   • Query rules: slow query logging threshold
+# =============================================================================
+
+datadir="/var/lib/proxysql"
+
+admin_variables=
+{
+    admin_credentials="radmin:radmin"
+    mysql_ifaces="0.0.0.0:6032"
+    refresh_interval=2000
+}
+
+mysql_variables=
+{
+    # Threads ProxySQL uses internally to handle connections
+    threads=4
+
+    # Max connections ProxySQL accepts from clients (the Flask app)
+    max_connections=2048
+
+    # Keep idle backend connections alive for up to 3600 s
+    connection_max_age_ms=3600000
+
+    # Match MySQL 8 default auth plugin
+    default_authentication_plugin="mysql_native_password"
+
+    # Charset / collation
+    default_charset="utf8mb4"
+
+    # Forward connect_timeout, read_timeout, write_timeout
+    connect_timeout_server=3000
+    ping_interval_server_msec=120000
+    ping_timeout_server=500
+
+    # Query cache: ProxySQL caches identical SELECT result sets
+    # TTL in ms — 5 000 ms = 5 s
+    query_cache_size_MB=64
+    query_cache_soft_ttl_pct=80     # start returning stale at 80% of TTL
+
+    # Log queries slower than 1 000 ms to stats_mysql_query_digest
+    threshold_query_length=524288
+    long_query_time=1000
+
+    # Multiplexing: reuse same backend connection across client connections
+    # (saves MySQL connection handshake cost)
+    multiplexing=true
+}
+
+# ── Backend MySQL servers ─────────────────────────────────────────────────────
+# hostgroup_id 0 = writer (PRIMARY)
+# hostgroup_id 1 = reader (add replicas here when you scale)
+mysql_servers=
+(
+    {
+        address="mysql"          # Docker service name resolves via DNS
+        port=3306
+        hostgroup_id=0           # writer
+        status="ONLINE"
+        weight=1
+        compression=0
+        max_connections=200
+        max_replication_lag=10
+    },
+    {
+        address="mysql"          # same server doubles as reader until replicas added
+        port=3306
+        hostgroup_id=1           # reader
+        status="ONLINE"
+        weight=1
+        compression=0
+        max_connections=200
+    }
+)
+
+# ── MySQL users ───────────────────────────────────────────────────────────────
+mysql_users=
+(
+    {
+        username="marktrack"
+        password="marktrack_secret"    # must match MYSQL_PASSWORD env var
+        default_hostgroup=0            # default → writer
+        max_connections=1000
+        default_schema="xplagiax_db"
+        active=1
+    }
+)
+
+# ── Query routing rules ───────────────────────────────────────────────────────
+# Rule evaluation: lowest rule_id wins.
+mysql_query_rules=
+(
+    # Rule 1: Explicit read-annotation → reader hostgroup
+    {
+        rule_id=1
+        active=1
+        match_pattern="^/\*read\*/"
+        destination_hostgroup=1
+        apply=1
+    },
+    # Rule 2: Route pure SELECT statements to reader hostgroup
+    {
+        rule_id=2
+        active=1
+        match_pattern="^SELECT\s"
+        destination_hostgroup=1
+        apply=1
+        cache_ttl=5000             # Cache this SELECT result 5 s in ProxySQL
+    },
+    # Rule 3: SELECT ... FOR UPDATE must go to writer (locks rows)
+    {
+        rule_id=3
+        active=1
+        match_pattern="^SELECT .* FOR UPDATE"
+        destination_hostgroup=0
+        apply=1
+    },
+    # Rule 4: Everything else (INSERT/UPDATE/DELETE/CALL) → writer
+    {
+        rule_id=100
+        active=1
+        match_pattern=".*"
+        destination_hostgroup=0
+        apply=1
+    }
+)
+
+# ── Scheduler (optional — monitors replication lag) ──────────────────────────
+# scheduler=
+# (
+#     {
+#         id=1
+#         active=1
+#         interval_ms=10000
+#         filename="/usr/share/proxysql/tools/proxysql_galera_checker.sh"
+#     }
+# )

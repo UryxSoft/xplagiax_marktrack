@@ -1,0 +1,1883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Assignments — MarkTrack</title>
+  <meta name="description" content="View and access your assigned workspaces on MarkTrack.">
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/marktrack.ico') }}">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Icon libraries -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+  <!-- Reuse home doc-card + nav-rail base styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/home_base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/home_extra.css') }}">
+
+  <!-- Homework-specific styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/homework.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/marktrack_modals3.css') }}">
+
+  <script id="hw-config" type="application/json">
+    {
+      "showLogin":  {{ show_login | tojson }},
+      "studentId":    {{ (student.id if student else 0) | tojson }},
+      "studentEmail": {{ (student.email if student else '') | tojson }},
+      "studentName":  {{ (student.full_name if student else '') | tojson }},
+      "csrfToken":    {{ csrf_token() | tojson }},
+      "resetToken":   {{ (reset_token if reset_token else '') | tojson }}
+    }
+  </script>
+  <script>
+    (function() {
+      const config = JSON.parse(document.getElementById('hw-config').textContent);
+      window.__HW__ = config;
+    })();
+  </script>
+</head>
+<body>
+{% include 'sections/loader_overlay.html' %}
+
+
+<!-- ================================================================
+     LOGIN MODAL — shown when student is not authenticated
+================================================================ -->
+<!-- ================================================================
+     AUTH MODALS — handled based on state (Generic Login, Invite Login, Registration, Reset Password)
+================================================================ -->
+{% if show_login or show_registration or show_invite_login or reset_token %}
+<div class="hw-login-overlay" id="hwLoginOverlay">
+  <div class="hw-login-card" role="dialog" aria-modal="true">
+
+    <!-- Brand -->
+    <div class="hw-login-brand">
+      <div class="hw-login-brand-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69-12-2-12.459 3.69-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+          <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="hw-login-brand-name">MarkTrack</div>
+        <div class="hw-login-brand-sub">Student Portal</div>
+      </div>
+    </div>
+
+    <!-- ── State 1: REGISTRATION ────────────────────────────────────── -->
+    {% if show_registration %}
+    <h1 class="hw-login-title">Create Account</h1>
+    <p class="hw-login-subtitle">
+      Register to access <strong>{{ invite_context.title or invite_context.workspace.title }}</strong>.<br>
+      You'll use this account for all future assignments.
+    </p>
+
+    <div class="hw-login-error" id="hwRegError"></div>
+
+    <form id="hwRegForm" onsubmit="hwDoRegister(event)">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="hw-field">
+          <label for="regFirstName">First Name</label>
+          <input type="text" id="regFirstName" required placeholder="John">
+        </div>
+        <div class="hw-field">
+          <label for="regLastName">Last Name</label>
+          <input type="text" id="regLastName" required placeholder="Doe">
+        </div>
+      </div>
+      <div class="hw-field">
+        <label for="regEmail">Email address</label>
+        <input type="email" id="regEmail" value="{{ invite_context.email }}" readonly 
+               style="opacity:0.6; cursor:not-allowed;" tabindex="-1">
+      </div>
+      <div class="hw-field">
+        <label for="regPassword">Password</label>
+        <input type="password" id="regPassword" required placeholder="••••••••" oninput="hwUpdatePwStrength(this.value)">
+        <!-- Strength meter -->
+        <div id="pwStrengthWrap" style="margin-top:6px; display:none;">
+          <div style="height:4px; border-radius:2px; background:rgba(255,255,255,0.1); overflow:hidden;">
+            <div id="pwStrengthBar" style="height:100%; width:0; transition:all 0.3s;"></div>
+          </div>
+          <div id="pwStrengthLabel" style="font-size:10px; margin-top:3px; color:var(--hw-text-3);"></div>
+        </div>
+      </div>
+      <div class="hw-field">
+        <label for="regPasswordConfirm">Confirm Password</label>
+        <input type="password" id="regPasswordConfirm" required placeholder="••••••••">
+      </div>
+      <button type="submit" class="hw-login-submit" id="hwRegBtn">Create Account & Join</button>
+    </form>
+
+
+    <!-- ── State 2: INVITE LOGIN ────────────────────────────────────── -->
+    {% elif show_invite_login %}
+    <h1 class="hw-login-title">Sign In</h1>
+    <p class="hw-login-subtitle">
+      Welcome back! Sign in to join <strong>{{ invite_context.title or invite_context.workspace.title }}</strong>.
+    </p>
+
+    <div class="hw-login-error" id="hwInviteLoginError"></div>
+
+    <form id="hwInviteLoginForm" onsubmit="hwDoInviteLogin(event)">
+      <div class="hw-field">
+        <label for="invEmail">Email address</label>
+        <input type="email" id="invEmail" value="{{ invite_context.email }}" readonly 
+               style="opacity:0.6; cursor:not-allowed;" tabindex="-1">
+      </div>
+      <div class="hw-field">
+        <label for="invPassword">Password</label>
+        <input type="password" id="invPassword" required placeholder="••••••••" autofocus>
+      </div>
+      <a href="#" onclick="hwShowForgotModal(event)" style="display:block; text-align:right; font-size:11px; color:#3b82f6; text-decoration:none; margin-bottom:14px; margin-top:-6px;">Forgot password?</a>
+      <button type="submit" class="hw-login-submit" id="hwInviteLoginBtn">Sign In & Access</button>
+      <div class="hw-login-footer" style="cursor:pointer;" onclick="window.location.href='/homework'">
+        Not <strong>{{ invite_context.email }}</strong>? Sign in with another account.
+      </div>
+    </form>
+
+
+    <!-- ── State 3: RESET PASSWORD ──────────────────────────────────── -->
+    {% elif reset_token %}
+    <h1 class="hw-login-title">Reset Password</h1>
+    <p class="hw-login-subtitle">Enter your new password below.</p>
+    <div class="hw-login-error" id="hwResetError"></div>
+    <div class="hw-login-success" id="hwResetSuccess" style="display:none; color:#22c55e; font-size:13px; text-align:center; margin-bottom:16px;"></div>
+    
+    <form id="hwResetForm" onsubmit="hwDoResetPassword(event)">
+      <div class="hw-field">
+        <label for="rstPassword">New Password</label>
+        <input type="password" id="rstPassword" placeholder="••••••••" required autofocus oninput="hwUpdatePwStrength(this.value, 'rstStrengthWrap', 'rstStrengthBar', 'rstStrengthLabel')">
+        <div id="rstStrengthWrap" style="margin-top:6px; display:none;">
+          <div style="height:4px; border-radius:2px; background:rgba(255,255,255,0.1); overflow:hidden;">
+            <div id="rstStrengthBar" style="height:100%; width:0; transition:all 0.3s;"></div>
+          </div>
+          <div id="rstStrengthLabel" style="font-size:10px; margin-top:3px; color:var(--hw-text-3);"></div>
+        </div>
+      </div>
+      <button type="submit" class="hw-login-submit" id="hwResetBtn">Set New Password</button>
+      <p class="hw-login-footer">
+        <a href="/homework" style="color:inherit; text-decoration:none;">Back to login</a>
+      </p>
+    </form>
+
+
+    <!-- ── State 4: GENERIC LOGIN & FORGOT PWD ──────────────────────── -->
+    {% else %}
+    <div id="hwLoginView">
+      <h1 class="hw-login-title">Welcome back</h1>
+      <p class="hw-login-subtitle">Sign in to access your assignments and track your progress.</p>
+      <div class="hw-login-error" id="hwLoginError"></div>
+      <form id="hwLoginForm" onsubmit="hwDoLogin(event)">
+        <div class="hw-field">
+          <label for="hwEmail">Email address</label>
+          <input type="email" id="hwEmail" placeholder="your@email.com" required autocomplete="email">
+        </div>
+        <div class="hw-field">
+          <label for="hwPassword">Password</label>
+          <input type="password" id="hwPassword" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <a href="#" onclick="hwShowForgotModal(event)" style="display:block; text-align:right; font-size:11px; color:#3b82f6; text-decoration:none; margin-bottom:14px; margin-top:-6px;">Forgot password?</a>
+        <button type="submit" class="hw-login-submit" id="hwLoginBtn">Sign In</button>
+      </form>
+      <p class="hw-login-footer">
+        Don't have an account? Open the assignment link<br>sent to your email to register.
+      </p>
+    </div>
+
+    <div id="hwForgotView" style="display:none;">
+      <h1 class="hw-login-title">Password Recovery</h1>
+      <p class="hw-login-subtitle">Enter your email address to receive a secure reset link.</p>
+      <div class="hw-login-error" id="hwForgotError"></div>
+      <div class="hw-login-success" id="hwForgotSuccess" style="display:none; color:#22c55e; font-size:13px; text-align:center; background:rgba(34,197,94,0.1); padding:10px; border-radius:8px; margin-bottom:16px;"></div>
+      <form id="hwForgotForm" onsubmit="hwDoForgot(event)">
+        <div class="hw-field">
+          <label for="fgEmail">Email address</label>
+          <input type="email" id="fgEmail" placeholder="your@email.com" required autocomplete="email">
+        </div>
+        <button type="submit" class="hw-login-submit" id="hwForgotBtn">Send Reset Link</button>
+      </form>
+      <p class="hw-login-footer" style="margin-top:20px; cursor:pointer;" onclick="hwHideForgotModal(event)">
+        Remembered your password? <strong>Sign In</strong>
+      </p>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endif %}
+
+<!-- ================================================================
+     MAIN SHELL — Adopted from home_base template
+================================================================ -->
+<div class="app-shell" id="hwShell" {% if show_login or show_registration or show_invite_login %}style="filter:blur(10px);pointer-events:none;user-select:none;"{% endif %}>
+
+  <!-- NAV RAIL -->
+  <nav class="nav-rail">
+    <div class="" data-tip="MarkTrack">
+      <div class="app-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69-12-2-12.459 3.69-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+          <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+        </svg>
+      </div>
+    </div>
+    <br>
+    <a href="/homework" class="nav-btn active" data-tip="Assignments"><i data-lucide="home"></i></a>
+    <div class="nav-spacer"></div>
+
+    <!-- Notification bell -->
+    <div class="notif-bell-wrapper" id="hwNotifWrapper" style="position:relative;">
+      <div class="nav-btn" data-tip="Notifications" onclick="hwNotifToggle(event)" role="button" aria-label="Notifications" style="position:relative;">
+        <i data-lucide="bell"></i>
+        <span class="notif-badge" id="hwNotifBadge" style="display:none">0</span>
+      </div>
+
+      <!-- DROPDOWN (Matches Review/Home design) -->
+      <div class="notif-dropdown" id="hwNotifDropdown" style="display:none">
+        <div class="notif-header">
+          <span style="font-weight:600;font-size:13px;">Notifications</span>
+          <button onclick="hwNotifMarkAll()" class="notif-link-btn" style="background:none;border:none;cursor:pointer;font-size:11px;color:#3b82f6;padding:0;">Mark all read</button>
+        </div>
+        <div class="notif-filters">
+          <button class="notif-filter-pill active" onclick="hwNotifFilter(this,'all')">All</button>
+          <button class="notif-filter-pill" onclick="hwNotifFilter(this,'unread')">Unread</button>
+        </div>
+        <div class="notif-list" id="hwNotifList">
+          <div class="notif-loading">Loading…</div>
+        </div>
+        <div class="notif-footer">
+          <button onclick="hwOpenAllNotifsModal(event)" style="background:none; border:none; color:rgba(255,255,255,.5); font-size:11px; cursor:pointer; text-decoration:none; padding:0;">View all →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-btn" data-tip="Settings" onclick="hwOpenSettings()"><i data-lucide="settings"></i></div>
+  </nav>
+
+  <!-- DASHBOARD PANEL -->
+  <div class="dashboard">
+    
+    <!-- SIDEBAR PANEL (Student tailored) -->
+    <aside class="sidebar-panel" id="sidebarPanel">
+      <div class="sidebar-header">
+        <div class="panel-title">Assignments</div>
+      </div>
+      <div class="panel-group">
+        <div class="p-item active" data-filter="all" onclick="hwFilterAssignments('all')">
+          <span class="p-ico"><i data-lucide="list"></i></span>
+          <span class="p-label">All</span>
+          <span class="p-count">{{ assignments|length }}</span>
+        </div>
+        <div class="p-item" data-filter="soon" onclick="hwFilterAssignments('soon')">
+          <span class="p-ico"><i data-lucide="clock"></i></span>
+          <span class="p-label">Due Soon</span>
+          <span class="p-count">{{ assignments|selectattr('tag', 'equalto', 'SOON FINISH')|list|length }}</span>
+        </div>
+        <div class="p-item" data-filter="closed" onclick="hwFilterAssignments('closed')">
+          <span class="p-ico"><i data-lucide="lock"></i></span>
+          <span class="p-label">Closed</span>
+          <span class="p-count">{{ assignments|selectattr('tag', 'equalto', 'CLOSED')|list|length }}</span>
+        </div>
+      </div>
+      
+      {% if student %}
+      <div class="sidebar-footer" style="padding: 16px; margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 12px;">
+        <div class="hw-student-avatar" id="hwStudentAvatar" onclick="hwShowStudentMenu(event)">{{ student.initials }}</div>
+        <div style="flex:1; overflow:hidden;">
+          <div style="font-size:12px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ student.full_name }}</div>
+          <div style="font-size:10px; color:rgba(255,255,255,0.4); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ student.email }}</div>
+        </div>
+        <button onclick="hwLogout()" style="background:none; border:none; color:rgba(255,255,255,0.2); cursor:pointer;" title="Logout">
+          <i data-lucide="log-out" style="width:14px; height:14px;"></i>
+        </button>
+      </div>
+      {% endif %}
+    </aside>
+
+    <!-- MAIN PANEL -->
+    <main class="main-panel">
+      
+      <!-- HEADER SEARCH BAR (Matches Home v3) -->
+      <div class="main-header" style="height: 72px; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 20px; flex: 1;">
+          <div class="search-bar">
+            <span class="search-ico"><i data-lucide="search" style="width: 16px; height: 16px;"></i></span>
+            <input type="text" placeholder="Search your assignments…" oninput="hwSearch(this.value)" autocomplete="off">
+          </div>
+          <div class="filter-tabs" style="display: flex; gap: 4px; background: rgba(255,255,255,0.03); padding: 4px; border-radius: 10px;">
+            <button class="filter-tab active" data-filter="all" style="padding: 6px 14px; border-radius: 7px; border: none; background: none; color: rgba(255,255,255,0.4); font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;">All</button>
+            <button class="filter-tab" data-filter="active" style="padding: 6px 14px; border-radius: 7px; border: none; background: none; color: rgba(255,255,255,0.4); font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Active</button>
+            <button class="filter-tab" data-filter="new" style="padding: 6px 14px; border-radius: 7px; border: none; background: none; color: rgba(255,255,255,0.4); font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;">New</button>
+            <button class="filter-tab" data-filter="closed" style="padding: 6px 14px; border-radius: 7px; border: none; background: none; color: rgba(255,255,255,0.4); font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Closed</button>
+          </div>
+        </div>
+        <div class="header-actions" style="display: flex; align-items: center; gap: 12px; margin-left: 20px;">
+          <button class="btn-refresh" id="hwRefreshBtn" aria-label="Refresh" onclick="hwRefresh(this)" 
+                  style="display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 11px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); cursor: pointer; transition: all 0.2s;">
+            <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid-scroll" style="flex: 1; overflow-y: auto;">
+        <div class="doc-grid" id="hwDocGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 24px; padding: 32px;">
+
+          {% if not assignments %}
+          <div style="grid-column: 1/-1; padding: 120px 20px; text-align: center; color: rgba(255,255,255,0.12);">
+             <i data-lucide="folder-open" style="width: 56px; height: 56px; margin-bottom: 20px; opacity: 0.3;"></i>
+             <p style="font-size: 14px; font-weight: 500;">No assignments found yet.</p>
+             <p style="font-size: 12px; margin-top: 8px; opacity: 0.6;">Check your email for invitation links.</p>
+          </div>
+          {% endif %}
+
+          {% for a in assignments %}
+          <div class="doc-outer" data-doc-idx="{{ a.doc_id or loop.index }}"
+               data-search-name="{{ a.workspace.title|lower }} {{ a.tag|lower }}"
+               data-status-tag="{{ a.tag }}"
+               data-invitation-id="{{ a.invitation.id }}"
+               data-workspace-title="{{ a.workspace.title|e }}"
+               data-is-closed="{{ 'true' if a.tag == 'CLOSED' else 'false' }}"
+               data-allow-extensions="{{ 'true' if a.workspace.allow_extensions else 'false' }}">
+
+            <button class="doc-menu-btn" aria-label="Document menu"
+                    onclick="hwShowCardMenu(event, '{{ a.token }}', {{ a.invitation.id }}, '{{ a.tag }}', {{ 'true' if a.workspace.allow_extensions else 'false' }})"
+            >
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5" fill="white" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="white" stroke="none"/><circle cx="12" cy="19" r="1.5" fill="white" stroke="none"/></svg>
+            </button>
+
+            <div class="doc-stack" onclick="hwHandleCardClick('{{ a.token }}', {{ a.invitation.id }}, '{{ a.tag }}', {{ 'true' if a.workspace.allow_extensions else 'false' }}, event)">
+              <div class="doc-page dp-b2"></div>
+              <div class="doc-page dp-b1"></div>
+              <div class="doc-page dp-front">
+                <div class="doc-tag {{ a.tag_class }}">{{ a.tag }}</div>
+                <div class="doc-title">{{ a.title if a.is_collab else a.workspace.title }}</div>
+                {% if a.classroom %}
+                  <div style="font-size: 10px; color: rgba(255,255,255,0.4); margin-top: -8px; margin-bottom: 8px; font-weight: 600; text-transform: uppercase;">{{ a.classroom }}</div>
+                {% endif %}
+
+                <div class="doc-preview doc-preview--empty" id="preview-{{ a.doc_id or 'none' }}"></div>
+
+                {% if a.tag == 'CLOSED' %}
+                <div class="hw-locked-banner" id="ext-banner-{{ a.invitation.id }}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;flex-shrink:0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <span id="ext-banner-text-{{ a.invitation.id }}">Closed</span>
+                </div>
+                {% endif %}
+
+                <div class="doc-footer">
+                  <span class="doc-date">{{ a.doc_date.strftime('%b %d, %Y') if a.doc_date else 'Pending' }}</span>
+                  <span class="doc-words">{{ a.word_count }} words</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+
+        </div>
+      </div>
+    </main>
+
+  </div><!-- /.dashboard -->
+</div><!-- /.app-shell -->
+
+<!-- Student context menu -->
+<div id="hwStudentMenu"
+     style="display:none;position:fixed;background:#1e293b;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:8px 0;min-width:180px;box-shadow:0 16px 40px rgba(0,0,0,0.5);z-index:9999;">
+  {% if student %}
+  <div style="padding:10px 14px 8px;border-bottom:1px solid rgba(255,255,255,0.08);">
+    <div style="font-size:12px;font-weight:600;color:#f1f5f9;">{{ student.full_name }}</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.4);">{{ student.email }}</div>
+  </div>
+  {% endif %}
+  <button onclick="hwLogout()"
+          style="width:100%;text-align:left;padding:9px 14px;background:none;border:none;color:rgba(255,255,255,0.7);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Sign out
+  </button>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>
+  lucide.createIcons();
+
+  // ── Open assignment card ─────────────────────────────────────────
+  function hwOpenAssignment(token, event) {
+    if (event) event.stopPropagation();
+    if (window.AppLoader) {
+      window.AppLoader.show("Opening your work...");
+    }
+    window.location.href = `/invite/${token}`;
+  }
+
+  // ── Password Strength Logic ──────────────────────────────────────
+  function hwUpdatePwStrength(val, wId='pwStrengthWrap', bId='pwStrengthBar', lId='pwStrengthLabel') {
+    const wrap  = document.getElementById(wId);
+    const bar   = document.getElementById(bId);
+    const label = document.getElementById(lId);
+    if (!wrap || !bar || !label) return;
+    if (!val) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+
+    let score = 0;
+    if (val.length >= 8) score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+
+    const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#22c55e'];
+    const texts  = ['Weak', 'Fair', 'Good', 'Strong'];
+    const s = Math.min(score, 4) - 1;
+    
+    bar.style.width = ((score/4)*100) + '%';
+    bar.style.background = colors[s] || colors[0];
+    label.textContent = texts[s] || texts[0];
+  }
+
+  // ── Auth Handlers ────────────────────────────────────────────────
+  
+  function hwShowForgotModal(e) {
+    if (e) e.preventDefault();
+    
+    // Hide all possible login views
+    const views = ['hwLoginView', 'hwInviteLoginForm', 'hwInviteLoginBtn', 'hwInviteLoginError'];
+    views.forEach(v => {
+      const el = document.getElementById(v);
+      if (el) el.style.display = 'none';
+    });
+    
+    // Also hide titles/subtitles if inside an invite context
+    const inviteHeader = document.querySelector('.hw-login-title');
+    const inviteSub    = document.querySelector('.hw-login-subtitle');
+    if (inviteHeader) inviteHeader.style.display = 'none';
+    if (inviteSub)    inviteSub.style.display = 'none';
+
+    document.getElementById('hwForgotView').style.display = 'block';
+    
+    // Pre-fill email if we have it from the invite modal
+    const invEmail = document.getElementById('invEmail');
+    const fgEmail  = document.getElementById('fgEmail');
+    if (invEmail && fgEmail) {
+      fgEmail.value = invEmail.value;
+    }
+  }
+
+  function hwHideForgotModal(e) {
+    if (e) e.preventDefault();
+    document.getElementById('hwForgotView').style.display = 'none';
+    
+    // Restore generic login or reload for invite (simpler than manual restoration)
+    if (HW_TOKEN || COLLAB_TOKEN) {
+      window.location.reload(); 
+    } else {
+      document.getElementById('hwLoginView').style.display = 'block';
+    }
+    
+    document.getElementById('hwForgotError').style.display = 'none';
+    document.getElementById('hwForgotSuccess').style.display = 'none';
+  }
+
+  async function hwDoForgot(e) {
+    e.preventDefault();
+    const btn = document.getElementById('hwForgotBtn');
+    const err = document.getElementById('hwForgotError');
+    const succ = document.getElementById('hwForgotSuccess');
+    const email = document.getElementById('fgEmail').value.trim();
+    
+    btn.disabled = true; btn.textContent = 'Sending...'; 
+    err.style.display = 'none'; succ.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/student/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.__HW__.csrfToken },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (data.success) {
+        succ.textContent = data.message;
+        succ.style.display = 'block';
+        document.getElementById('fgEmail').value = '';
+      } else {
+        err.textContent = data.error || 'Failed to send recovery email.';
+        err.style.display = 'block';
+      }
+    } catch(err) {
+      err.textContent = 'Network error. Please try again.';
+      err.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Send Reset Link';
+    }
+  }
+
+  async function hwDoResetPassword(e) {
+    e.preventDefault();
+    const btn = document.getElementById('hwResetBtn');
+    const err = document.getElementById('hwResetError');
+    const succ = document.getElementById('hwResetSuccess');
+    const new_password = document.getElementById('rstPassword').value;
+    const token = window.__HW__.resetToken;
+    
+    btn.disabled = true; btn.textContent = 'Updating...'; 
+    err.style.display = 'none'; succ.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/student/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.__HW__.csrfToken },
+        body: JSON.stringify({ token, new_password })
+      });
+      const data = await res.json();
+      if (data.success) {
+        succ.textContent = data.message;
+        succ.style.display = 'block';
+        document.getElementById('hwResetForm').style.display = 'none';
+        
+        setTimeout(() => {
+          window.location.href = '/homework';
+        }, 3000);
+      } else {
+        err.textContent = data.error || 'Failed to reset password.';
+        err.style.display = 'block';
+      }
+    } catch(errObj) {
+      err.textContent = 'Network error. Please try again.';
+      err.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Set New Password';
+    }
+  }
+
+  async function hwDoLogin(e) {
+    e.preventDefault();
+    const btn = document.getElementById('hwLoginBtn');
+    const err = document.getElementById('hwLoginError');
+    const email    = document.getElementById('hwEmail').value.trim();
+    const password = document.getElementById('hwPassword').value;
+    
+    btn.disabled = true; btn.textContent = 'Signing in…'; err.style.display = 'none';
+
+    try {
+      const res = await fetch('/student/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.__HW__.csrfToken },
+        body: JSON.stringify({ email, password, token: HW_TOKEN })
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = data.redirect || '/homework';
+      } else {
+        err.textContent = data.error || 'Login failed.'; err.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Sign In';
+      }
+    } catch(_) {
+      err.textContent = 'Connection error.'; err.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Sign In';
+    }
+  }
+
+  async function hwDoInviteLogin(e) {
+    e.preventDefault();
+    const btn = document.getElementById('hwInviteLoginBtn');
+    const err = document.getElementById('hwInviteLoginError');
+    const email    = document.getElementById('invEmail').value;
+    const password = document.getElementById('invPassword').value;
+
+    btn.disabled = true; btn.textContent = 'Joining…'; err.style.display = 'none';
+
+    try {
+      const res = await fetch('/student/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.__HW__.csrfToken },
+        body: JSON.stringify({ email, password, token: HW_TOKEN, collab_token: COLLAB_TOKEN })
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = data.redirect || '/homework';
+      } else {
+        err.textContent = data.error || 'Login failed.'; err.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Sign In & Access';
+      }
+    } catch(_) {
+      err.textContent = 'Connection error.'; err.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Sign In & Access';
+    }
+  }
+
+  async function hwDoRegister(e) {
+    e.preventDefault();
+    const btn   = document.getElementById('hwRegBtn');
+    const err   = document.getElementById('hwRegError');
+    const first = document.getElementById('regFirstName').value.trim();
+    const last  = document.getElementById('regLastName').value.trim();
+    const email = document.getElementById('regEmail').value;
+    const pass  = document.getElementById('regPassword').value;
+    const conf  = document.getElementById('regPasswordConfirm').value;
+
+    if (pass !== conf) {
+      err.textContent = 'Passwords do not match.'; err.style.display = 'block'; return;
+    }
+    if (pass.length < 8) {
+      err.textContent = 'Password too short.'; err.style.display = 'block'; return;
+    }
+
+    btn.disabled = true; btn.textContent = 'Creating account…'; err.style.display = 'none';
+
+    try {
+      const regUrl = COLLAB_TOKEN ? `/api/collaborators/register/${COLLAB_TOKEN}` : `/invite/${HW_TOKEN}/register`;
+      const res = await fetch(regUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.__HW__.csrfToken },
+        body: JSON.stringify({ 
+          first_name: first, 
+          last_name: last, 
+          email, 
+          password: pass,
+          password_confirm: conf
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = data.redirect || '/homework';
+      } else {
+        err.textContent = data.error || 'Registration failed.'; err.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Create Account & Join';
+      }
+    } catch(_) {
+      err.textContent = 'Connection error.'; err.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Create Account & Join';
+    }
+  }
+
+  // ── Student menu (avatar click) ──────────────────────────────────
+  function hwShowStudentMenu(e) {
+    e.stopPropagation();
+    const menu = document.getElementById('hwStudentMenu');
+    const btn  = document.getElementById('hwStudentAvatar');
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    menu.style.left = (rect.right + 8) + 'px';
+    menu.style.top  = rect.top + 'px';
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+  }
+  document.addEventListener('click', () => {
+    const m = document.getElementById('hwStudentMenu');
+    if (m) m.style.display = 'none';
+  });
+
+  // ── Logout ──────────────────────────────────────────────────────
+  function hwLogout() {
+    const modal = document.getElementById('logoutModal');
+    if (modal) modal.classList.add('open');
+  }
+
+  function closeLogoutModal() {
+    const modal = document.getElementById('logoutModal');
+    if (modal) modal.classList.remove('open');
+  }
+
+  async function hwConfirmLogout() {
+    const btn = document.getElementById('confirmLogoutBtn');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="wd-spinner" style="margin:0 8px 0 0; width:12px; height:12px; border-width:1.5px;"></span> Logging out…';
+    }
+    
+    try {
+      await fetch('/student/logout', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': window.__HW__.csrfToken }
+      });
+    } catch(_) {}
+    window.location.reload();
+  }
+
+  // ── Settings Modal Logic ────────────────────────────────────────
+  function hwOpenSettings() {
+    const modal = document.getElementById('settingsModal');
+    if (!modal) return;
+    
+    // Reset view to Profile tab
+    hwSwitchSettingsTab('profile');
+    modal.classList.add('open');
+    
+    // Fetch current settings
+    fetch('/api/student/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          document.getElementById('setFirstName').value = data.profile.first_name || '';
+          document.getElementById('setLastName').value = data.profile.last_name || '';
+          document.getElementById('setEmailDisplay').value = data.profile.email || '';
+          
+          // Prefs
+          document.getElementById('setCompactView').checked = data.settings.preferences.compact_view;
+          document.getElementById('setLanguage').value = data.settings.preferences.language;
+          
+          // Notifications
+          document.getElementById('setEmailAlerts').checked = data.settings.notifications.email_alerts;
+          document.getElementById('setSoundsEnabled').checked = data.settings.notifications.sounds_enabled;
+        }
+      });
+  }
+
+  function closeSettingsModal() {
+    const modal = document.getElementById('settingsModal');
+    if (modal) modal.classList.remove('open');
+  }
+
+  function hwSwitchSettingsTab(tabId) {
+    // Buttons
+    document.querySelectorAll('.settings-tab').forEach(b => b.classList.remove('active'));
+    const activeBtn = document.querySelector(`.settings-tab[onclick*="${tabId}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
+    
+    // Panes
+    document.querySelectorAll('.settings-pane').forEach(p => p.style.display = 'none');
+    const pane = document.getElementById(`pane-${tabId}`);
+    if (pane) pane.style.display = 'block';
+  }
+
+  async function hwSaveSettings() {
+    const btn = document.getElementById('saveSettingsBtn');
+    const saveStatus = document.getElementById('saveStatus');
+    
+    btn.disabled = true;
+    saveStatus.textContent = 'Saving...';
+    saveStatus.style.display = 'block';
+    
+    const payload = {
+      profile: {
+        first_name: document.getElementById('setFirstName').value.trim(),
+        last_name: document.getElementById('setLastName').value.trim()
+      },
+      settings: {
+        preferences: {
+          language: document.getElementById('setLanguage').value,
+          compact_view: document.getElementById('setCompactView').checked
+        },
+        notifications: {
+          email_alerts: document.getElementById('setEmailAlerts').checked,
+          sounds_enabled: document.getElementById('setSoundsEnabled').checked
+        }
+      }
+    };
+    
+    // Password update (only if filled)
+    const pass = document.getElementById('setNewPassword').value;
+    if (pass) payload.password = pass;
+
+    try {
+      const res = await fetch('/api/student/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.__HW__.csrfToken },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        saveStatus.textContent = 'Settings saved successfully!';
+        saveStatus.style.color = '#10b981';
+        setTimeout(() => {
+          saveStatus.style.display = 'none';
+          if (payload.password) window.location.reload(); // Force login again if password changed
+        }, 2000);
+      }
+    } catch(_) {
+      saveStatus.textContent = 'Failed to save settings.';
+      saveStatus.style.color = '#ef4444';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── Notification bell (Real-time Student Logic) ───────────────────
+  let socket = null;
+  if (window.__HW__.studentId) {
+    socket = io();
+    socket.on('connect', () => {
+      socket.emit('notification:join');
+      console.log("[SocketIO] Student joined notification room");
+    });
+
+    socket.on('notification:new', (notif) => {
+      console.log("[SocketIO] New notification received:", notif);
+      hwUpdateBadge(notif.unread_count);
+      // Optional: Show a toast or update list if dropdown is open
+      const dd = document.getElementById('hwNotifDropdown');
+      if (dd && dd.style.display !== 'none') hwLoadNotifs();
+    });
+
+    socket.on('notification:count_update', (data) => {
+      hwUpdateBadge(data.count);
+    });
+  }
+
+  function hwUpdateBadge(count) {
+    const badge = document.getElementById('hwNotifBadge');
+    if (!badge) return;
+    badge.textContent = count;
+    badge.style.display = (count > 0) ? 'flex' : 'none';
+  }
+
+  function hwNotifToggle(e) {
+    e.stopPropagation();
+    const dd = document.getElementById('hwNotifDropdown');
+    if (!dd) return;
+    const isVisible = dd.style.display !== 'none';
+    dd.style.display = isVisible ? 'none' : 'flex';
+    if (!isVisible) hwLoadNotifs();
+  }
+
+  document.addEventListener('click', (e) => {
+    const dd = document.getElementById('hwNotifDropdown');
+    if (dd && !dd.contains(e.target) && !e.target.closest('.nav-btn')) {
+      dd.style.display = 'none';
+    }
+  });
+
+  let hwCurrentNotifFilter = 'all';
+  function hwNotifFilter(btn, cat) {
+    document.querySelectorAll('#hwNotifDropdown .notif-filter-pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    hwCurrentNotifFilter = cat;
+    hwLoadNotifs();
+  }
+
+  async function hwLoadNotifs() {
+    const list = document.getElementById('hwNotifList');
+    if (!list) return;
+    list.innerHTML = '<div class="notif-loading">Loading…</div>';
+    try {
+      const res  = await fetch('/api/student/notifications');
+      const data = await res.json();
+      let items  = data.notifications || [];
+      
+      if (hwCurrentNotifFilter === 'unread') {
+        items = items.filter(n => !n.read);
+      }
+
+      if (!items.length) {
+        list.innerHTML = `<div class="notif-empty">No ${hwCurrentNotifFilter === 'unread' ? 'unread ' : ''}notifications</div>`;
+        return;
+      }
+
+      const hwNotifIcon = (type) => {
+        const icons = {
+          comment_added:        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+          comment_replied:      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+          mention:              '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></svg>',
+          comment_resolved:     '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
+          collaboration_invite: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+          deadline_reminder:    '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+          document_complete:    '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
+          badge_awarded:        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>',
+        };
+        return icons[type] || '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>';
+      };
+
+      const COMMENT_TYPES = new Set(['comment_added', 'comment_replied', 'mention']);
+
+      const hwNotifQuote = (n) => {
+        if (!COMMENT_TYPES.has(n.type)) return '';
+        // Extract the quoted text from message — format is: `Name: "text"`
+        const match = n.message.match(/^[^:]+:\s*"(.+)"$/s);
+        const quote = match ? match[1] : n.message;
+        return `<div style="margin-top:5px;padding:5px 8px;background:rgba(59,130,246,0.08);border-left:2px solid #3b82f6;border-radius:0 4px 4px 0;font-size:11px;color:rgba(255,255,255,0.6);font-style:italic;line-height:1.4;">"${quote}"</div>`;
+      };
+
+      list.innerHTML = items.map(n => {
+        const isComment = COMMENT_TYPES.has(n.type);
+        const cta = isComment && n.url && n.url !== '#'
+          ? `<span style="display:inline-block;margin-top:4px;font-size:10px;color:#3b82f6;font-weight:600;">Open document →</span>`
+          : '';
+        return `
+        <div class="notif-item ${n.read ? '' : 'unread'}" onclick="hwMarkNotif(${n.id}, '${(n.url || '#').replace(/'/g, "\\'")}')" style="cursor:pointer;">
+          <div class="notif-item-icon type-${n.type}">${hwNotifIcon(n.type)}</div>
+          <div class="notif-item-body">
+            <p class="notif-item-title">${n.title}</p>
+            ${hwNotifQuote(n)}
+            ${!isComment ? `<p class="notif-item-message">${n.message}</p>` : ''}
+            ${cta}
+            <span class="notif-item-time">${n.time_ago || ''}</span>
+          </div>
+          ${!n.read ? '<span class="notif-item-dot"></span>' : ''}
+        </div>`;
+      }).join('');
+      
+      hwUpdateBadge(data.unread_count);
+    } catch(err) {
+      console.error("[hwLoadNotifs] Error:", err);
+      list.innerHTML = '<div class="notif-empty">Could not load notifications</div>';
+    }
+  }
+
+  async function hwMarkNotif(id, url) {
+    try {
+      await fetch(`/api/student/notifications/${id}/read`, { 
+        method: 'POST', 
+        headers: { 'X-CSRFToken': window.__HW__.csrfToken } 
+      });
+      if (url && url !== '#') window.location.href = url;
+      else hwLoadNotifs();
+    } catch(e) {
+      if (url && url !== '#') window.location.href = url;
+    }
+  }
+
+  async function hwNotifMarkAll() {
+    try {
+      await fetch('/api/student/notifications/read-all', { 
+        method: 'POST', 
+        headers: { 'X-CSRFToken': window.__HW__.csrfToken } 
+      });
+      hwLoadNotifs();
+      if (document.getElementById('allNotifsModal').style.display !== 'none') {
+          hwRenderAllNotifs();
+      }
+    } catch(e) {}
+  }
+
+  let hwAllNotifsTab = 'all';
+  let hwAllNotifsData = [];
+
+  function hwOpenAllNotifsModal(e) {
+    if (e) e.preventDefault();
+    const modal = document.getElementById('allNotifsModal');
+    if (!modal) return;
+    
+    modal.style.display = 'flex';
+    setTimeout(() => {
+        modal.style.opacity = '1';
+        modal.querySelector('.mt-modal-content').style.transform = 'translateY(0)';
+    }, 10);
+    
+    hwRenderAllNotifs();
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function hwCloseAllNotifsModal() {
+    const modal = document.getElementById('allNotifsModal');
+    if (!modal) return;
+    modal.style.opacity = '0';
+    modal.querySelector('.mt-modal-content').style.transform = 'translateY(20px)';
+    setTimeout(() => { modal.style.display = 'none'; }, 300);
+  }
+
+  function hwSetNotifTab(tab) {
+    hwAllNotifsTab = tab;
+    document.querySelectorAll('#allNotifsModal .mt-modal-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.tab === tab);
+    });
+    hwRenderAllNotifs();
+  }
+
+  async function hwRenderAllNotifs() {
+    const list = document.getElementById('allNotifsModalList');
+    if (!list) return;
+    
+    list.innerHTML = '<div style="text-align:center; padding:40px; color:rgba(255,255,255,0.3);"><i data-lucide="refresh-cw" class="spinning" style="width:24px; height:24px; margin-bottom:12px; display:block; margin-inline:auto;"></i> Loading...</div>';
+    if (window.lucide) lucide.createIcons();
+
+    try {
+      const res = await fetch('/api/student/notifications');
+      const data = await res.json();
+      hwAllNotifsData = data.notifications || [];
+      
+      let filtered = hwAllNotifsData;
+      if (hwAllNotifsTab === 'unread') {
+          filtered = filtered.filter(n => !n.read);
+      }
+      
+      if (!filtered.length) {
+          list.innerHTML = `<div style="text-align:center; padding:60px 20px; color:rgba(255,255,255,0.2);">
+              <i data-lucide="bell-off" style="width:40px; height:40px; margin-bottom:16px; opacity:0.5;"></i>
+              <p>No ${hwAllNotifsTab === 'unread' ? 'unread ' : ''}notifications found.</p>
+          </div>`;
+          if (window.lucide) lucide.createIcons();
+          return;
+      }
+
+      list.innerHTML = filtered.map(n => `
+          <div class="modal-notif-item ${n.read ? '' : 'unread'}" onclick="hwMarkNotif(${n.id}, '${(n.url || '#').replace(/'/g, "\\'")}')">
+              <div class="modal-notif-icon">
+                  <i data-lucide="${getHwNotifLucideIcon(n.type)}" style="width:18px; height:18px;"></i>
+              </div>
+              <div class="modal-notif-content">
+                  <div class="modal-notif-title">${n.title}</div>
+                  <div class="modal-notif-msg">${n.message}</div>
+                  <div class="modal-notif-time">${n.time_ago || 'just now'}</div>
+              </div>
+          </div>
+      `).join('');
+      
+      if (window.lucide) lucide.createIcons();
+    } catch(e) {
+      list.innerHTML = '<div style="text-align:center; padding:40px; color:#ef4444;">Failed to load notifications.</div>';
+    }
+  }
+
+  function getHwNotifLucideIcon(type) {
+      const map = {
+          'comment_added': 'message-square',
+          'comment_replied': 'message-circle',
+          'mention': 'at-sign',
+          'comment_resolved': 'check-circle',
+          'collaboration_invite': 'users',
+          'deadline_reminder': 'clock',
+          'document_complete': 'file-check',
+          'badge_awarded': 'award'
+      };
+      return map[type] || 'bell';
+  }
+
+  // ── Context for Auth ─────────────────────────────────────────────
+  const HW_TOKEN = new URLSearchParams(window.location.search).get('token') || '';
+  const COLLAB_TOKEN = new URLSearchParams(window.location.search).get('collab_token') || '';
+
+  // ── Search & Filter ─────────────────────────────────────────────
+  function hwSearch(val) {
+    const q = val.toLowerCase();
+    document.querySelectorAll('.doc-outer').forEach(card => {
+      const name = card.getAttribute('data-search-name') || '';
+      card.style.display = name.includes(q) ? 'block' : 'none';
+    });
+  }
+
+  function hwFilterAssignments(filter) {
+    // Left sidebar UI toggle
+    document.querySelectorAll('.sidebar-panel .p-item').forEach(i => i.classList.remove('active'));
+    document.querySelector(`.sidebar-panel .p-item[data-filter="${filter}"]`)?.classList.add('active');
+
+    // Grid filtering
+    document.querySelectorAll('.doc-outer').forEach(card => {
+      const status = card.getAttribute('data-status-tag');
+      if (filter === 'all') {
+        card.style.display = 'block';
+      } else if (filter === 'soon') {
+        card.style.display = (status === 'SOON FINISH') ? 'block' : 'none';
+      } else if (filter === 'closed') {
+        card.style.display = (status === 'CLOSED') ? 'block' : 'none';
+      }
+    });
+  }
+
+  // Header tabs filter
+  document.addEventListener('click', e => {
+    if (e.target.classList.contains('filter-tab')) {
+      document.querySelectorAll('.filter-tab').forEach(t => {
+        t.classList.remove('active');
+        t.style.background = 'none';
+        t.style.color = 'rgba(255,255,255,0.4)';
+      });
+      e.target.classList.add('active');
+      e.target.style.background = 'rgba(255,255,255,0.1)';
+      e.target.style.color = '#fff';
+
+      const f = e.target.getAttribute('data-filter');
+      document.querySelectorAll('.doc-outer').forEach(card => {
+        const s = (card.getAttribute('data-status-tag') || '').toLowerCase();
+        if (f === 'all') card.style.display = 'block';
+        else if (f === 'active') card.style.display = (s === 'active' || s === 'soon finish') ? 'block' : 'none';
+        else card.style.display = (s === f) ? 'block' : 'none';
+      });
+    }
+  });
+
+  // ── Refresh Logic ──────────────────────────────────────────────
+  function hwRefresh(btn) {
+    if (window.RefreshManager) {
+      RefreshManager.execute(btn, async () => {
+        if (window.DocumentPreviewService) {
+          DocumentPreviewService.refreshAll();
+        }
+      });
+    } else {
+      window.location.reload();
+    }
+  }
+
+  // ── Load unread count & Previews on page load ─────────────────
+  (async function hwInit() {
+    try {
+      if (window.__HW__.studentId) {
+        // 1. Unread count via student API
+        const res = await fetch('/api/student/notifications');
+        const data = await res.json();
+        hwUpdateBadge(data.unread_count);
+      }
+    } catch(_) {}
+
+    // 2. Previews
+    if (window.DocumentPreviewService) {
+      DocumentPreviewService.observeCards();
+    }
+
+    // 3. Initial active tab style
+    const activeTab = document.querySelector('.filter-tab.active');
+    if (activeTab) {
+      activeTab.style.background = 'rgba(255,255,255,0.1)';
+      activeTab.style.color = '#fff';
+    }
+
+    // 4. Initialize icons
+    if (window.lucide) lucide.createIcons();
+  })();
+</script>
+
+<!-- ================================================================
+     LOGOUT CONFIRMATION MODAL (WV-DEL Standard)
+================================================================ -->
+<div class="wv-del-overlay" id="logoutModal">
+  <div class="wv-del-modal">
+    <div class="wv-del-icon" style="position:relative;">
+      <i data-lucide="alert-circle" style="position:absolute; top:-4px; right:-4px; width:18px; height:18px; background:#120c0c; border-radius:50%; padding:2px; color:#f87171; z-index:10;"></i>
+      <i data-lucide="log-out"></i>
+    </div>
+    <div class="wv-del-title">Sign Out</div>
+    <div class="wv-del-body">
+      Are you sure you want to log out of <strong>MarkTrack</strong>?<br>
+      You will need to sign in again to access your assignments.
+    </div>
+    <div class="wv-del-actions">
+      <button class="wv-del-cancel" onclick="closeLogoutModal()">
+        Cancel
+      </button>
+      <button class="wv-del-confirm" id="confirmLogoutBtn" onclick="hwConfirmLogout()">
+        Confirm Logout
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     STUDENT SETTINGS MODAL (WV Standard)
+================================================================ -->
+<div class="wv-modal-overlay" id="settingsModal">
+  <div class="wv-modal" style="width:720px; max-width:95vw; height:500px; display:flex; flex-direction:row; padding:0; overflow:hidden;">
+    
+    <!-- Sidebar -->
+    <div style="width:200px; background:rgba(255,255,255,0.02); border-right:1px solid var(--hw-border); padding:24px 12px; display:flex; flex-direction:column; gap:4px;">
+      <h3 style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--hw-text-3); padding:0 12px 12px;">Settings</h3>
+      <button class="settings-tab active" onclick="hwSwitchSettingsTab('profile')" style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:none; background:transparent; border-radius:10px; color:var(--hw-text-1); font-size:13px; font-weight:500; cursor:pointer; text-align:left; transition:background 0.2s;">
+        <i data-lucide="user" style="width:16px; height:16px;"></i> Profile
+      </button>
+      <button class="settings-tab" onclick="hwSwitchSettingsTab('prefs')" style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:none; background:transparent; border-radius:10px; color:var(--hw-text-2); font-size:13px; font-weight:500; cursor:pointer; text-align:left; transition:background 0.2s;">
+        <i data-lucide="layout" style="width:16px; height:16px;"></i> Appearance
+      </button>
+      <button class="settings-tab" onclick="hwSwitchSettingsTab('notifs')" style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:none; background:transparent; border-radius:10px; color:var(--hw-text-2); font-size:13px; font-weight:500; cursor:pointer; text-align:left; transition:background 0.2s;">
+        <i data-lucide="bell" style="width:16px; height:16px;"></i> Notifications
+      </button>
+      <div style="flex:1;"></div>
+      <button onclick="closeSettingsModal()" style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:none; background:transparent; border-radius:10px; color:var(--hw-red); font-size:13px; font-weight:500; cursor:pointer; text-align:left; transition:background 0.2s; opacity:0.8;">
+        <i data-lucide="x" style="width:16px; height:16px;"></i> Close
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div style="flex:1; display:flex; flex-direction:column;">
+      <div style="flex:1; padding:32px; overflow-y:auto; scrollbar-width:thin;">
+        
+        <!-- Tab: Profile -->
+        <div id="pane-profile" class="settings-pane">
+          <h2 style="font-size:20px; font-weight:700; margin-bottom:24px;">Personal Profile</h2>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+            <div class="hw-field">
+              <label>First Name</label>
+              <input type="text" id="setFirstName" placeholder="John">
+            </div>
+            <div class="hw-field">
+              <label>Last Name</label>
+              <input type="text" id="setLastName" placeholder="Doe">
+            </div>
+          </div>
+          <div class="hw-field">
+            <label>Email Address (ReadOnly)</label>
+            <input type="text" id="setEmailDisplay" readonly style="opacity:0.6; cursor:not-allowed;">
+          </div>
+          <div class="hw-field" style="margin-top:12px;">
+            <label>New Password</label>
+            <input type="password" id="setNewPassword" placeholder="Keep empty to stay the same">
+          </div>
+        </div>
+
+        <!-- Tab: Appearance -->
+        <div id="pane-prefs" class="settings-pane" style="display:none;">
+          <h2 style="font-size:20px; font-weight:700; margin-bottom:24px;">Display & Experience</h2>
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:rgba(255,255,255,0.03); border-radius:12px; margin-bottom:12px;">
+            <div>
+              <div style="font-size:14px; font-weight:600;">Compact Cards</div>
+              <div style="font-size:12px; color:var(--hw-text-3);">Reduce card size for better density.</div>
+            </div>
+            <input type="checkbox" id="setCompactView" style="width:20px; height:20px;">
+          </div>
+          <div class="hw-field">
+            <label>Interface Language</label>
+            <select id="setLanguage" style="width:100%; padding:10px; background:rgba(255,255,255,0.05); border:1px solid var(--hw-border); border-radius:10px; color:#fff; outline:none;">
+              <option value="en">English (US)</option>
+              <option value="es">Español (ES)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Tab: Notifications -->
+        <div id="pane-notifs" class="settings-pane" style="display:none;">
+          <h2 style="font-size:20px; font-weight:700; margin-bottom:24px;">Notification Prefs</h2>
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:rgba(255,255,255,0.03); border-radius:12px; margin-bottom:12px;">
+            <div>
+              <div style="font-size:14px; font-weight:600;">Email Alerts</div>
+              <div style="font-size:12px; color:var(--hw-text-3);">Get emails for new assignments & grades.</div>
+            </div>
+            <input type="checkbox" id="setEmailAlerts" style="width:20px; height:20px;">
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:rgba(255,255,255,0.03); border-radius:12px;">
+            <div>
+              <div style="font-size:14px; font-weight:600;">System Sounds</div>
+              <div style="font-size:12px; color:var(--hw-text-3);">Enable notification sound effects.</div>
+            </div>
+            <input type="checkbox" id="setSoundsEnabled" style="width:20px; height:20px;">
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div style="padding:16px 32px; border-top:1px solid var(--hw-border); display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.01);">
+        <div id="saveStatus" style="font-size:12px; display:none;">Saving...</div>
+        <div style="flex:1;"></div>
+        <button id="saveSettingsBtn" onclick="hwSaveSettings()" class="hw-login-submit" style="width:auto; margin:0; padding:10px 24px;">
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .settings-tab.active { background: rgba(59,130,246,0.1) !important; color: #3b82f6 !important; }
+  .settings-tab:hover { background: rgba(255,255,255,0.05); }
+  .settings-pane { animation: hw-pane-in 0.3s ease; }
+  @keyframes hw-pane-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+
+<script src="{{ url_for('static', filename='js/docToText.js') }}"></script>
+<script src="{{ url_for('static', filename='js/refresh_btn.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/home_previews.js') }}"></script>
+
+<!-- ══════════════════════════════════════════════════════
+     EXTENSION REQUEST MODAL
+══════════════════════════════════════════════════════ -->
+<style>
+  /* Locked banner inside doc card */
+  .hw-locked-banner {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 8px; padding: 5px 10px; margin: 6px 0 4px;
+    font-size: 10px; font-weight: 600; color: #fca5a5;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    cursor: pointer; transition: background 0.2s;
+    user-select: none;
+  }
+  .hw-locked-banner:hover { background: rgba(239,68,68,0.22); }
+  .hw-locked-banner.pending  { background: rgba(251,191,36,0.12); border-color: rgba(251,191,36,0.3); color: #fde68a; }
+  .hw-locked-banner.approved { background: rgba(34,197,94,0.12);  border-color: rgba(34,197,94,0.3);  color: #86efac; }
+  .hw-locked-banner.rejected { background: rgba(239,68,68,0.12);  border-color: rgba(239,68,68,0.3);  color: #fca5a5; }
+
+  /* Card context menu */
+  #hwCardMenu {
+    position: fixed; z-index: 99999;
+    background: rgba(20,24,36,0.97); backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px; padding: 6px; min-width: 200px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    animation: ctxIn .15s ease;
+  }
+  .hw-menu-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 8px; cursor: pointer;
+    font-size: 13px; color: rgba(255,255,255,0.82);
+    transition: background .12s, color .12s;
+  }
+  .hw-menu-item:hover { background: rgba(255,255,255,0.09); color: #fff; }
+  .hw-menu-item.ext { color: #60a5fa; }
+  .hw-menu-item.ext:hover { background: rgba(59,130,246,0.15); }
+
+  /* Extension Request Modal overlay */
+  #extReqOverlay {
+    position: fixed; inset: 0; z-index: 10002;
+    background: rgba(10,15,30,0.6); backdrop-filter: blur(14px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  #extReqModal {
+    background: linear-gradient(135deg, rgba(30,41,59,0.95), rgba(15,23,42,0.98));
+    border: 1px solid rgba(255,255,255,0.1); border-top: 1px solid rgba(255,255,255,0.2);
+    border-radius: 24px; width: 100%; max-width: 520px;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.7); overflow: hidden;
+    animation: modalIn .3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .ext-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 24px 28px 16px;
+  }
+  .ext-modal-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: rgba(59,130,246,0.15); display: flex; align-items: center; justify-content: center;
+  }
+  .ext-modal-title { font-size: 18px; font-weight: 700; color: #fff; margin: 0 0 2px; }
+  .ext-modal-sub   { font-size: 12px; color: rgba(255,255,255,0.4); margin: 0; }
+  .ext-modal-body  { padding: 0 28px 28px; display: flex; flex-direction: column; gap: 18px; }
+  .ext-field label {
+    display: block; font-size: 11px; font-weight: 600;
+    color: rgba(255,255,255,0.55); text-transform: uppercase;
+    letter-spacing: 0.06em; margin-bottom: 8px;
+  }
+  .ext-select, .ext-textarea {
+    width: 100%; background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+    color: #fff; font-family: inherit; font-size: 13px;
+    padding: 10px 14px; outline: none;
+    transition: border-color .2s, background .2s; box-sizing: border-box;
+  }
+  .ext-select option { background: #1e2940; }
+  .ext-select:focus, .ext-textarea:focus {
+    border-color: rgba(59,130,246,0.5); background: rgba(255,255,255,0.08);
+  }
+  .ext-textarea { min-height: 90px; resize: vertical; }
+  .ext-upload-zone {
+    border: 2px dashed rgba(255,255,255,0.12); border-radius: 12px;
+    padding: 18px; text-align: center; cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+  .ext-upload-zone:hover { border-color: rgba(59,130,246,0.4); background: rgba(59,130,246,0.05); }
+  .ext-upload-zone p { font-size: 12px; color: rgba(255,255,255,0.4); margin: 4px 0 0; }
+  .ext-file-name { font-size: 11px; color: #60a5fa; margin-top: 6px; }
+  .ext-modal-footer {
+    display: flex; gap: 10px; justify-content: flex-end;
+    padding: 16px 28px; border-top: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.15);
+  }
+  .ext-btn-cancel {
+    padding: 10px 20px; border-radius: 12px;
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: background .15s;
+  }
+  .ext-btn-cancel:hover { background: rgba(255,255,255,0.12); color: #fff; }
+  .ext-btn-submit {
+    padding: 10px 22px; border-radius: 12px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    border: 1px solid rgba(59,130,246,0.4); color: #fff;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 14px rgba(59,130,246,0.35);
+    transition: all .2s;
+  }
+  .ext-btn-submit:hover { background: linear-gradient(135deg, #2563eb, #1d4ed8); transform: translateY(-1px); }
+  .ext-btn-submit:disabled { opacity: 0.6; cursor: default; transform: none; }
+  .ext-spinner {
+    width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite;
+    display: none;
+  }
+  .ext-error-msg {
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25);
+    border-radius: 10px; padding: 10px 14px;
+    color: #fca5a5; font-size: 12px; display: none;
+  }
+</style>
+
+<!-- Extension Request Modal -->
+<div id="extReqOverlay" style="display:none;">
+  <div id="extReqModal">
+    <div class="ext-modal-header">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="ext-modal-icon">
+          <svg width="22" height="22" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div>
+          <p class="ext-modal-title">Request Extension</p>
+          <p class="ext-modal-sub" id="extModalSubtitle">for this assignment</p>
+        </div>
+      </div>
+      <button onclick="hwCloseExtModal()" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.4);padding:8px;border-radius:50%;transition:background .2s;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='none'">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="ext-modal-body">
+      <div class="ext-error-msg" id="extErrorMsg"></div>
+
+      <div class="ext-field">
+        <label for="extReason">Reason <span style="color:#f87171">*</span></label>
+        <select id="extReason" class="ext-select" onchange="hwExtReasonChange()">
+          <option value="">— Select a reason —</option>
+          <option value="health">Health issues (with evidence)</option>
+          <option value="technical">Technical issues (platform / connectivity)</option>
+          <option value="family">Urgent family situation</option>
+          <option value="overload">Academic overload (justified)</option>
+          <option value="error">Previous submission error</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div class="ext-field" id="extDescField" style="display:none;">
+        <label for="extDescription">Description <span style="color:#f87171">*</span></label>
+        <textarea id="extDescription" class="ext-textarea" placeholder="Please describe your situation in detail..."></textarea>
+      </div>
+
+      <div class="ext-field">
+        <label>Supporting Evidence <span style="color:rgba(255,255,255,0.3)">(optional — PDF, JPG or PNG)</span></label>
+        <div id="extUploadContainer">
+          <div class="ext-upload-zone" id="extUploadZone" onclick="document.getElementById('extEvidenceFile').click()">
+            <svg width="24" height="24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p>Click to upload evidence</p>
+          </div>
+          
+          <!-- Sleek Preview Container -->
+          <div id="extPreviewContainer" style="display:none; margin-top:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:12px; position:relative;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <div id="extPreviewBox" style="width:50px; height:50px; border-radius:8px; overflow:hidden; background:rgba(0,0,0,0.2); display:flex; align-items:center; justify-content:center;">
+                <!-- Thumbnail or Icon inserted here -->
+              </div>
+              <div style="flex:1; min-width:0;">
+                <p id="extFileName" style="font-size:12px; color:#fff; font-weight:500; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">filename.pdf</p>
+                <p id="extFileSize" style="font-size:10px; color:rgba(255,255,255,0.4); margin:2px 0 0;">0 KB</p>
+              </div>
+              <button onclick="hwClearExtFile(event)" style="background:rgba(239,68,68,0.1); border:none; width:28px; height:28px; border-radius:50%; color:#f87171; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.2)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div id="extUploadProgress" style="display:none; height:3px; background:rgba(59,130,246,0.2); border-radius:2px; margin-top:10px; overflow:hidden;">
+              <div id="extUploadProgressBar" style="width:0%; height:100%; background:#3b82f6; transition:width 0.3s;"></div>
+            </div>
+          </div>
+        </div>
+        <input type="file" id="extEvidenceFile" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" onchange="hwExtFileSelected(this)">
+      </div>
+    </div>
+
+    <div class="ext-modal-footer">
+      <button class="ext-btn-cancel" onclick="hwCloseExtModal()">Cancel</button>
+      <button class="ext-btn-submit" id="extSubmitBtn" onclick="hwSubmitExtRequest()">
+        <span class="ext-spinner" id="extSpinner"></span>
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Submit Request
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Card Context Menu -->
+<div id="hwCardMenu" style="display:none;">
+  <div id="hwMenuOpen" class="hw-menu-item" onclick="hwMenuDoOpen()">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    Open Assignment
+  </div>
+  <div id="hwMenuExt" class="hw-menu-item ext" onclick="hwMenuDoExtension()" style="display:none;">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Request Extension
+  </div>
+</div>
+
+<script>
+// ── Extension Request State ────────────────────────────────────────────────
+let _extInvitationId = null;
+let _extToken        = null;
+let _extEvidenceUrl  = null;
+const _extStatusCache = {};  // invitationId → request dict
+
+// Load extension status for all closed assignments on page load
+(function hwLoadExtStatuses() {
+  document.querySelectorAll('[data-is-closed="true"]').forEach(card => {
+    const invId = parseInt(card.dataset.invitationId);
+    if (!invId) return;
+    fetch(`/api/extension-request/${invId}`, { credentials: 'same-origin' })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.request) {
+          _extStatusCache[invId] = data.request;
+          hwUpdateBanner(invId, data.request);
+        }
+      })
+      .catch(() => {});
+  });
+})();
+
+function hwUpdateBanner(invId, req) {
+  const banner = document.getElementById(`ext-banner-${invId}`);
+  const textEl = document.getElementById(`ext-banner-text-${invId}`);
+  if (!banner || !textEl) return;
+  banner.className = 'hw-locked-banner';
+  if (!req) { textEl.textContent = 'Closed — Request Extension'; return; }
+  const map = {
+    pending:  { cls: 'pending',  txt: '⏳ Request Under Review' },
+    approved: { cls: 'approved', txt: `✅ Extension Approved — ${req.new_deadline ? new Date(req.new_deadline).toLocaleDateString() : ''}` },
+    rejected: { cls: 'rejected', txt: '❌ Request Rejected' }
+  };
+  const s = map[req.status] || {};
+  banner.classList.add(s.cls || '');
+  textEl.textContent = s.txt || req.status;
+}
+
+// ── Card Click Handler ─────────────────────────────────────────────────────
+function hwHandleCardClick(token, invId, tag, allowExt, event) {
+  if (event) event.stopPropagation();
+  if (tag === 'CLOSED') {
+    const existing = _extStatusCache[invId];
+    if (existing && existing.status !== 'rejected') {
+      hwShowExtStatus(invId, existing);
+      return;
+    }
+    if (allowExt) {
+      hwOpenExtModal(token, invId);
+      return;
+    }
+  }
+  hwOpenAssignment(token, event);
+}
+
+// ── Card Context Menu ──────────────────────────────────────────────────────
+let _menuToken = null, _menuInvId = null, _menuTag = null, _menuAllowExt = false;
+
+function hwShowCardMenu(event, token, invId, tag, allowExt) {
+  event.stopPropagation();
+  _menuToken = token; _menuInvId = invId; _menuTag = tag; _menuAllowExt = allowExt;
+
+  const menu   = document.getElementById('hwCardMenu');
+  const extBtn = document.getElementById('hwMenuExt');
+  const existing = _extStatusCache[invId];
+  const canRequest = tag === 'CLOSED' && allowExt && (!existing || existing.status === 'rejected');
+
+  extBtn.style.display = canRequest ? 'flex' : 'none';
+  menu.style.display = 'block';
+
+  const rect = event.target.closest('button').getBoundingClientRect();
+  menu.style.top  = `${Math.min(rect.bottom + 4, window.innerHeight - 160)}px`;
+  menu.style.left = `${Math.max(rect.left - 160, 8)}px`;
+  setTimeout(() => document.addEventListener('click', hwCloseCardMenu, { once: true }), 0);
+}
+
+function hwCloseCardMenu() {
+  document.getElementById('hwCardMenu').style.display = 'none';
+}
+
+function hwMenuDoOpen() {
+  hwCloseCardMenu();
+  hwOpenAssignment(_menuToken, null);
+}
+
+function hwMenuDoExtension() {
+  hwCloseCardMenu();
+  hwOpenExtModal(_menuToken, _menuInvId);
+}
+
+// ── Extension Modal Open / Close ──────────────────────────────────────────
+function hwOpenExtModal(token, invId) {
+  _extToken = token; _extInvitationId = invId; _extEvidenceUrl = null;
+  // Set subtitle
+  const card = document.querySelector(`[data-invitation-id="${invId}"]`);
+  const title = card ? card.dataset.workspaceTitle : '';
+  document.getElementById('extModalSubtitle').textContent = title ? `for "${title}"` : 'for this assignment';
+  // Reset form
+  document.getElementById('extReason').value = '';
+  document.getElementById('extDescription').value = '';
+  document.getElementById('extDescField').style.display = 'none';
+  document.getElementById('extFileName').textContent = '';
+  document.getElementById('extEvidenceFile').value = '';
+  document.getElementById('extErrorMsg').style.display = 'none';
+  document.getElementById('extSubmitBtn').disabled = false;
+  document.getElementById('extSpinner').style.display = 'none';
+  document.getElementById('extReqOverlay').style.display = 'flex';
+}
+
+function hwCloseExtModal() {
+  document.getElementById('extReqOverlay').style.display = 'none';
+}
+
+function hwExtReasonChange() {
+  const val   = document.getElementById('extReason').value;
+  const field = document.getElementById('extDescField');
+  field.style.display = (val === 'other') ? 'block' : 'none';
+}
+
+function hwExtFileSelected(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const zone = document.getElementById('extUploadZone');
+  const previewContainer = document.getElementById('extPreviewContainer');
+  const previewBox = document.getElementById('extPreviewBox');
+  const fileNameEl = document.getElementById('extFileName');
+  const fileSizeEl = document.getElementById('extFileSize');
+  const progressWrap = document.getElementById('extUploadProgress');
+  const progressBar = document.getElementById('extUploadProgressBar');
+
+  zone.style.display = 'none';
+  previewContainer.style.display = 'block';
+  fileNameEl.textContent = file.name;
+  fileSizeEl.textContent = (file.size / 1024).toFixed(1) + ' KB';
+  
+  // Create preview
+  previewBox.innerHTML = '';
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.objectFit = 'cover';
+      previewBox.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  } else if (file.type === 'application/pdf') {
+    previewBox.innerHTML = `<svg width="24" height="24" fill="none" stroke="#fca5a5" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`;
+  }
+
+  // Upload with progress
+  progressWrap.style.display = 'block';
+  progressBar.style.width = '0%';
+  
+  const fd = new FormData();
+  fd.append('file', file);
+  
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/extension-request/upload-evidence', true);
+  
+  xhr.upload.onprogress = (e) => {
+    if (e.lengthComputable) {
+      const percent = (e.loaded / e.total) * 100;
+      progressBar.style.width = percent + '%';
+    }
+  };
+  
+  xhr.onload = () => {
+    if (xhr.status === 200) {
+      const d = JSON.parse(xhr.responseText);
+      if (d.success) {
+        _extEvidenceUrl = d.url;
+        progressBar.style.background = '#10b981'; // Green on success
+      }
+    } else {
+      hwShowError('Upload failed. Please try again.');
+    }
+  };
+  
+  xhr.onerror = () => hwShowError('Upload failed. Network error.');
+  xhr.send(fd);
+}
+
+function hwClearExtFile(event) {
+  if (event) event.stopPropagation();
+  _extEvidenceUrl = null;
+  document.getElementById('extEvidenceFile').value = '';
+  document.getElementById('extUploadZone').style.display = 'block';
+  document.getElementById('extPreviewContainer').style.display = 'none';
+  document.getElementById('extUploadProgress').style.display = 'none';
+  document.getElementById('extUploadProgressBar').style.width = '0%';
+  document.getElementById('extUploadProgressBar').style.background = '#3b82f6';
+}
+
+function hwShowError(msg) {
+  const el = document.getElementById('extErrorMsg');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+async function hwSubmitExtRequest() {
+  const reason = document.getElementById('extReason').value;
+  const desc   = document.getElementById('extDescription').value.trim();
+
+  if (!reason) { hwShowError('Please select a reason.'); return; }
+  if (reason === 'other' && !desc) { hwShowError('Please describe your situation when selecting "Other".'); return; }
+
+  const btn = document.getElementById('extSubmitBtn');
+  const spinner = document.getElementById('extSpinner');
+  btn.disabled = true; spinner.style.display = 'inline-block';
+  document.getElementById('extErrorMsg').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/extension-request', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json',
+                 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || '' },
+      body: JSON.stringify({
+        invitation_id: _extInvitationId,
+        reason,
+        description: desc || undefined,
+        evidence_url: _extEvidenceUrl || undefined
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      _extStatusCache[_extInvitationId] = data.request;
+      hwUpdateBanner(_extInvitationId, data.request);
+      hwCloseExtModal();
+    } else {
+      hwShowError(data.error || 'Could not submit request. Please try again.');
+      btn.disabled = false; spinner.style.display = 'none';
+    }
+  } catch (e) {
+    hwShowError('Network error. Please check your connection.');
+    btn.disabled = false; spinner.style.display = 'none';
+  }
+}
+
+function hwShowExtStatus(invId, req) {
+  const map = {
+    pending:  'Your request is currently under review.',
+    approved: `Your extension was approved! New deadline: ${req.new_deadline ? new Date(req.new_deadline).toLocaleString() : 'check with your professor'}.`,
+    rejected: `Your request was rejected.${req.review_comment ? '\nReason: ' + req.review_comment : ''}`
+  };
+  alert(map[req.status] || 'Unknown status');
+}
+</script>
+
+<!-- Professional Notifications Modal -->
+<style>
+    .mt-modal-overlay {
+        position: fixed; inset: 0; z-index: 9999999;
+        background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        display: flex; align-items: center; justify-content: center;
+        padding: 20px;
+    }
+    .mt-modal-content {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 24px; width: 100%; max-width: 600px;
+        box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.8); overflow: hidden;
+        color: #f8fafc;
+        display: flex; flex-direction: column;
+    }
+    .mt-modal-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 24px 32px; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .mt-modal-header-title { display: flex; align-items: center; gap: 12px; }
+    .mt-modal-header-title i { color: #3b82f6; }
+    .mt-modal-header h3 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; color: #fff; }
+    
+    .mt-modal-tabs {
+        display: flex; gap: 4px; padding: 12px 32px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .mt-modal-tab {
+        padding: 10px 16px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.5);
+        cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
+    }
+    .mt-modal-tab:hover { color: #fff; }
+    .mt-modal-tab.active { color: #3b82f6; border-bottom-color: #3b82f6; }
+
+    .mt-modal-body { 
+        padding: 24px 32px; 
+        max-height: 60vh; 
+        overflow-y: auto;
+        min-height: 250px;
+    }
+    .mt-modal-body::-webkit-scrollbar { width: 6px; }
+    .mt-modal-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    .mt-modal-footer {
+        padding: 20px 32px;
+        background: rgba(255,255,255,0.02);
+        border-top: 1px solid rgba(255,255,255,0.05);
+        display: flex; justify-content: flex-end; align-items: center; gap: 16px;
+    }
+    .mt-modal-footer-info {
+        font-size: 11px; color: rgba(255,255,255,0.25); margin-right: auto;
+        display: flex; align-items: center; gap: 6px;
+    }
+    .btn-modal-close {
+        background: #3b82f6; color: #fff; border: none;
+        padding: 8px 16px; border-radius: 10px; font-size: 12px; font-weight: 600;
+        cursor: pointer; display: flex; align-items: center; gap: 6px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    .btn-modal-close:hover {
+        background: #2563eb; transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+    }
+    .btn-modal-close:active { transform: translateY(0); }
+
+    /* List items inside modal */
+    .modal-notif-item {
+        display: flex; gap: 16px; padding: 16px;
+        background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
+        border-radius: 16px; margin-bottom: 12px; cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+    }
+    .modal-notif-item:hover {
+        background: rgba(255,255,255,0.05);
+        border-color: rgba(59, 130, 246, 0.3);
+        transform: translateY(-2px);
+    }
+    .modal-notif-item.unread { background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.15); }
+    .modal-notif-dot {
+        position: absolute; top: 12px; right: 12px; width: 8px; height: 8px;
+        background: #3b82f6; border-radius: 50%; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    }
+    .modal-notif-icon {
+        flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(255,255,255,0.03); color: #94a3b8;
+    }
+    .modal-notif-item.unread .modal-notif-icon { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+    
+    .modal-notif-content { flex: 1; }
+    .modal-notif-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; color: #fff; }
+    .modal-notif-msg { font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.5; }
+    .modal-notif-time { font-size: 11px; color: rgba(255,255,255,0.3); margin-top: 8px; font-weight: 500; }
+
+    @media (max-width: 640px) {
+        .mt-modal-content { border-radius: 0; height: 100%; max-height: 100vh; max-width: 100%; border: none; }
+        .mt-modal-overlay { padding: 0; }
+        .mt-modal-header { padding: 20px; }
+        .mt-modal-tabs { padding: 0 20px; }
+        .mt-modal-body { padding: 20px; }
+    }
+</style>
+
+<div id="allNotifsModal" class="mt-modal-overlay" style="display:none; opacity:0; transition: opacity 0.3s;">
+    <div class="mt-modal-content" style="transform:translateY(20px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+        <div class="mt-modal-header">
+            <div class="mt-modal-header-title">
+                <i data-lucide="bell" style="color:#3b82f6;"></i>
+                <h3>Notifications</h3>
+            </div>
+            <button onclick="hwCloseAllNotifsModal()" class="btn-icon" style="color:rgba(255,255,255,.5); background:none; border:none; cursor:pointer; padding: 8px; border-radius: 50%; transition: background 0.2s;">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="mt-modal-tabs">
+            <div class="mt-modal-tab active" data-tab="all" onclick="hwSetNotifTab('all')">All</div>
+            <div class="mt-modal-tab" data-tab="unread" onclick="hwSetNotifTab('unread')">Unread</div>
+        </div>
+        <div class="mt-modal-body" id="allNotifsModalList">
+            <!-- Populated via JS -->
+        </div>
+        <div class="mt-modal-footer">
+            <div class="mt-modal-footer-info">
+                <i data-lucide="info" style="width:14px;height:14px;"></i>
+                Keep track of your assignment updates.
+            </div>
+            <button onclick="hwCloseAllNotifsModal()" class="btn-modal-close">
+                <i data-lucide="check"></i>
+                <span>Dismiss</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

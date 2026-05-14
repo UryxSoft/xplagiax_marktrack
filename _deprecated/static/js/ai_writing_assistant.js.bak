@@ -1,0 +1,936 @@
+// ai_writing_assistant.js
+// Smart AI Writing Assistant with Sidebar, Tooltips, Modal, Mode Toggle, Rate-Limit Banner
+
+class AIWritingAssistant {
+    constructor(quill) {
+        this.quill = quill;
+        this.suggestions = [];
+        this.isActive = true;
+        this.mode = 'advanced'; // 'basic' or 'advanced'
+        this.debounceTimer = null;
+        this.analysisEndpoint = '/ai_writing_bp/analyze';
+        this.geminiAvailable = true;
+
+        // --- Sidebar Elements ---
+        this.sidebar = document.querySelector('.ai-sidebar');
+        if (!this.sidebar) {
+            this.injectSidebarHTML();
+            this.sidebar = document.querySelector('.ai-sidebar');
+        }
+
+        this.spellingContainer = document.getElementById('spellingContent');
+        this.styleContainer = document.getElementById('styleContent');
+        this.spellingCount = document.getElementById('spellingCount');
+        this.styleCount = document.getElementById('styleCount');
+        this.headerBadges = document.getElementById('aiBadgeSummary');
+
+        // --- Tooltip ---
+        this.tooltip = this.createTooltip();
+
+        // --- Modal ---
+        this.modalOverlay = document.getElementById('aiApplyModal');
+        this.activeSuggestionForModal = null;
+
+        // --- Rate Limit Banner ---
+        this.rateLimitBanner = document.getElementById('aiRateLimitBanner');
+
+        this.init();
+    }
+
+    // =========================================================================
+    // SIDEBAR HTML INJECTION (fallback if not in template)
+    // =========================================================================
+    injectSidebarHTML() {
+        if (document.getElementById('aiSidebar')) return;
+
+        const sidebarHTML = `
+        <div class="ai-sidebar collapsed" id="aiSidebar">
+            <div class="ai-sidebar-header">
+                <div class="ai-sidebar-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary);">
+                        <path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"/>
+                    </svg>
+                    Writing Assistant
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <button class="ai-sidebar-close" onclick="window.aiWritingAssistant.toggleSidebar()" title="Close sidebar">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mode Toggle + Status Bar -->
+            <div class="ai-sidebar-controls">
+                <div class="ai-mode-toggle">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="aiModeToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="ai-mode-label" id="aiModeLabel">Advanced</span>
+                </div>
+                <div class="ai-status-indicator">
+                    <span class="ai-status-dot active" id="aiStatusDot"></span>
+                    <span class="ai-status-text" id="aiStatus">Ready</span>
+                </div>
+            </div>
+
+            <!-- Summary Badges -->
+            <div class="ai-badges-summary" id="aiBadgeSummary">
+                <span class="ai-badge-pill spelling-pill"><span id="badgeSpellingCount">0</span> Grammar</span>
+                <span class="ai-badge-separator">•</span>
+                <span class="ai-badge-pill style-pill"><span id="badgeStyleCount">0</span> Suggestions</span>
+            </div>
+
+            <!-- Rate Limit Banner -->
+            <div class="ai-rate-limit-banner" id="aiRateLimitBanner" style="display:none;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span>Gemini rate limit reached. Using LanguageTool only.</span>
+                <button class="ai-banner-dismiss" onclick="this.parentElement.style.display='none'">×</button>
+            </div>
+
+            <!-- Scrollable Content -->
+            <div class="ai-sidebar-scroll">
+                <!-- Section 1: Spelling & Grammar -->
+                <div class="ai-section" id="sectionSpelling">
+                    <div class="ai-section-header" onclick="window.aiWritingAssistant.toggleSection('sectionSpelling')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                        <span>Spelling & Grammar Issues</span>
+                        <span class="ai-badge-count" id="spellingCount">0</span>
+                    </div>
+                    <div class="ai-section-content" id="spellingContent">
+                        <div class="ai-empty-state">No issues found</div>
+                    </div>
+                </div>
+
+                <!-- Section 2: AI Improvement Suggestions -->
+                <div class="ai-section" id="sectionStyle">
+                    <div class="ai-section-header" onclick="window.aiWritingAssistant.toggleSection('sectionStyle')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                        <span>AI Improvement Suggestions</span>
+                        <span class="ai-badge-count" id="styleCount">0</span>
+                    </div>
+                    <div class="ai-section-content" id="styleContent">
+                        <div class="ai-empty-state">No suggestions</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', sidebarHTML);
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    // =========================================================================
+    // TOOLTIP CREATION
+    // =========================================================================
+    createTooltip() {
+        let existing = document.getElementById('aiTooltip');
+        if (existing) return existing;
+
+        let tooltip = document.createElement('div');
+        tooltip.className = 'ai-tooltip';
+        tooltip.id = 'aiTooltip';
+        tooltip.style.display = 'none';
+        document.body.appendChild(tooltip);
+
+        // Keep tooltip visible while hovering over it
+        tooltip.addEventListener('mouseenter', () => {
+            clearTimeout(this._tooltipHideTimer);
+        });
+        tooltip.addEventListener('mouseleave', () => {
+            this._tooltipHideTimer = setTimeout(() => {
+                tooltip.style.display = 'none';
+            }, 150);
+        });
+
+        return tooltip;
+    }
+
+    // =========================================================================
+    // INITIALIZATION
+    // =========================================================================
+    init() {
+        this.registerBlots();
+
+        // Text change → debounced analysis
+        this.quill.on('text-change', (delta, oldDelta, source) => {
+            if (source === 'user') {
+                this.debouncedAnalyze();
+            }
+        });
+
+        // Tooltip hover logic
+        this.quill.root.addEventListener('mouseover', (e) => this.handleHover(e));
+        this.quill.root.addEventListener('mouseout', (e) => this.handleMouseOut(e));
+
+        // Mode toggle
+        const toggle = document.getElementById('aiModeToggle');
+        if (toggle) {
+            toggle.addEventListener('change', (e) => {
+                this.mode = e.target.checked ? 'advanced' : 'basic';
+                const label = document.getElementById('aiModeLabel');
+                if (label) label.textContent = this.mode === 'advanced' ? 'Advanced' : 'Basic';
+                this.analyze();
+            });
+        }
+
+        // Store reference globally for onclick handlers
+        window.aiWritingAssistant = this;
+
+        console.log('[AIWritingAssistant] Initialized (mode: ' + this.mode + ')');
+    }
+
+    // =========================================================================
+    // CUSTOM BLOT REGISTRATION
+    // =========================================================================
+    registerBlots() {
+        let Inline = Quill.import('blots/inline');
+
+        // Only register once
+        if (Quill.imports['formats/ai-suggestion']) return;
+
+        class AISuggestionBlot extends Inline {
+            static create(value) {
+                let node = super.create();
+                node.setAttribute('class', `ai-suggestion ai-${value.type}`);
+                node.dataset.id = value.id;
+                // Store full suggestion data as JSON
+                node.dataset.suggestion = JSON.stringify(value);
+                return node;
+            }
+
+            static formats(node) {
+                try {
+                    return JSON.parse(node.dataset.suggestion);
+                } catch (e) { return {}; }
+            }
+        }
+        AISuggestionBlot.blotName = 'ai-suggestion';
+        AISuggestionBlot.tagName = 'span';
+        Quill.register(AISuggestionBlot);
+    }
+
+    // =========================================================================
+    // DEBOUNCE + ANALYSIS
+    // =========================================================================
+    debouncedAnalyze() {
+        clearTimeout(this.debounceTimer);
+        this.debounceTimer = setTimeout(() => this.analyze(), 800);
+    }
+
+    async analyze() {
+        if (!this.isActive) return;
+
+        const text = this.quill.getText();
+        if (!text || text.trim().length < 3) return;
+
+        // Update status
+        this.setStatus('Analyzing...', 'analyzing');
+
+        try {
+            const response = await fetch(this.analysisEndpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: text,
+                    mode: this.mode
+                })
+            });
+
+            if (!response.ok) throw new Error('API Error ' + response.status);
+            const data = await response.json();
+
+            // Store old suggestions for cleanup
+            const oldSuggestions = [...this.suggestions];
+            this.suggestions = data.suggestions || [];
+
+            // Client-side filter for Basic mode
+            if (this.mode === 'basic') {
+                this.suggestions = this.suggestions.filter(s => s.source === 'languagetool');
+            }
+
+            // Render underlines and sidebar
+            this.renderSuggestions(oldSuggestions);
+            this.updateSidebar();
+
+            // Update Gemini status
+            this.geminiAvailable = data.gemini_enabled;
+            if (data.gemini_enabled) {
+                this.setStatus('Gemini: Active', 'active');
+                this.hideRateLimitBanner();
+            } else if (this.mode === 'advanced') {
+                this.setStatus('Gemini: Rate Limited', 'warning');
+                this.showRateLimitBanner();
+            } else {
+                this.setStatus('Basic Mode', 'active');
+                this.hideRateLimitBanner();
+            }
+
+        } catch (error) {
+            console.error('[AIWritingAssistant] Analysis error:', error);
+            this.setStatus('Error', 'error');
+        }
+    }
+
+    // =========================================================================
+    // RENDER UNDERLINES IN EDITOR
+    // =========================================================================
+    renderSuggestions(oldSuggestions = []) {
+        // 1. Clear OLD suggestion underlines without touching other formatting
+        oldSuggestions.forEach(s => {
+            if (s.start >= 0 && s.end > s.start) {
+                this.quill.formatText(s.start, s.end - s.start, 'ai-suggestion', false, 'silent');
+            }
+        });
+
+        // 2. Apply NEW suggestion underlines
+        this.suggestions.forEach(suggestion => {
+            if (suggestion.start >= 0 && suggestion.end > suggestion.start) {
+                this.quill.formatText(
+                    suggestion.start,
+                    suggestion.end - suggestion.start,
+                    'ai-suggestion',
+                    suggestion,
+                    'silent'
+                );
+            }
+        });
+    }
+
+    // =========================================================================
+    // SIDEBAR UPDATE
+    // =========================================================================
+    updateSidebar() {
+        if (!this.spellingContainer || !this.styleContainer) return;
+
+        this.spellingContainer.innerHTML = '';
+        this.styleContainer.innerHTML = '';
+
+        let spellCount = 0;
+        let styleCount = 0;
+        const text = this.quill.getText();
+
+        this.suggestions.forEach(s => {
+            const card = this.createSidebarCard(s, text);
+            if (s.source === 'languagetool' || s.type === 'spelling' || s.type === 'grammar') {
+                this.spellingContainer.appendChild(card);
+                spellCount++;
+            } else {
+                this.styleContainer.appendChild(card);
+                styleCount++;
+            }
+        });
+
+        // Update section counts
+        if (this.spellingCount) this.spellingCount.textContent = spellCount;
+        if (this.styleCount) this.styleCount.textContent = styleCount;
+
+        // Update header badges
+        const badgeSpelling = document.getElementById('badgeSpellingCount');
+        const badgeStyle = document.getElementById('badgeStyleCount');
+        if (badgeSpelling) badgeSpelling.textContent = spellCount;
+        if (badgeStyle) badgeStyle.textContent = styleCount;
+
+        // Empty states
+        if (spellCount === 0) {
+            this.spellingContainer.innerHTML = '<div class="ai-empty-state">No issues found</div>';
+        }
+        if (styleCount === 0) {
+            this.styleContainer.innerHTML = '<div class="ai-empty-state">No suggestions</div>';
+        }
+    }
+
+    // =========================================================================
+    // SIDEBAR CARD CREATION
+    // =========================================================================
+    createSidebarCard(suggestion, fullText) {
+        const div = document.createElement('div');
+        div.className = `ai-card card-${suggestion.type}`;
+        div.dataset.id = suggestion.id;
+
+        // Get type icon
+        const icon = this.getTypeIcon(suggestion.type);
+
+        // Compute location indicator
+        const location = this.getLocationIndicator(suggestion.start, fullText);
+
+        // Original text snippet
+        const snippet = fullText.substring(suggestion.start, Math.min(suggestion.end, suggestion.start + 40));
+        const displaySnippet = snippet.length >= 40 ? snippet + '...' : snippet;
+
+        div.innerHTML = `
+            <div class="ai-card-top">
+                <span class="ai-card-icon">${icon}</span>
+                <span class="ai-card-type-label">${this.capitalize(suggestion.type)}</span>
+                <span class="ai-card-source">${suggestion.source === 'languagetool' ? 'LT' : 'AI'}</span>
+            </div>
+            <div class="ai-card-content">${this.escapeHtml(suggestion.message)}</div>
+            <div class="ai-card-snippet">"${this.escapeHtml(displaySnippet)}"</div>
+            <div class="ai-card-meta">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span>${location}</span>
+            </div>
+            <div class="ai-card-actions">
+                <button class="ai-card-btn btn-goto" onclick="window.aiWritingAssistant.goToSuggestion('${suggestion.id}')">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    Go to
+                </button>
+                <button class="ai-card-btn btn-apply-card" onclick="window.aiWritingAssistant.openModal('${suggestion.id}')">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                    Apply
+                </button>
+            </div>
+        `;
+        return div;
+    }
+
+    // =========================================================================
+    // LOCATION INDICATOR
+    // =========================================================================
+    getLocationIndicator(offset, text) {
+        if (!text || offset < 0) return 'Unknown';
+
+        const textBefore = text.substring(0, offset);
+
+        // Count paragraphs (split by newlines)
+        const paragraphs = textBefore.split('\n');
+        const paragraphNum = paragraphs.length;
+
+        // Count sentences in current paragraph
+        const currentParagraphText = paragraphs[paragraphs.length - 1];
+        // Simple sentence splitting: by . ! ? followed by space or end
+        const sentences = currentParagraphText.split(/[.!?]+\s*/);
+        const sentenceNum = Math.max(1, sentences.length);
+
+        return `Paragraph ${paragraphNum}, sentence ${sentenceNum}`;
+    }
+
+    // =========================================================================
+    // HOVER / TOOLTIP
+    // =========================================================================
+    handleHover(event) {
+        const target = event.target.closest('.ai-suggestion');
+        if (target) {
+            clearTimeout(this._tooltipHideTimer);
+            try {
+                const suggestion = JSON.parse(target.dataset.suggestion);
+                this.showTooltip(suggestion, target);
+            } catch (e) {
+                console.warn('[AIWritingAssistant] Failed to parse suggestion data');
+            }
+        }
+    }
+
+    handleMouseOut(event) {
+        const target = event.target.closest('.ai-suggestion');
+        if (target) {
+            this._tooltipHideTimer = setTimeout(() => {
+                if (!this.tooltip.matches(':hover')) {
+                    this.tooltip.style.display = 'none';
+                }
+            }, 200);
+        }
+    }
+
+    showTooltip(suggestion, element) {
+        const rect = element.getBoundingClientRect();
+
+        // Build tooltip content
+        const primaryReplacement = (suggestion.replacements && suggestion.replacements.length > 0)
+            ? suggestion.replacements[0]
+            : null;
+
+        this.tooltip.innerHTML = `
+            <div class="ai-tooltip-header">
+                <span class="ai-tooltip-title">${this.escapeHtml(suggestion.message)}</span>
+                <span class="ai-tooltip-type-badge badge-${suggestion.type}">${suggestion.type}</span>
+            </div>
+            ${primaryReplacement ? `
+            <div class="ai-tooltip-suggestion" onclick="window.aiWritingAssistant.applySuggestion('${suggestion.id}')">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                <span>${this.escapeHtml(primaryReplacement)}</span>
+            </div>` : ''}
+            ${suggestion.reason ? `<div class="ai-tooltip-reason">${this.escapeHtml(suggestion.reason)}</div>` : ''}
+            <div class="ai-tooltip-actions">
+                <button class="ai-btn ai-btn-primary" onclick="window.aiWritingAssistant.applySuggestion('${suggestion.id}')">Apply</button>
+                <button class="ai-btn ai-btn-secondary" onclick="window.aiWritingAssistant.dismissSuggestion('${suggestion.id}')">Dismiss</button>
+            </div>
+        `;
+
+        this.tooltip.style.display = 'block';
+
+        // Position ABOVE the text (per requirement)
+        const tooltipWidth = 300;
+        let top = rect.top + window.scrollY - this.tooltip.offsetHeight - 8;
+        let left = rect.left + window.scrollX + (rect.width / 2) - (tooltipWidth / 2);
+
+        // Fallback: show below if not enough space above
+        if (top < window.scrollY + 10) {
+            top = rect.bottom + window.scrollY + 8;
+        }
+
+        // Keep within viewport horizontally
+        if (left < 10) left = 10;
+        if (left + tooltipWidth > window.innerWidth - 10) {
+            left = window.innerWidth - tooltipWidth - 10;
+        }
+
+        this.tooltip.style.top = `${top}px`;
+        this.tooltip.style.left = `${left}px`;
+    }
+
+    hideTooltip() {
+        this.tooltip.style.display = 'none';
+    }
+
+    // =========================================================================
+    // ACTIONS: Go To, Apply, Dismiss
+    // =========================================================================
+
+    goToSuggestion(id) {
+        const suggestion = this.suggestions.find(s => s.id === id);
+        if (!suggestion) return;
+
+        // Focus editor and scroll to position
+        this.quill.setSelection(suggestion.start, 0);
+        this.quill.scrollIntoView();
+
+        // Flash highlight animation
+        const length = suggestion.end - suggestion.start;
+
+        // Find the DOM element and add flash class
+        const elements = this.quill.root.querySelectorAll(`.ai-suggestion[data-id="${id}"]`);
+        elements.forEach(el => {
+            el.classList.add('flash-highlight');
+            setTimeout(() => el.classList.remove('flash-highlight'), 1500);
+        });
+
+        // Also apply background highlight as fallback
+        this.quill.formatText(suggestion.start, length, 'background', '#fff9c4', 'silent');
+        setTimeout(() => {
+            this.quill.formatText(suggestion.start, length, 'background', false, 'silent');
+        }, 1500);
+    }
+
+    applySuggestion(id) {
+        const suggestion = this.suggestions.find(s => s.id === id);
+        if (!suggestion || !suggestion.replacements || suggestion.replacements.length === 0) return;
+
+        const replacement = suggestion.replacements[0];
+
+        // Remove underline first
+        this.quill.formatText(suggestion.start, suggestion.end - suggestion.start, 'ai-suggestion', false, 'silent');
+
+        // Apply replacement
+        this.quill.deleteText(suggestion.start, suggestion.end - suggestion.start, 'user');
+        this.quill.insertText(suggestion.start, replacement, 'user');
+
+        // Remove from suggestions list
+        this.suggestions = this.suggestions.filter(s => s.id !== id);
+        this.updateSidebar();
+        this.hideTooltip();
+
+        // Remove card from sidebar immediately
+        const card = document.querySelector(`.ai-card[data-id="${id}"]`);
+        if (card) {
+            card.style.transition = 'all 0.3s ease';
+            card.style.opacity = '0';
+            card.style.transform = 'translateX(20px)';
+            setTimeout(() => card.remove(), 300);
+        }
+    }
+
+    dismissSuggestion(id) {
+        // Find suggestion to clear its underline
+        const suggestion = this.suggestions.find(s => s.id === id);
+        if (suggestion) {
+            this.quill.formatText(suggestion.start, suggestion.end - suggestion.start, 'ai-suggestion', false, 'silent');
+        }
+
+        // Remove from list
+        this.suggestions = this.suggestions.filter(s => s.id !== id);
+        this.updateSidebar();
+        this.hideTooltip();
+
+        // Animate card removal
+        const card = document.querySelector(`.ai-card[data-id="${id}"]`);
+        if (card) {
+            card.style.transition = 'all 0.3s ease';
+            card.style.opacity = '0';
+            card.style.transform = 'translateX(20px)';
+            setTimeout(() => card.remove(), 300);
+        }
+    }
+
+    // =========================================================================
+    // MODAL LOGIC
+    // =========================================================================
+
+    openModal(id) {
+        const suggestion = this.suggestions.find(s => s.id === id);
+        if (!suggestion) return;
+
+        this.activeSuggestionForModal = suggestion;
+
+        const originalText = this.quill.getText(suggestion.start, suggestion.end - suggestion.start);
+        const replacement = (suggestion.replacements && suggestion.replacements[0]) || '(No suggestion)';
+
+        document.getElementById('modalOriginalText').textContent = originalText;
+        document.getElementById('modalNewText').textContent = replacement;
+        document.getElementById('modalReason').textContent = suggestion.reason || suggestion.message;
+
+        this.modalOverlay.classList.add('active');
+    }
+
+    closeModal() {
+        this.modalOverlay.classList.remove('active');
+        this.activeSuggestionForModal = null;
+    }
+
+    confirmModalApply() {
+        if (this.activeSuggestionForModal) {
+            this.applySuggestion(this.activeSuggestionForModal.id);
+            this.closeModal();
+        }
+    }
+
+    // =========================================================================
+    // SECTION TOGGLE
+    // =========================================================================
+    toggleSection(sectionId) {
+        const section = document.getElementById(sectionId);
+        if (!section) return;
+        section.classList.toggle('collapsed');
+    }
+
+    // =========================================================================
+    // SIDEBAR TOGGLE
+    // =========================================================================
+    toggleSidebar() {
+        if (this.sidebar) {
+            this.sidebar.classList.toggle('collapsed');
+        }
+    }
+
+    // =========================================================================
+    // STATUS & RATE LIMIT
+    // =========================================================================
+    setStatus(text, state) {
+        const statusEl = document.getElementById('aiStatus');
+        const dotEl = document.getElementById('aiStatusDot');
+        if (statusEl) statusEl.textContent = text;
+        if (dotEl) {
+            dotEl.className = 'ai-status-dot';
+            if (state) dotEl.classList.add(state);
+        }
+    }
+
+    showRateLimitBanner() {
+        if (this.rateLimitBanner) {
+            this.rateLimitBanner.style.display = 'flex';
+        }
+    }
+
+    hideRateLimitBanner() {
+        if (this.rateLimitBanner) {
+            this.rateLimitBanner.style.display = 'none';
+        }
+    }
+
+    // =========================================================================
+    // UTILITIES
+    // =========================================================================
+    capitalize(str) {
+        if (!str) return '';
+        return str.charAt(0).toUpperCase() + str.slice(1).replace(/_/g, ' ');
+    }
+
+    escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    getTypeIcon(type) {
+        const icons = {
+            spelling: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>',
+            grammar: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',
+            clarity: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+            coherence: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>',
+            word_choice: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>',
+            style: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>',
+            conciseness: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>'
+        };
+        return icons[type] || icons['style'];
+    }
+}
+
+
+// =============================================================================
+// CUSTOM CONTEXT MENU SINGLETON
+// =============================================================================
+
+const GlobalContextMenu = (function () {
+    let instance;
+    let menu;
+    let currentQuill = null;
+    let currentSelection = null;
+
+    function init() {
+        menu = document.createElement('div');
+        menu.className = 'custom-context-menu';
+        document.body.appendChild(menu);
+
+        const style = document.createElement('style');
+        style.innerHTML = `
+            .custom-context-menu {
+                position: fixed;
+                z-index: 100000;
+                background: rgba(30, 41, 59, 0.98);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+                padding: 8px 0;
+                min-width: 220px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+                color: #e2e8f0;
+                font-family: 'Inter', sans-serif;
+                font-size: 0.9rem;
+                opacity: 0;
+                visibility: hidden;
+                transform: scale(0.95);
+                transition: all 0.1s ease-out;
+            }
+            .custom-context-menu.active {
+                opacity: 1;
+                visibility: visible;
+                transform: scale(1);
+            }
+            .ccm-group {
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                padding: 4px 0;
+            }
+            .ccm-group:last-child {
+                border-bottom: none;
+            }
+            .ccm-item {
+                padding: 8px 16px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                transition: background 0.1s;
+                position: relative;
+            }
+            .ccm-item:hover {
+                background: rgba(255, 255, 255, 0.1);
+            }
+            .ccm-item.highlight {
+                color: #60a5fa;
+                font-weight: 500;
+            }
+             .ccm-item.danger {
+                color: #ef4444;
+            }
+            .ccm-submenu {
+                position: absolute;
+                left: 100%;
+                top: 0;
+                background: rgba(30, 41, 59, 0.95);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+                padding: 8px 0;
+                min-width: 180px;
+                display: none;
+            }
+            .ccm-item:hover > .ccm-submenu {
+                display: block;
+            }
+            .ccm-color-grid {
+                display: grid;
+                grid-template-columns: repeat(5, 1fr);
+                gap: 5px;
+                padding: 8px 16px;
+            }
+            .ccm-color-swatch {
+                width: 20px;
+                height: 20px;
+                border-radius: 4px;
+                cursor: pointer;
+                border: 1px solid rgba(255,255,255,0.2);
+            }
+            .ccm-color-swatch:hover {
+                transform: scale(1.2);
+            }
+         `;
+        document.head.appendChild(style);
+
+        // Global Listener
+        document.addEventListener('contextmenu', handleContextMenu);
+        document.addEventListener('click', hide);
+        window.addEventListener('scroll', hide, true);
+
+        console.log('[GlobalContextMenu] Initialized');
+    }
+
+    function handleContextMenu(e) {
+        const editor = e.target.closest('.ql-editor');
+        if (!editor) return;
+
+        let quill = null;
+        if (window.quillPagination) {
+            const page = window.quillPagination.pages.find(p => p.quill.root === editor);
+            if (page) quill = page.quill;
+        }
+        if (!quill && window.quill && window.quill.root === editor) {
+            quill = window.quill;
+        }
+        if (!quill) return;
+
+        const sel = quill.getSelection();
+        if (!sel || sel.length === 0) return;
+
+        e.preventDefault();
+        currentQuill = quill;
+        currentSelection = sel;
+
+        const text = quill.getText(sel.index, sel.length);
+        buildMenu(text, sel);
+        show(e.clientX, e.clientY);
+    }
+
+    function show(x, y) {
+        menu.style.left = `${x}px`;
+        menu.style.top = `${y}px`;
+        menu.classList.add('active');
+
+        const rect = menu.getBoundingClientRect();
+        if (rect.right > window.innerWidth) menu.style.left = `${x - rect.width}px`;
+        if (rect.bottom > window.innerHeight) menu.style.top = `${y - rect.height}px`;
+    }
+
+    function hide() {
+        if (menu) menu.classList.remove('active');
+    }
+
+    async function runAIAction(action, text, selection, tone = null) {
+        hide();
+        try {
+            const response = await fetch('/ai_writing_bp/gemini-action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, action, tone })
+            });
+            const data = await response.json();
+
+            if (data.result) {
+                if (action === 'explain' || action === 'alternatives') {
+                    alert(data.result);
+                } else {
+                    if (currentQuill) {
+                        currentQuill.deleteText(selection.index, selection.length, 'user');
+                        currentQuill.insertText(selection.index, data.result, 'user');
+                        currentQuill.setSelection(selection.index, data.result.length);
+                    }
+                }
+            } else {
+                alert('AI Error: ' + (data.error || 'Unknown'));
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Failed to connect to AI');
+        }
+    }
+
+    function buildMenu(text, selection) {
+        menu.innerHTML = '';
+
+        // 1. AI Actions
+        const aiGroup = document.createElement('div');
+        aiGroup.className = 'ccm-group';
+        aiGroup.innerHTML = `
+            <div class="ccm-item highlight" data-action="rewrite"><i data-lucide="refresh-cw" width="16"></i> Rewrite</div>
+            <div class="ccm-item" data-action="clarity"><i data-lucide="eye" width="16"></i> Make Clearer</div>
+            <div class="ccm-item" data-action="concise"><i data-lucide="scissors" width="16"></i> Make Concise</div>
+            <div class="ccm-item" data-action="vocabulary"><i data-lucide="book" width="16"></i> Improve Vocabulary</div>
+        `;
+
+        // Tone Submenu
+        const toneItem = document.createElement('div');
+        toneItem.className = 'ccm-item';
+        toneItem.innerHTML = `<span><i data-lucide="music" width="16"></i> Change Tone</span> <i data-lucide="chevron-right" width="14" style="margin-left:auto;"></i>`;
+        const toneSub = document.createElement('div');
+        toneSub.className = 'ccm-submenu';
+        ['Formal', 'Academic', 'Conversational', 'Friendly'].forEach(t => {
+            const subItem = document.createElement('div');
+            subItem.className = 'ccm-item';
+            subItem.textContent = t;
+            subItem.onclick = () => runAIAction('tone', text, selection, t);
+            toneSub.appendChild(subItem);
+        });
+        toneItem.appendChild(toneSub);
+        aiGroup.appendChild(toneItem);
+
+        aiGroup.querySelectorAll('[data-action]').forEach(el => {
+            el.onclick = () => runAIAction(el.dataset.action, text, selection);
+        });
+        menu.appendChild(aiGroup);
+
+        // 2. Formatting
+        const fmtGroup = document.createElement('div');
+        fmtGroup.className = 'ccm-group';
+        fmtGroup.innerHTML = `
+            <div class="ccm-item" data-fmt="bold"><i data-lucide="bold" width="16"></i> Bold</div>
+            <div class="ccm-item" data-fmt="italic"><i data-lucide="italic" width="16"></i> Italic</div>
+            <div class="ccm-item" data-fmt="underline"><i data-lucide="underline" width="16"></i> Underline</div>
+        `;
+        fmtGroup.querySelectorAll('[data-fmt]').forEach(el => {
+            el.onclick = () => {
+                const fmt = el.dataset.fmt;
+                const current = currentQuill.getFormat(selection);
+                currentQuill.format(fmt, !current[fmt]);
+                hide();
+            };
+        });
+        menu.appendChild(fmtGroup);
+
+        // 3. Color
+        const colorGroup = document.createElement('div');
+        colorGroup.className = 'ccm-group';
+        const colorItem = document.createElement('div');
+        colorItem.className = 'ccm-item';
+        colorItem.innerHTML = `<span><i data-lucide="palette" width="16"></i> Text Color</span>`;
+        const colorSub = document.createElement('div');
+        colorSub.className = 'ccm-submenu';
+        colorSub.innerHTML = `<div class="ccm-color-grid"></div>`;
+        const grid = colorSub.querySelector('.ccm-color-grid');
+        ['#000000', '#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'].forEach(c => {
+            const s = document.createElement('div');
+            s.className = 'ccm-color-swatch';
+            s.style.backgroundColor = c;
+            s.onclick = () => {
+                currentQuill.format('color', c);
+                hide();
+            };
+            grid.appendChild(s);
+        });
+        colorItem.appendChild(colorSub);
+        colorGroup.appendChild(colorItem);
+        menu.appendChild(colorGroup);
+
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    return { init: init };
+})();
+
+// Auto-init on load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', GlobalContextMenu.init);
+} else {
+    GlobalContextMenu.init();
+}
+
+// Expose to window
+window.AIWritingAssistant = AIWritingAssistant;

@@ -1,0 +1,637 @@
+{% extends "home_base.html" %}
+{% block view_content %}
+    <!-- ═══════════════════════════════════════════
+         STORAGE ANALYTICS VIEW
+    ═══════════════════════════════════════════ -->
+    <div class="main sv-main" id="storageView" name="storageView">
+
+      <!-- Header -->
+      <div class="main-head sv-head" id="svHead" name="svHead">
+        <div class="sv-title-block" id="svTitleBlock" name="svTitleBlock">
+          <h1 class="sv-page-title" id="svPageTitle" name="svPageTitle">Storage</h1>
+          <p class="sv-subtitle" id="svSubtitle" name="svSubtitle">
+            <span class="sv-dot" id="svSyncDot" name="svSyncDot"></span>
+            Syncing...
+          </p>
+        </div>
+        <div class="sv-head-right" id="svHeadRight" name="svHeadRight">
+          <div class="sv-filter-group" id="svFilterGroup" name="svFilterGroup">
+            <button class="sv-filter-btn active" id="svFilter7d" name="svFilter7d" data-range="7">7 Days</button>
+            <button class="sv-filter-btn" id="svFilter30d" name="svFilter30d" data-range="30">30 Days</button>
+            <button class="sv-filter-btn" id="svFilter90d" name="svFilter90d" data-range="90">90 Days</button>
+          </div>
+          
+          <!-- REFRESH BUTTON -->
+          <button class="btn-refresh" aria-label="Actualizar" data-tooltip="Actualizar" onclick="RefreshManager.execute(this, () => updateStorageDashboard(_currentRange))">
+            <svg viewBox="0 0 24 24"><path d="M21 2v6h-6"/><path d="M21 13a9 9 0 11-3-7.7L21 8"/></svg>
+          </button>
+
+          <button class="sv-export-btn" id="svExportBtn" name="svExportBtn" onclick="svExport()" style="display:flex;align-items:center;gap:6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export Report
+          </button>
+        </div>
+      </div>
+
+      <div class="content-scroll sv-scroll" id="svScroll" name="svScroll">
+
+        <!-- ── KPI ROW ── -->
+        <section class="sv-section" id="svKpiSection" name="svKpiSection">
+          <div class="sv-kpi-grid" id="svKpiGrid" name="svKpiGrid">
+
+            <div class="sv-kpi-card" id="svKpiCapacity" name="svKpiCapacity">
+              <div class="sv-kpi-icon sv-icon-violet" id="svKpiCapacityIcon" name="svKpiCapacityIcon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+              </div>
+              <div class="sv-kpi-body">
+                <div class="sv-kpi-label">Total Capacity</div>
+                <div class="sv-kpi-value" id="svKpiCapacityValue" name="svKpiCapacityValue">- <span class="sv-kpi-unit"></span></div>
+                <div class="sv-kpi-meta sv-neutral">Current plan limit</div>
+              </div>
+            </div>
+
+            <div class="sv-kpi-card sv-kpi-warning" id="svKpiUsed" name="svKpiUsed">
+              <div class="sv-kpi-icon sv-icon-amber" id="svKpiUsedIcon" name="svKpiUsedIcon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+              </div>
+              <div class="sv-kpi-body">
+                <div class="sv-kpi-label">Storage Used</div>
+                <div class="sv-kpi-value" id="svKpiUsedValue" name="svKpiUsedValue">- <span class="sv-kpi-unit"></span></div>
+                <div class="sv-kpi-progress-wrap">
+                  <div class="sv-kpi-progress-bar" id="svKpiUsedBar" name="svKpiUsedBar">
+                    <div class="sv-kpi-progress-fill sv-fill-amber" id="svKpiUsedFill" name="svKpiUsedFill" style="width:0%"></div>
+                  </div>
+                  <span class="sv-kpi-pct sv-amber" id="svKpiUsedPct" name="svKpiUsedPct">-%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="sv-kpi-card" id="svKpiAvailable" name="svKpiAvailable">
+              <div class="sv-kpi-icon sv-icon-green" id="svKpiAvailableIcon" name="svKpiAvailableIcon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              <div class="sv-kpi-body">
+                <div class="sv-kpi-label">Available</div>
+                <div class="sv-kpi-value" id="svKpiAvailableValue" name="svKpiAvailableValue">- <span class="sv-kpi-unit"></span></div>
+                <div class="sv-kpi-meta sv-green"></div>
+              </div>
+            </div>
+
+            <div class="sv-kpi-card" id="svKpiGrowth" name="svKpiGrowth">
+              <div class="sv-kpi-icon sv-icon-violet" id="svKpiGrowthIcon" name="svKpiGrowthIcon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              </div>
+              <div class="sv-kpi-body">
+                <div class="sv-kpi-label">Monthly Growth</div>
+                <div class="sv-kpi-value" id="svKpiGrowthValue" name="svKpiGrowthValue">- <span class="sv-kpi-unit"></span></div>
+                <div class="sv-kpi-meta sv-amber"></div>
+              </div>
+            </div>
+
+            <div class="sv-kpi-card" id="svKpiCost" name="svKpiCost">
+              <div class="sv-kpi-icon sv-icon-emerald" id="svKpiCostIcon" name="svKpiCostIcon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+              </div>
+              <div class="sv-kpi-body">
+                <div class="sv-kpi-label" id="svCostLabel">Monthly Cost</div>
+                <div class="sv-kpi-value" id="svKpiCostValue" name="svKpiCostValue">- <span class="sv-kpi-unit"></span></div>
+                <div class="sv-kpi-meta sv-neutral" id="svKpiPlanName">No plan info</div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── CHARTS ROW 1: Donut + Line ── -->
+        <section class="sv-section" id="svChartsRow1Section" name="svChartsRow1Section">
+          <div class="sv-charts-row-1" id="svChartsRow1" name="svChartsRow1">
+
+            <div class="sv-card sv-donut-card" id="svDonutCard" name="svDonutCard">
+              <div class="sv-card-head">
+                <span class="sv-card-title" id="svDonutTitle" name="svDonutTitle">Usage vs Available</span>
+                <div class="sv-card-badge sv-badge-violet" id="svDonutBadge" name="svDonutBadge">Loading...</div>
+              </div>
+              <div id="svDonutChart" name="svDonutChart"></div>
+              <div class="sv-donut-legend" id="svDonutLegend" name="svDonutLegend">
+                <div class="sv-legend-item" id="svLegendUsed" name="svLegendUsed">
+                  <span class="sv-legend-dot" style="background:#f59e0b"></span>
+                  <span>Used <strong>--</strong></span>
+                </div>
+                <div class="sv-legend-item" id="svLegendFree" name="svLegendFree">
+                  <span class="sv-legend-dot" style="background:#34d399"></span>
+                  <span>Free <strong>--</strong></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="sv-card sv-line-card" id="svLineCard" name="svLineCard">
+              <div class="sv-card-head">
+                <span class="sv-card-title" id="svLineTitle" name="svLineTitle">Storage Growth</span>
+                <div class="sv-card-badge sv-badge-violet" id="svLineBadge" name="svLineBadge">...</div>
+              </div>
+              <div id="svLineChart" name="svLineChart"></div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── CHARTS ROW 2: Bar Type + Hbar Users ── -->
+        <section class="sv-section" id="svChartsRow2Section" name="svChartsRow2Section">
+          <div class="sv-charts-row-2" id="svChartsRow2" name="svChartsRow2">
+
+            <div class="sv-card" id="svBarCard" name="svBarCard">
+              <div class="sv-card-head">
+                <span class="sv-card-title" id="svBarTitle" name="svBarTitle">By File Type</span>
+                <div class="sv-card-badge sv-badge-violet" id="svBarBadge" name="svBarBadge">...</div>
+              </div>
+              <div id="svBarChart" name="svBarChart"></div>
+            </div>
+
+            <div class="sv-card" id="svHbarCard" name="svHbarCard">
+              <div class="sv-card-head">
+                <span class="sv-card-title" id="svHbarTitle" name="svHbarTitle">Top 5 Consumers</span>
+                <div class="sv-card-badge sv-badge-violet" id="svHbarBadge" name="svHbarBadge">...</div>
+              </div>
+              <div id="svHbarChart" name="svHbarChart"></div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── ALERTS ── -->
+        <section class="sv-section" id="svAlertsSection" name="svAlertsSection">
+          <div class="sec-label" id="svAlertsLabel" name="svAlertsLabel" style="margin-bottom:14px">System Alerts</div>
+          <div class="sv-alerts-grid" id="svAlertsGrid" name="svAlertsGrid">
+            <div class="sv-loading-indicator">Checking system health...</div>
+          </div>
+        </section>
+
+        <!-- ── DETAIL TABLE ── -->
+        <section class="sv-section" id="svTableSection" name="svTableSection">
+          <div class="sv-card sv-table-card" id="svTableCard" name="svTableCard">
+            <div class="sv-card-head">
+              <span class="sv-card-title" id="svTableTitle" name="svTableTitle">Category Details</span>
+              <div class="sv-table-search" id="svTableSearch" name="svTableSearch">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" placeholder="Filter categories…" id="svTableFilter" name="svTableFilter" oninput="svFilterTable(this.value)">
+              </div>
+            </div>
+            <div class="sv-table-wrap" id="svTableWrap" name="svTableWrap">
+              <table class="sv-table" id="svTable" name="svTable">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Used Space</th>
+                    <th>% of Total</th>
+                    <th>Growth</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="svTableBody" name="svTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- /sv-scroll -->
+    </div><!-- /storageView -->
+
+    <script>
+      // ═══════════════════════════════════════════
+      // UTILITIES
+      // ═══════════════════════════════════════════
+      function formatSmartBytes(bytes) {
+        if (bytes === 0) return '0 <span class="sv-kpi-unit">Bytes</span>';
+        const k = 1024;
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const val = parseFloat((bytes / Math.pow(k, i)).toFixed(i > 2 ? 1 : 0));
+        return `${val} <span class="sv-kpi-unit">${sizes[i]}</span>`;
+      }
+
+      function formatBytes(bytes, decimals = 1) {
+        if (!bytes) return '0 Bytes';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+      }
+
+      // ═══════════════════════════════════════════
+      // CHART INSTANCE REGISTRY (destroy before re-render)
+      // ═══════════════════════════════════════════
+      const _charts = {};
+
+      function renderChart(id, options) {
+        if (_charts[id]) { try { _charts[id].destroy(); } catch(e) {} }
+        const el = document.querySelector('#' + id);
+        if (!el) return;
+        el.innerHTML = '';
+        _charts[id] = new ApexCharts(el, options);
+        _charts[id].render();
+      }
+
+      // ═══════════════════════════════════════════
+      // RANGE FILTER STATE
+      // ═══════════════════════════════════════════
+      let _currentRange = 30;
+
+      document.querySelectorAll('.sv-filter-btn').forEach(function(btn) {
+        btn.addEventListener('click', function () {
+          document.querySelectorAll('.sv-filter-btn').forEach(function(b) { b.classList.remove('active'); });
+          this.classList.add('active');
+          _currentRange = parseInt(this.dataset.range, 10) || 30;
+          updateStorageDashboard(_currentRange);
+        });
+      });
+
+      // ═══════════════════════════════════════════
+      // EXPORT BUTTON
+      // ═══════════════════════════════════════════
+      var svExportBtnEl = document.getElementById('svExportBtn');
+      if (svExportBtnEl) {
+        svExportBtnEl.addEventListener('click', function () {
+          window.location.href = '/api/storage/export?format=csv';
+        });
+      }
+
+      // ═══════════════════════════════════════════
+      // TABLE FILTER (client-side on keyup)
+      // ═══════════════════════════════════════════
+      var svTableFilterEl = document.getElementById('svTableFilter');
+      if (svTableFilterEl) {
+        svTableFilterEl.addEventListener('input', function () {
+          var q = this.value.trim().toLowerCase();
+          document.querySelectorAll('#svTableBody tr').forEach(function(row) {
+            row.style.display = q === '' || row.textContent.toLowerCase().includes(q) ? '' : 'none';
+          });
+        });
+      }
+
+      // ═══════════════════════════════════════════
+      // ALERT HELPERS
+      // ═══════════════════════════════════════════
+      function alertIcon(type) {
+        var icons = {
+          error:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+          warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+          success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+          info:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+        };
+        return icons[type] || icons.info;
+      }
+
+      function alertClass(type) {
+        return (type === 'error' || type === 'warning') ? 'sv-alert-warn' : 'sv-alert-ok';
+      }
+
+      // ═══════════════════════════════════════════
+      // MAIN DASHBOARD UPDATER
+      // ═══════════════════════════════════════════
+      async function updateStorageDashboard(range) {
+        range = range || 30;
+        try {
+          var r = encodeURIComponent(range);
+
+          // Fetch all endpoints in parallel
+          var results = await Promise.all([
+            fetch('/api/storage/summary?range=' + r),
+            fetch('/api/storage/charts/usage'),
+            fetch('/api/storage/charts/growth?range=' + r),
+            fetch('/api/storage/charts/categories?range=' + r),
+            fetch('/api/storage/charts/top-users'),
+            fetch('/api/storage/alerts'),
+            fetch('/api/storage/table?range=' + r),
+          ]);
+
+          var data = await Promise.all(results.map(function(res) { return res.json(); }));
+          var summary   = data[0];
+          var usage     = data[1];
+          var growth    = data[2];
+          var cats      = data[3];
+          var topUsers  = data[4];
+          var alertData = data[5];
+          var tableData = data[6];
+
+          // ── 1. KPI Cards ────────────────────────────────────────────────
+          if (summary && summary.capacity) {
+            const cap = summary.capacity;
+
+            document.getElementById('svKpiCapacityValue').innerHTML =
+              formatSmartBytes(cap.totalBytes);
+            document.getElementById('svKpiUsedValue').innerHTML =
+              formatSmartBytes(cap.usedBytes);
+            document.getElementById('svKpiAvailableValue').innerHTML =
+              formatSmartBytes(cap.availableBytes);
+            document.getElementById('svKpiGrowthValue').innerHTML =
+              '+' + formatSmartBytes(summary.growth.monthlyBytes || 0);
+            document.getElementById('svKpiCostValue').innerHTML =
+              '$' + (summary.billing.monthlyCostUsd || 0) + ' <span class="sv-kpi-unit">/mo</span>';
+
+            // Sync subtitle with real data
+            const syncTime = summary.syncAt ? new Date(summary.syncAt) : new Date();
+            const timeStr = syncTime.toLocaleString('en-US', { 
+                day: '2-digit', month: 'short', year: 'numeric', 
+                hour: '2-digit', minute: '2-digit', hour12: false 
+            });
+            document.getElementById('svSubtitle').innerHTML =
+              `<span class="sv-dot sv-dot-green" id="svSyncDot"></span> Last sync: ${timeStr} UTC`;
+
+            // Progress bar with smooth transition
+            const fill    = document.getElementById('svKpiUsedFill');
+            const pctText = document.getElementById('svKpiUsedPct');
+            const pct     = Math.min(cap.usagePercentage, 100);
+            
+            setTimeout(() => {
+                fill.style.width = pct + '%';
+                pctText.textContent = pct.toFixed(1) + '%';
+            }, 100);
+
+            fill.className = 'sv-kpi-progress-fill ' +
+              (pct > 90 ? 'sv-fill-red' : pct > 75 ? 'sv-fill-amber' : 'sv-fill-blue');
+
+            const donutBadge = document.getElementById('svDonutBadge');
+            if (donutBadge) {
+                donutBadge.textContent = pct.toFixed(1) + '% used';
+                donutBadge.className = 'sv-card-badge ' + (pct > 90 ? 'sv-badge-red' : pct > 75 ? 'sv-badge-amber' : 'sv-badge-violet');
+            }
+
+            // Update plan name and trend metadata
+            const planEl = document.getElementById('svKpiPlanName');
+            if (planEl) planEl.textContent = summary.billing.planName || 'Free Plan';
+
+            const growthMeta = document.querySelector('#svKpiGrowth .sv-kpi-meta');
+            if (growthMeta) {
+                const trend = summary.growth.trendPercentage || 0;
+                growthMeta.textContent = (trend >= 0 ? '↑' : '↓') + ' ' + Math.abs(trend) + '% vs prev';
+                growthMeta.className = 'sv-kpi-meta ' + (trend > 0 ? 'sv-amber' : 'sv-green');
+            }
+
+            const availMeta = document.querySelector('#svKpiAvailable .sv-kpi-meta');
+            if (availMeta) {
+                availMeta.textContent = (100 - pct).toFixed(1) + '% space free';
+            }
+          }
+
+          // Shared premium chart options
+          const baseChartOptions = {
+            chart: {
+               fontFamily: "'Outfit', 'Inter', sans-serif",
+               foreColor: 'rgba(255,255,255,0.5)',
+               toolbar: { show: false },
+               zoom: { enabled: false }
+            },
+            states: {
+                hover: { filter: { type: 'lighten', value: 0.05 } },
+                active: { allowMultipleDataPointsSelection: false, filter: { type: 'none' } }
+            },
+            stroke: { show: false }
+          };
+
+          // ── 2. Donut Chart (Usage vs Available) ──────────────────────────
+          if (usage && usage.values) {
+            const totalLabel = (summary && summary.capacity)
+              ? summary.capacity.totalFormatted || formatBytes(summary.capacity.totalBytes)
+              : '';
+
+            renderChart('svDonutChart', {
+              ...baseChartOptions,
+              series: usage.values,
+              chart: { ...baseChartOptions.chart, type: 'donut', height: 280 },
+              labels: usage.labels,
+              colors: usage.colors || ['#f59e0b', '#34d399'],
+              dataLabels: { enabled: false },
+              legend: { show: false },
+              fill: {
+                type: 'gradient',
+                gradient: {
+                    shade: 'dark',
+                    type: 'vertical',
+                    shadeIntensity: 0.5,
+                    gradientToColors: ['#fbbf24', '#6ee7b7'],
+                    inverseColors: false,
+                    opacityFrom: 1,
+                    opacityTo: 0.8
+                }
+              },
+              plotOptions: {
+                pie: {
+                  donut: {
+                    size: '82%',
+                    labels: {
+                      show: true,
+                      name: { show: true, fontSize: '12px', offsetY: -10 },
+                      value: {
+                        show: true,
+                        fontSize: '24px',
+                        fontWeight: 700,
+                        color: '#fff',
+                        offsetY: 8,
+                        formatter: () => totalLabel
+                      },
+                      total: {
+                        show: true,
+                        label: 'Capacity',
+                        fontSize: '11px',
+                        color: 'rgba(255,255,255,0.4)',
+                        formatter: () => totalLabel
+                      }
+                    }
+                  }
+                }
+              },
+              tooltip: { 
+                theme: 'dark',
+                y: { formatter: (val) => formatBytes(val) } 
+              }
+            });
+
+            // Update custom legend
+            const legUsed = document.getElementById('svLegendUsed');
+            const legFree = document.getElementById('svLegendFree');
+            if (legUsed) {
+              legUsed.querySelector('span:last-child').innerHTML = `Used <strong>${formatBytes(usage.values[0])}</strong>`;
+            }
+            if (legFree) {
+              legFree.querySelector('span:last-child').innerHTML = `Free <strong>${formatBytes(usage.values[1])}</strong>`;
+            }
+          }
+
+          // ── 3. Growth Area Chart ─────────────────────────────────────────
+          if (growth && growth.data) {
+            const windowLabel = range <= 7 ? 'Daily Growth' : 'Monthly Performance';
+            const lineBadge = document.getElementById('svLineBadge');
+            if (lineBadge) lineBadge.textContent = windowLabel;
+
+            renderChart('svLineChart', {
+              ...baseChartOptions,
+              series: [{ name: 'Storage Used', data: growth.data }],
+              chart: { ...baseChartOptions.chart, type: 'area', height: 280 },
+              stroke: { show: true, curve: 'smooth', width: 3, colors: ['#3b82f6'] },
+              fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.4,
+                    opacityTo: 0.02,
+                    stops: [0, 100],
+                    colorStops: [
+                        { offset: 0, color: '#3b82f6', opacity: 0.4 },
+                        { offset: 100, color: '#3b82f6', opacity: 0 }
+                    ]
+                }
+              },
+              markers: { size: 0, strokeColors: '#3b82f6', strokeWidth: 2, hover: { size: 5 } },
+              grid: { borderColor: 'rgba(255,255,255,0.03)', strokeDashArray: 4 },
+              xaxis: { 
+                categories: growth.labels,
+                axisBorder: { show: false },
+                axisTicks: { show: false },
+                labels: { style: { fontSize: '11px' } }
+              },
+              yaxis: { 
+                labels: { 
+                    style: { fontSize: '11px' },
+                    formatter: (val) => formatBytes(val)
+                } 
+              },
+              tooltip: { 
+                theme: 'dark',
+                x: { show: true },
+                y: { formatter: (val) => formatBytes(val) } 
+              }
+            });
+          }
+
+          // ── 4. Bar Chart (By File Type) ──────────────────────────────────
+          if (cats && cats.categories) {
+            const barBadge = document.getElementById('svBarBadge');
+            if (barBadge) barBadge.textContent = cats.totalCategories + ' categories';
+
+            renderChart('svBarChart', {
+              ...baseChartOptions,
+              series: [{ name: 'Usage', data: cats.categories.map(c => c.sizeBytes) }],
+              chart: { ...baseChartOptions.chart, type: 'bar', height: 280 },
+              plotOptions: {
+                bar: {
+                  borderRadius: 6,
+                  columnWidth: '40%',
+                  distributed: true,
+                  dataLabels: { position: 'top' }
+                }
+              },
+              colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'], // Premium palette
+              dataLabels: {
+                enabled: true,
+                formatter: (val) => formatBytes(val),
+                offsetY: -20,
+                style: { fontSize: '10px', colors: ['rgba(255,255,255,0.6)'] }
+              },
+              xaxis: { 
+                categories: cats.categories.map(c => c.name),
+                axisBorder: { show: false },
+                axisTicks: { show: false },
+                labels: { style: { fontSize: '11px' } }
+              },
+              yaxis: { show: false },
+              grid: { show: false },
+              legend: { show: false },
+              tooltip: { 
+                theme: 'dark',
+                y: { formatter: (val) => formatBytes(val) } 
+              }
+            });
+          }
+
+          // ── 5. HBar Chart (Top Users) ────────────────────────────────────
+          if (topUsers && topUsers.users && topUsers.users.length) {
+            const hbarBadge = document.getElementById('svHbarBadge');
+            if (hbarBadge) hbarBadge.textContent = 'Active Users';
+
+            renderChart('svHbarChart', {
+              ...baseChartOptions,
+              series: [{ name: 'Used', data: topUsers.users.map(u => u.usedBytes) }],
+              chart: { ...baseChartOptions.chart, type: 'bar', height: Math.max(200, topUsers.users.length * 45) },
+              plotOptions: {
+                bar: {
+                  horizontal: true,
+                  borderRadius: 4,
+                  barHeight: '60%',
+                  distributed: false
+                }
+              },
+              colors: ['#6366f1'], // Indigo
+              xaxis: { 
+                axisBorder: { show: false },
+                axisTicks: { show: false },
+                labels: { 
+                    style: { fontSize: '11px' },
+                    formatter: (val) => formatBytes(val)
+                } 
+              },
+              yaxis: { 
+                categories: topUsers.users.map(u => u.name || u.email.split('@')[0]),
+                labels: { style: { fontSize: '11px', fontWeight: 500 } }
+              },
+              grid: { borderColor: 'rgba(255,255,255,0.03)' },
+              tooltip: { 
+                theme: 'dark',
+                y: { formatter: (val) => formatBytes(val) } 
+              },
+              dataLabels: { enabled: false }
+            });
+          }
+
+          // ── 6. Alerts ────────────────────────────────────────────────────
+          var alertsGrid = document.getElementById('svAlertsGrid');
+          if (alertData && alertData.alerts && alertData.alerts.length > 0) {
+            alertsGrid.innerHTML = alertData.alerts.map(function(a) {
+              return '<div class="sv-alert ' + alertClass(a.type) + '">' +
+                '<div class="sv-alert-icon">' + alertIcon(a.type) + '</div>' +
+                '<div class="sv-alert-body">' +
+                  '<div class="sv-alert-title">' + a.title + '</div>' +
+                  '<div class="sv-alert-desc">' + a.description + '</div>' +
+                '</div>' +
+                '<div class="sv-alert-time">' + (a.timeAgo || 'Just now') + '</div>' +
+              '</div>';
+            }).join('');
+          } else {
+            alertsGrid.innerHTML = '<div class="sv-alert sv-alert-ok" style="grid-column:1/-1;justify-content:center;opacity:0.6;border-style:dashed">' +
+                '<div class="sv-alert-body" style="text-align:center">No critical system alerts</div>' +
+                '</div>';
+          }
+
+          // ── 7. Detail Table ──────────────────────────────────────────────
+          if (tableData && tableData.rows) {
+            var tableBody = document.getElementById('svTableBody');
+            tableBody.innerHTML = tableData.rows.map(function(row) {
+              var growthClass = (row.growth && row.growth.startsWith('+')) ? 'sv-green' : 'sv-amber';
+              return '<tr>' +
+                '<td><strong>' + row.category + '</strong></td>' +
+                '<td>' + row.sizeFormatted + '</td>' +
+                '<td>' + row.percentage + '%</td>' +
+                '<td class="' + growthClass + '">' + row.growth + '</td>' +
+                '<td><span class="sv-tag sv-tag-ok">' + row.statusLabel + '</span></td>' +
+                '<td><button class="sv-action-btn" onclick="svAnalyzeCategory(\'' + row.category + '\')">Analyze</button></td>' +
+              '</tr>';
+            }).join('');
+          }
+
+        } catch (err) {
+          console.error('[Storage Dashboard] Error loading data:', err);
+        }
+      }
+
+      function svAnalyzeCategory(category) {
+        console.info('[Storage] Analyze category:', category);
+      }
+
+      function svExport() {
+        window.location.href = '/api/storage/export?format=csv';
+      }
+
+      document.addEventListener('DOMContentLoaded', function() { updateStorageDashboard(_currentRange); });
+    </script>
+{% endblock %}

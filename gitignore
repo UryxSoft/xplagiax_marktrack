@@ -1,0 +1,111 @@
+# ========================
+# MODELOS Y ARCHIVOS GRANDES
+# ========================
+*.pt
+*.pth
+*.onnx
+*.h5
+*.pkl
+*.bin
+*.safetensors
+*.model
+*.weights
+models/
+checkpoints/
+saved_models/
+
+# ========================
+# PYTHON
+# ========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+
+# ========================
+# ENTORNOS VIRTUALES
+# ========================
+venv/
+env/
+.env/
+.venv/
+ENV/
+
+# ========================
+# FLASK
+# ========================
+instance/
+.webassets-cache
+flask_session/
+
+# ========================
+# VARIABLES DE ENTORNO / SECRETOS
+# ========================
+.env
+.env.*
+*.env
+config.py
+secrets.py
+*.secret
+
+# ========================
+# BASE DE DATOS LOCAL
+# ========================
+*.db
+*.sqlite
+*.sqlite3
+
+# ========================
+# UPLOADS / ARCHIVOS DE USUARIO
+# ========================
+uploads/
+media/
+static/uploads/
+
+# ========================
+# DATASETS Y DATA PESADA
+# ========================
+data/
+datasets/
+*.csv
+*.json
+*.parquet
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+# ========================
+# LOGS
+# ========================
+*.log
+logs/
+log/
+
+# ========================
+# SISTEMA OPERATIVO
+# ========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ========================
+# EDITORES
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ========================
+# JUPYTER (si usas notebooks para pruebas)
+# ========================
+.ipynb_checkpoints/
+*.ipynb

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plagiarism UI Simulation</title>
+    <style>
+        /* Styles from plagiarism-detector.css */
+        .plagiarism-results {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .plagiarism-result-section {
+            margin-bottom: 16px;
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .result-item {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="plagiarismDetection">
+        <button id="webSearchBtn">Search Web</button>
+        <div id="plagiarismResults"></div>
+    </div>
+
+    <script>
+        const PlagiarismDetector = {
+            config: { webColor: '#ff9800' },
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            },
+            updateResultsPanel(type, results) {
+                const resultsContainer = document.getElementById('plagiarismResults');
+                if (!resultsContainer) return;
+
+                const typeLabel = 'Web Matches';
+                const resultHtml = `
+                    <div class="plagiarism-result-section ${type}-section">
+                        <div class="result-header">
+                            <h4>${typeLabel}</h4>
+                            <span class="result-count">${results.length} found</span>
+                        </div>
+                        <div class="result-list">
+                            ${results.map((result, i) => `
+                                <div class="result-item" data-index="${i}">
+                                    <div class="result-content">
+                                        <div class="result-source">${this.escapeHtml(result.source)}</div>
+                                        <div class="result-text">${this.escapeHtml(result.text.substring(0, 100))}...</div>
+                                        <div><a href="${result.sourceUrl}" target="_blank">${result.sourceUrl}</a></div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                resultsContainer.innerHTML = resultHtml;
+            }
+        };
+
+        document.getElementById('webSearchBtn').addEventListener('click', () => {
+            const results = [
+                {
+                    text: "Sample plagiarized text found on the web.",
+                    source: "Example Source",
+                    sourceUrl: "https://example.com",
+                    matchPercentage: 100
+                }
+            ];
+            PlagiarismDetector.updateResultsPanel('web', results);
+        });
+    </script>
+</body>
+
+</html>

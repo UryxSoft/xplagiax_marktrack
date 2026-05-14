@@ -1,0 +1,84 @@
+# =============================================================================
+# docker/mysql.cnf — MySQL 8.0 server tuning (mounted as conf.d override)
+# =============================================================================
+# Tuned for:
+#   • InnoDB buffer pool = 1 GB (adjust to ~70% of dedicated RAM)
+#   • Read-heavy OLTP workload (document SaaS pattern)
+#   • UTF-8mb4 everywhere
+#   • Slow query log → helps identify missing indexes in dev
+# =============================================================================
+
+[mysqld]
+
+# ── Character set ─────────────────────────────────────────────────────────────
+character-set-server  = utf8mb4
+collation-server      = utf8mb4_unicode_ci
+character_set_client  = utf8mb4
+
+# ── InnoDB storage engine ─────────────────────────────────────────────────────
+# Buffer pool: caches data + index pages.  Most important MySQL knob.
+# Rule: 70-80% of RAM dedicated to MySQL.  Docker limit = 2 GB → 1.2 GB.
+innodb_buffer_pool_size         = 1200M
+innodb_buffer_pool_instances    = 4       # 1 per 256M of buffer pool
+
+# Redo log: larger = fewer checkpoints = faster writes.  MySQL 8 auto-sizes
+# but we enforce a floor.
+innodb_redo_log_capacity        = 512M
+
+# I/O capacity hints (adjust for SSD vs spinning disk)
+innodb_io_capacity              = 2000
+innodb_io_capacity_max          = 4000
+
+# Flush method: O_DIRECT avoids double-buffering with OS page cache
+innodb_flush_method             = O_DIRECT
+
+# Row format: compressed + dynamic for smaller on-disk size
+innodb_default_row_format       = dynamic
+innodb_file_per_table           = 1       # one file per table → easier backup
+
+# Commit durability: 1 = ACID (default), 2 = faster but 1-s data loss on crash
+innodb_flush_log_at_trx_commit  = 1
+
+# ── Connection & thread pool ──────────────────────────────────────────────────
+# ProxySQL handles client connection pooling; MySQL sees fewer connections.
+max_connections             = 300
+thread_cache_size           = 50
+table_open_cache            = 4000
+table_definition_cache      = 2000
+
+# ── Query cache (MySQL 8 removed native query cache; we rely on ProxySQL) ────
+# Nothing to set here — ProxySQL's query_cache handles this layer.
+
+# ── Temp tables & sort buffers ─────────────────────────────────────────────────
+# Per-session, so don't set too high (× max_connections = total RAM usage)
+sort_buffer_size            = 2M
+join_buffer_size            = 2M
+tmp_table_size              = 64M
+max_heap_table_size         = 64M
+
+# ── Binary log (required for replication / point-in-time recovery) ────────────
+log_bin                     = mysql-bin
+binlog_format               = ROW
+expire_logs_days            = 7
+sync_binlog                 = 1           # flush binlog to disk each commit
+
+# ── Slow query log ────────────────────────────────────────────────────────────
+slow_query_log              = 1
+slow_query_log_file         = /var/log/mysql/slow.log
+long_query_time             = 1           # seconds
+log_queries_not_using_indexes = 1
+
+# ── Network ───────────────────────────────────────────────────────────────────
+max_allowed_packet          = 64M
+net_read_timeout            = 30
+net_write_timeout           = 30
+
+# ── Performance schema ─────────────────────────────────────────────────────────
+performance_schema          = ON
+performance_schema_max_table_instances = 400
+
+[client]
+default-character-set = utf8mb4
+
+[mysql]
+default-character-set = utf8mb4

@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarkTrack - Review Document</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/marktrack.ico') }}">
+    <!-- v3: Sidebar / Offcanvas toggle + Panel toggle -->
+    <script src="{{ url_for('static', filename='js/pages-offcanvas.js') }}"></script>
+    <!-- Theme Script -->
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            let theme = 'light';
+            if (savedTheme) {
+                theme = savedTheme;
+            } else if (savedTheme === 'auto' || (!savedTheme && prefersDark)) {
+                theme = 'dark';
+            }
+            if (theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <!-- CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+
+    <!-- Quill.js CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+
+    <!-- MarkTrack Editor CSS Elements (Exact parity with invite) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/marktrack_modals3.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/plagiarism-detector.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/quill-pagination-styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/invite-v3.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/editor-find.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/quill-bubble-toolbar.css') }}">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/review-inline.css') }}">
+
+    <!-- Quill Modules CSS -->
+    <!-- quill-emoji -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill-emoji@0.2.0/dist/quill-emoji.css">
+    <!-- quill-table-better (Quill v2 native) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill-table-better@1.1.4/dist/quill-table-better.css">
+    <!-- quill-blot-formatter2 (official Quill v2 fork) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@enzedonline/quill-blot-formatter2@2.2.0/dist/quill-blot-formatter.css">
+    <!-- quill-image-compress -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill-image-compress@1.2.30/dist/quill-image-compress.css">
+    <!-- quill-markdown-shortcuts -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill-markdown-shortcuts@1.2.0/dist/quill-markdown-shortcuts.css">
+    <!-- quill-markdown-toolbar (documentedit only) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill-markdown-toolbar@1.0.5/dist/quill-markdown-toolbar.css">
+    <!-- quill-paste-smart -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill-paste-smart@1.1.2/dist/quill-paste-smart.css">
+    <!-- NOTE: quill-find-replace-module omitted (conflicts with EditorFind) -->
+    <!-- NOTE: quill-html-edit-button omitted (incompatible with pagination) -->
+    <!-- NOTE: quill-table-ui omitted (superseded by quill-table-better) -->
+</head>
+
+<body>
+{% include 'sections/loader_overlay.html' %}
+
+    <!-- TEACHER VIEW -->
+    <div id="teacherView" class="view-container">
+
+        {# ── Data injection for JS ── #}
+        {# ── Data injection for JS ── #}
+        <script type="application/json" id="documentedit-config">
+        {
+            "id": {{ document.id | tojson }},
+            "title": {{ document.title | tojson }},
+            "content_delta": {{ (content_delta_raw if content_delta_raw is defined else document.content_delta) | tojson | safe }},
+            "content_html": {{ (content_html_raw if content_html_raw is defined else document.content_html) | tojson | safe }},
+            "metrics": {{ metrics | tojson | safe if metrics else "{}" }},
+            "invitation": {
+                "email": {{ (invitation.email if invitation and invitation.email else None) | tojson | safe }},
+                "name": {{ (((invitation.first_name or "") + " " + (invitation.last_name or "")).strip() if invitation else None) | tojson | safe }}
+            }
+        }
+        </script>
+        <!-- Header -->
+        <header class="app-header teacher-header">
+            <div class="header-left">
+                <div class="app-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                        class="icon-svg bi bi-pencil-square" viewBox="0 0 16 16">
+                        <path
+                            d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z" />
+                        <path fill-rule="evenodd"
+                            d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z" />
+                    </svg>
+                </div>
+                <!-- Aligned with invite.html aesthetics -->
+                <div class="assignment-title">
+                    <a href="/home" class="assignment-label" style="text-decoration:none; cursor:pointer;" title="Return to home screen">
+                        Back to home
+                    </a>
+                    <span class="assignment-name">{{ document.title }}</span>
+                </div>
+                <div id="autoSaveIndicator" class="auto-save-status" style="margin-left: 12px;"></div>
+            </div>
+
+            <div class="header-right" style="gap:8px; flex-wrap:nowrap; align-items:center;">
+                <!-- EDIT badge -->
+                <span style="background:rgba(16, 185, 129, 0.15);color:#34d399;border:1px solid rgba(16, 185, 129, 0.3);padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.1em;white-space:nowrap;">EDITING</span>
+                <div style="height:24px;width:1px;background:var(--glass-bdr);flex-shrink:0;"></div>
+                <!-- Find in document -->
+                <button class="btn-icon" id="findOpenBtn" title="Find in document (Ctrl+F)">
+                    <i data-lucide="search"></i>
+                </button>
+                <button class="btn-icon" id="pagesOffcanvasBtn" title="Document Pages" style="position:relative;">
+                    <i data-lucide="layout-grid"></i>
+                    <span id="pageCountBadge" style="position:absolute;top:-5px;right:-5px;background:rgba(80,200,140,.85);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:9px;min-width:16px;text-align:center;">1</span>
+                </button>
+                <button class="btn-icon" id="sidebarToggleBtn" title="Toggle Panels">
+                    <i data-lucide="panel-right"></i>
+                </button>
+                <!-- Notification Bell (professor — student activity) -->
+                <div class="review-notif-wrapper" id="reviewNotifWrapper">
+                    <button class="btn-icon" id="reviewNotifBtn" title="Student Notifications" onclick="toggleReviewNotifs(event)" style="position:relative;">
+                        <i data-lucide="bell"></i>
+                        <span id="reviewNotifBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:9px;min-width:16px;text-align:center;pointer-events:none;"></span>
+                    </button>
+                    <div id="reviewNotifDropdown" class="review-notif-dropdown" style="display:none;">
+                        <div class="review-notif-header">
+                            <span style="font-weight:600;font-size:13px;">Student Activity</span>
+                            <button onclick="markAllReviewRead(event)" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--accent,#6366f1);padding:0;">Mark all read</button>
+                        </div>
+                        <div id="reviewNotifList" class="review-notif-list">
+                            <div style="padding:24px;text-align:center;font-size:12px;color:rgba(255,255,255,.35);">Loading…</div>
+                        </div>
+                        <div class="review-notif-footer">
+                            <a href="/notifications" style="font-size:11px;color:rgba(255,255,255,.5);text-decoration:none;">View all notifications →</a>
+                        </div>
+                    </div>
+                </div>
+                <div style="height:24px;width:1px;background:var(--glass-bdr);flex-shrink:0;"></div>
+                <div style="height:24px;width:1px;background:var(--glass-bdr);flex-shrink:0;"></div>
+                <button class="btn btn-primary" onclick="window.close()"
+                    style="gap:8px;padding:7px 16px;border-radius:10px;white-space:nowrap;flex-shrink:0;">
+                    <i data-lucide="x" style="width:16px;height:16px;"></i>
+                    Close Review
+                </button>
+            </div>
+        </header>
+
+        <!-- Global Quill toolbar bar — populated dynamically by quill-pagination-system.js -->
+        <div id="quill-toolbar-bar">
+            <!-- The existing custom toolbar is placed here -->
+            <div id="custom-toolbar" class="ql-toolbar ql-snow">
+                <span class="ql-formats">
+                    <select class="ql-header" title="Header Style">
+                        <option value="1"></option><option value="2"></option><option value="3"></option>
+                        <option selected></option>
+                    </select>
+                </span>
+                <span class="ql-formats">
+                    <select class="ql-size" title="Font Size">
+                        <option value="small"></option><option selected></option>
+                        <option value="large"></option><option value="huge"></option>
+                    </select>
+                </span>
+                <span class="ql-formats">
+                    <button class="ql-bold" title="Bold (Ctrl+B)"></button>
+                    <button class="ql-italic" title="Italic (Ctrl+I)"></button>
+                    <button class="ql-underline" title="Underline (Ctrl+U)"></button>
+                </span>
+                <span class="ql-formats">
+                    <select class="ql-color" title="Text Color"></select>
+                    <select class="ql-background" title="Background Color"></select>
+                </span>
+                <span class="ql-formats">
+                    <button class="ql-list" value="ordered" title="Numbered List"></button>
+                    <button class="ql-list" value="bullet" title="Bullet List"></button>
+                    <button class="ql-indent" value="-1" title="Decrease Indent"></button>
+                    <button class="ql-indent" value="+1" title="Increase Indent"></button>
+                </span>
+                <span class="ql-formats"><select class="ql-align" title="Text Alignment"></select></span>
+                <span class="ql-formats">
+                    <button class="ql-link" title="Insert Link"></button>
+                    <button class="ql-image" title="Insert Image"></button>
+                </span>
+                <span class="ql-formats">
+                    <button class="ql-table" title="Insert Table" type="button">
+                        <svg viewBox="0 0 18 18">
+                            <rect class="ql-stroke" height="12" width="12" x="3" y="3"></rect>
+                            <rect class="ql-fill" height="2" width="3" x="5" y="5"></rect>
+                            <rect class="ql-fill" height="2" width="4" x="9" y="5"></rect>
+                            <g class="ql-fill ql-transparent">
+                                <rect height="2" width="3" x="5" y="8"></rect>
+                                <rect height="2" width="4" x="9" y="8"></rect>
+                                <rect height="2" width="3" x="5" y="11"></rect>
+                                <rect height="2" width="4" x="9" y="11"></rect>
+                            </g>
+                        </svg>
+                    </button>
+                    <button class="ql-strike" title="Strikethrough"></button>
+                    <button class="ql-code-block" title="Code Block"></button>
+                    <button class="ql-blockquote" title="Blockquote"></button>
+                </span>
+                <!-- Placeholder variable picker (quill-placeholder-module) -->
+                <span class="ql-formats">
+                    <button class="ql-placeholder" title="Insert Variable / Placeholder">
+                        <svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M5.5 2.5 C4.2 2.5 3.5 3.1 3.5 4.2 L3.5 6.8 C3.5 7.6 3 8 2.5 8.5 C3 9 3.5 9.4 3.5 10.2 L3.5 12.8 C3.5 13.9 4.2 14.5 5.5 14.5"
+                                  stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+                            <path d="M11.5 2.5 C12.8 2.5 13.5 3.1 13.5 4.2 L13.5 6.8 C13.5 7.6 14 8 14.5 8.5 C14 9 13.5 9.4 13.5 10.2 L13.5 12.8 C13.5 13.9 12.8 14.5 11.5 14.5"
+                                  stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+                            <circle cx="7" cy="8.5" r="0.9" fill="currentColor"/>
+                            <circle cx="9" cy="8.5" r="0.9" fill="currentColor"/>
+                            <circle cx="11" cy="8.5" r="0.9" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </span>
+                <span class="ql-formats"><button class="ql-clean" title="Clear Formatting"></button></span>
+            </div>
+        </div>
+
+        <!-- Main Content Split matching invite.html aesthetic -->
+        <div class="main-layout">
+            <!-- Exact Editor DOM Hierarchy Parity with invite.html -->
+            <div class="editor-container" style="height: 100%; display: flex; flex-direction: column;">
+                <div class="editor-wrapper">
+                    <!-- Dynamic Pagination Container (Replaces static editor) -->
+                    <div id="editor-pages"></div>
+                </div>
+                <!-- Quill status bar (Sync with invite.html) -->
+                <div id="quillStatusBar">
+                    <span id="qsWords">0 words</span>
+                    <span id="qsChars">0 chars</span>
+                    <span id="qsLines">1 lines</span>
+                    <span id="qsPage">Page 1 of 1</span>
+                    <span id="qsCursor" style="margin-left:auto;">Col 1, Row 1</span>
+                </div>
+            </div>
+
+            <!-- Pages Offcanvas -->
+            <div class="pages-offcanvas" id="pagesOffcanvas">
+                <div class="offcanvas-header">
+                    <div>
+                        <div class="offcanvas-title">Document Pages</div>
+                        <div class="offcanvas-subtitle">Click to jump to a page</div>
+                    </div>
+                    <div class="offcanvas-actions" style="display:none;">
+                        <span id="selectedCount"></span>
+                        <button class="offcanvas-btn offcanvas-btn-del" id="deleteSelectedBtn" disabled>
+                            <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete
+                        </button>
+                    </div>
+                </div>
+                <div class="documents-container" id="docsContainer">
+                    <div class="documents-grid" id="docsGrid"></div>
+                    <div class="selection-rect" id="selectionRect"></div>
+                </div>
+                <div class="trash-zone" id="trashZone" style="display:none;"></div>
+            </div>
+
+            <!-- Analysis Panels (AppSidebar style from Invite) -->
+            <aside class="sidebar" id="appSidebar">
+                <div class="analysis-panels">
+                    <div class="tabs">
+                        <button class="tab active" data-tab="aiDetection">AI Detection</button>
+                        <button class="tab" data-tab="replay" style="display:none">Replay</button>
+                        <button class="tab" data-tab="aiLog" style="display:none">AI Log</button>
+                        <button class="tab" data-tab="styleAnalysis">Style</button>
+                        <button class="tab" data-tab="referencesIntegrity">References Integrity</button>
+                        <button class="tab" data-tab="plagiarism">Plagiarism</button>
+                        <button class="tab" data-tab="mediaIntegrity" id="mediaIntegrityTab">
+                            Media &amp; Images
+                            <span class="mi-count-badge" style="display:none;background:#a78bfa;color:#fff;font-size:9px;font-weight:800;border-radius:999px;padding:0 5px;min-width:16px;text-align:center;margin-left:4px;"></span>
+                        </button>
+                        <button class="tab" data-tab="team" id="teamTab" style="display:none">Team</button>
+                    </div>
+
+                    <div class="tab-content" style="flex: 1; overflow-y: auto;">
+
+
+                        <!-- AI Detection Tab -->
+                        <div class="tab-panel active" id="aiDetection">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                                <h2 style="margin:0; font-size:18px;">AI Detection Analysis</h2>
+                                <!-- Analyze button lives in the header row -->
+                                <button type="button" class="ai-analyze-btn" id="aiAnalyzeBtn">
+                                    <span class="fold"></span>
+                                    <div class="points_wrapper">
+                                        <i class="point"></i><i class="point"></i><i class="point"></i>
+                                        <i class="point"></i><i class="point"></i><i class="point"></i>
+                                        <i class="point"></i><i class="point"></i><i class="point"></i>
+                                        <i class="point"></i>
+                                    </div>
+                                    <span class="inner">
+                                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            xmlns="http://www.w3.org/2000/svg" stroke-linecap="round"
+                                            stroke-linejoin="round" stroke-width="2.5">
+                                            <polyline points="13.18 1.37 13.18 9.64 21.45 9.64 10.82 22.63 10.82 14.36 2.55 14.36 13.18 1.37"></polyline>
+                                        </svg>Analyze
+                                    </span>
+                                    <span class="ai-spinner"></span>
+                                </button>
+                            </div>
+                            <div id="aiErrorSlot" style="margin-bottom:12px;"></div>
+
+                            <div class="ai-probability">
+                                <div class="circular-progress">
+                                    <svg viewBox="0 0 200 200">
+                                        <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="20"></circle>
+                                        <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="20" stroke-dasharray="565" stroke-dashoffset="565" transform="rotate(-90 100 100)"></circle>
+                                        <text x="100" y="100" text-anchor="middle" dy="7">—</text>
+                                    </svg>
+                                </div>
+                                <div class="probability-label">
+                                    <strong id="aiProbLabel">Not analyzed</strong>
+                                    <p id="aiProbDesc">Click Analyze to scan the document for AI-generated content.</p>
+                                </div>
+                            </div>
+
+                            <div class="section-breakdown">
+                                <h3 style="font-size:12px; text-transform:uppercase; letter-spacing:0.1em; color:rgba(255,255,255,0.4); margin-bottom:4px;">Section-by-Section Analysis</h3>
+                                <table class="analysis-table">
+                                    <thead><tr><th>Section</th><th style="text-align:right;">Words</th><th style="text-align:right;">Probability</th></tr></thead>
+                                    <tbody id="aiSegmentsBody">
+                                        <tr><td colspan="3" style="text-align:center; color:rgba(255,255,255,0.25); font-size:12px; padding:20px 0;">No analysis yet — click Analyze above</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+
+
+                        <!-- Replay Tab -->
+                        <div class="tab-panel" id="replay">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                                <h2 style="margin:0; font-size:18px;">Process Replay</h2>
+                                <div style="display:flex; gap:8px;">
+                                    <span class="score-badge" style="background:rgba(255,255,255,0.1); color:#fff; font-size:10px;">V1.2</span>
+                                </div>
+                            </div>
+                            <div class="replay-player" style="background:rgba(255,255,255,0.03); border:1px solid var(--glass-bdr); border-radius:14px; padding:20px;">
+                                <div class="player-controls" style="display:flex; justify-content:center; gap:20px; margin-bottom:20px;">
+                                    <button class="btn btn-icon" style="width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.05); border:1px solid var(--glass-bdr); color:#fff;"><i data-lucide="skip-back" size="18"></i></button>
+                                    <button class="btn btn-icon" style="width:50px; height:50px; border-radius:50%; background:#3b82f6; border:none; color:#fff; box-shadow:0 0 20px rgba(59, 130, 246, 0.3);"><i data-lucide="play" fill="currentColor"></i></button>
+                                    <button class="btn btn-icon" style="width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.05); border:1px solid var(--glass-bdr); color:#fff;"><i data-lucide="skip-forward" size="18"></i></button>
+                                </div>
+                                <div style="margin-bottom:12px;">
+                                    <input type="range" class="timeline-slider" style="width:100%; accent-color:#3b82f6;">
+                                    <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:10px; color:rgba(255,255,255,0.3); font-weight:700; text-transform:uppercase;">
+                                        <span>0:00</span>
+                                        <span>03:12:45</span>
+                                    </div>
+                                </div>
+                                <div id="replayViewer" style="margin-top:16px; padding:16px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.05); border-radius:10px; font-size:13px; min-height:100px; color:rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center;">
+                                    Select a point in the timeline to view snapshot...
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- AI Log Tab -->
+                        <div class="tab-panel" id="aiLog">
+                            <h2 style="margin:0 0 20px 0; font-size:18px;">AI Assistant Log</h2>
+                            <div class="ai-chat-container" style="display:flex; flex-direction:column; gap:16px;">
+                                <div class="log-message" style="background:rgba(255,255,255,0.03); border:1px solid var(--glass-bdr); border-left: 4px solid #3b82f6; padding:16px; border-radius:12px;">
+                                    <div style="font-size:10px; text-transform:uppercase; font-weight:700; color:#3b82f6; margin-bottom:8px;">Student Inquiry</div>
+                                    <p style="margin:0; font-size:13px; color:#fff;">"How can I improve this introduction to make it more impactful?"</p>
+                                </div>
+                                <div class="log-message" style="background:rgba(59, 130, 246, 0.05); border:1px solid rgba(59, 130, 246, 0.1); border-left: 4px solid #10b981; padding:16px; border-radius:12px;">
+                                    <div style="font-size:10px; text-transform:uppercase; font-weight:700; color:#10b981; margin-bottom:8px;">AI Response</div>
+                                    <p style="margin:0; font-size:13px; color:rgba(255,255,255,0.8); font-style:italic;">"Try using a stronger hook... Consider starting with a compelling statistic or a provocative question to engage your reader from the first sentence."</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Style Tab -->
+                        <div class="tab-panel" id="styleAnalysis">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                                <h2 style="margin:0; font-size:18px;">Style Analysis</h2>
+                                <span class="score-badge" id="styleBadge" style="display:none;"></span>
+                            </div>
+
+                            <div class="integrity-score">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                                    <h4 style="margin:0; font-size:14px; font-weight:700;">Stylistic Consistency</h4>
+                                    <span class="score-badge score-medium" id="styleSemanticLabel">Not analyzed</span>
+                                </div>
+                                <div class="score-meter">
+                                    <div class="score-value" id="styleScoreVal">—/100</div>
+                                    <div class="score-fill" id="styleScoreFill" style="width: 0%"></div>
+                                </div>
+                                <div class="score-breakdown" id="styleBreakdown">
+                                    <div class="score-item"><span>Vocabulary Variety</span><span style="color:rgba(255,255,255,0.2);">—</span></div>
+                                    <div class="score-item"><span>Structural Flow</span><span style="color:rgba(255,255,255,0.2);">—</span></div>
+                                    <div class="score-item"><span>Grammatical Complexity</span><span style="color:rgba(255,255,255,0.2);">—</span></div>
+                                </div>
+                            </div>
+
+                            <h4 style="font-size:12px; text-transform:uppercase; letter-spacing:0.1em; color:rgba(255,255,255,0.4); margin: 20px 0 12px;">Interpretive Insights</h4>
+                            <div id="styleInsights" style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:16px; border-radius:12px; font-size:13px; line-height:1.5; color:rgba(255,255,255,0.35);">
+                                Click Analyze in the AI Detection tab to generate stylistic insights.
+                            </div>
+
+                            <div style="margin-top:20px; display:flex; justify-content:space-between; align-items:center; padding:12px; background:rgba(0,0,0,0.2); border-radius:10px; border:1px solid rgba(255,255,255,0.05);">
+                                <span style="font-size:12px; font-weight:600;">Stylistic Shifts</span>
+                                <span id="styleShiftStatus" class="score-badge" style="font-size:10px;">Not analyzed</span>
+                            </div>
+                        </div>
+
+                        <!-- References Integrity Tab -->
+                        <div class="tab-panel" id="referencesIntegrity">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                                <h2 style="margin:0; font-size:18px;">References Integrity</h2>
+                                <span class="score-badge" id="refBadge" style="display:none;"></span>
+                            </div>
+
+                            <div class="integrity-score">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                                    <h4 style="margin:0; font-size:14px; font-weight:700;">Source Reliability</h4>
+                                    <span class="score-badge score-medium" id="refSemanticLabel">Not analyzed</span>
+                                </div>
+                                <div class="score-meter">
+                                    <div class="score-value" id="refScoreVal">—/100</div>
+                                    <div class="score-fill" id="refScoreFill" style="width: 0%"></div>
+                                </div>
+                                <div class="score-breakdown" id="refBreakdown">
+                                    <div class="score-item"><span>Reference Authenticity</span><span style="color:rgba(255,255,255,0.2);">—</span></div>
+                                    <div class="score-item"><span>Verification Level</span><span style="color:rgba(255,255,255,0.2);">—</span></div>
+                                    <div class="score-item"><span>Usage Quality</span><span style="color:rgba(255,255,255,0.2);">—</span></div>
+                                </div>
+                            </div>
+
+                            <div class="insight-box">
+                                <p>Click Analyze in the AI Detection tab to verify document references.</p>
+                            </div>
+
+                            <div id="refEmptyState" class="empty-state" style="display:none;">
+                                <p>No references were found in this document.</p>
+                                <small>Consider adding sources to support your work.</small>
+                            </div>
+
+                            <div id="refList" class="references-list" style="display:none;">
+                                <h4>Detected References</h4>
+                                <div id="refListBody"></div>
+                            </div>
+                        </div>
+
+                        <!-- Plagiarism Tab -->
+                        <div class="tab-panel" id="plagiarism">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                                <h2 style="margin:0; font-size:18px;">Plagiarism Report</h2>
+                                <span class="score-badge score-high" style="font-size:10px;">Safe</span>
+                            </div>
+                            <div class="ai-probability" style="gap:30px;">
+                                <div class="circular-progress" style="width:80px; height:80px; filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.2));">
+                                    <svg viewBox="0 0 200 200">
+                                        <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="20"></circle>
+                                        <circle cx="100" cy="100" r="90" fill="none" stroke="#10B981" stroke-width="20" stroke-dasharray="565" stroke-dashoffset="497" transform="rotate(-90 100 100)"></circle>
+                                        <text x="100" y="100" text-anchor="middle" dy="7" style="font-size:52px;">12%</text>
+                                    </svg>
+                                </div>
+                                <div class="probability-label">
+                                    <strong style="color:#10b981;">Low Similarity</strong>
+                                    <p>Standard similarity check for external sources.</p>
+                                </div>
+                            </div>
+                        </div>
+
+
+
+                        <!-- ══ Media Integrity Tab ════════════════════════════ -->
+                        <div class="tab-panel" id="mediaIntegrity">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                                <h2 style="margin:0;font-size:18px;">Media Integrity</h2>
+                                <span class="score-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.3);font-size:10px;">Images</span>
+                            </div>
+                            <p style="font-size:12px;color:rgba(255,255,255,0.4);margin:0 0 16px;">
+                                Results are populated automatically when you click <strong>Analyze</strong>.
+                            </p>
+                            <div id="mediaIntegrityPanel">
+                                <div style="text-align:center;padding:32px;font-size:12px;color:rgba(255,255,255,0.25);">
+                                    Click Analyze to scan document images.
+                                </div>
+                            </div>
+                        </div>
+                        <!-- ══ /Media Integrity Tab ═══════════════════════════ -->
+
+                        <!-- ══ Team Tab (read-only) ═══════════════════════════ -->
+                        <div class="tab-panel" id="team">
+
+                            <!-- Collaborators list (view only) -->
+                            <div class="team-section-header">
+                                <h2 class="team-section-title">Collaborators</h2>
+                            </div>
+                            <div id="collabList" class="team-collab-list">
+                                <div class="team-loading">Loading…</div>
+                            </div>
+
+
+                        </div>
+                        <!-- ══ /Team Tab ═══════════════════════════════════════ -->
+
+                    </div>
+                </div>
+            </aside>
+
+
+        </div>
+
+        <!-- Simplified Footer (Review Context) -->
+        <footer class="app-footer" style="border-radius: 0 0 14px 14px; height: 48px;">
+            <div class="footer-left">
+                <span class="auto-save-status">Last saved: <span id="lastSaved" style="color: var(--t2); font-weight: 500;">never</span></span>
+            </div>
+            <div class="footer-right">
+                <button class="btn btn-secondary" id="saveDraftBtn"><i data-lucide="save" style="width:16px;height:16px;"></i> Save Draft</button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- ── Floating Find Bar ── -->
+    <div id="editorFind" class="editor-find-bar" style="display:none;" role="search" aria-label="Find in document">
+        <div class="find-input-wrap">
+            <svg class="find-search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input id="findInput" class="find-input" type="text" placeholder="Find in document…" autocomplete="off" spellcheck="false">
+            <span id="findCount" class="find-count"></span>
+        </div>
+        <div class="find-divider"></div>
+        <div class="find-actions">
+            <button id="findPrev" class="find-btn" title="Previous match (Shift+Enter)" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+            </button>
+            <button id="findNext" class="find-btn" title="Next match (Enter)" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <button id="findClose" class="find-btn find-btn-close" title="Close (Esc)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Highlight.js and KaTeX for Quill parity MUST load before Quill -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+    <!-- Pagination System (Sync with invite.html) -->
+    <script src="{{ url_for('static', filename='js/quill-pagination-system.js') }}"></script>
+    <!-- Find in document -->
+    <script src="{{ url_for('static', filename='js/editor-find.js') }}"></script>
+    <!-- Socket.IO Client -->
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" crossorigin="anonymous"></script>
+
+    <!-- Image Handling Modules -->
+    <script src="{{ url_for('static', filename='js/custom-image-blot.js') }}"></script>
+    <script>
+        if (window.CustomImageBlot) {
+            Quill.register(window.CustomImageBlot, true);
+            console.log('[DocumentEdit] CustomImageBlot registered');
+        }
+    </script>
+    <script src="{{ url_for('static', filename='js/quill-image-controls.js') }}"></script>
+
+    <!-- DOCUMENT CONFIGURATION -->
+    <script id="documentedit-config" type="application/json">
+    {
+        "id": {{ (document.id | default(0)) | tojson | safe }},
+        "content_delta": {{ (content_delta_raw if content_delta_raw is defined else (document.content_delta if document else None)) | tojson | safe }},
+        "content_html": {{ (content_html_raw if content_html_raw is defined else (document.content_html if document else "")) | tojson | safe }},
+        "token": {{ (token if token is defined else "") | tojson | safe }},
+        "workspace_id": {{ (workspace.id if workspace else 0) | tojson | safe }}
+    }
+    </script>
+
+    <script src="{{ url_for('static', filename='js/quill-bubble-toolbar.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages/documentedit_core.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/typing-metrics.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages/documentedit_metrics.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages/documentedit_notifs.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages/documentedit_autosave.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages/documentedit_team.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages/review_style_analysis.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages/review_references_integrity.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages/review_ai_detection.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages/review_media_integrity.js') }}"></script>
+</body>
+
+</html>

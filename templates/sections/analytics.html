@@ -1,0 +1,334 @@
+{% extends "home_base.html" %}
+{% block view_content %}
+    <!-- ═══════════════════════════════════════════
+         ACADEMIC INTEGRITY ANALYTICS VIEW
+    ═══════════════════════════════════════════ -->
+    <div class="main av-main" id="analyticsView" name="analyticsView">
+
+      <!-- ── HEADER ── -->
+      <div class="main-head av-head" id="avHead" name="avHead">
+        <div class="av-title-block" id="avTitleBlock" name="avTitleBlock">
+          <div class="av-title-row" id="avTitleRow" name="avTitleRow">
+            <h1 class="av-page-title" id="avPageTitle" name="avPageTitle">Panel de Integridad Académica</h1>
+            <div class="av-live-badge" id="avLiveBadge" name="avLiveBadge">
+              <span class="av-pulse"></span>
+              Actualizado hace 2 min
+            </div>
+          </div>
+          <p class="av-subtitle" id="avSubtitle" name="avSubtitle">XplagiaX · Bogotá UTC-5 · Análisis en tiempo real de sesiones académicas</p>
+        </div>
+        <div class="av-head-right" id="avHeadRight" name="avHeadRight">
+          <div class="av-filter-group" id="avFilterGroup" name="avFilterGroup">
+            <button class="av-filter-btn active" id="avFilterToday" name="avFilterToday" data-range="today">Hoy</button>
+            <button class="av-filter-btn" id="avFilter7d" name="avFilter7d" data-range="7">7 días</button>
+            <button class="av-filter-btn" id="avFilter30d" name="avFilter30d" data-range="30">30 días</button>
+            <button class="av-filter-btn av-filter-custom" id="avFilterCustom" name="avFilterCustom" data-range="custom">Personalizado</button>
+          </div>
+          <div class="av-head-actions" id="avHeadActions" name="avHeadActions">
+            <div class="av-export-btn-group" id="avExportGroup" name="avExportGroup">
+              <button class="av-export-btn" id="avExportPdf" name="avExportPdf" onclick="avExport('pdf')">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                PDF
+              </button>
+              <button class="av-export-btn" id="avExportCsv" name="avExportCsv" onclick="avExport('csv')">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                CSV
+              </button>
+            </div>
+            <button class="av-new-btn" id="avNewBtn" name="avNewBtn" onclick="avNewDoc()">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Analizar Nuevo
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-scroll av-scroll" id="avScroll" name="avScroll">
+
+        <!-- ── KPI CARDS ── -->
+        <section class="av-section" id="avKpiSection" name="avKpiSection">
+          <div class="av-kpi-grid" id="avKpiGrid" name="avKpiGrid">
+
+            <div class="av-kpi-card" id="avKpiSessions" name="avKpiSessions">
+              <div class="av-kpi-top">
+                <div class="av-kpi-icon av-icon-blue" id="avKpiSessionsIcon" name="avKpiSessionsIcon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                </div>
+                <div class="av-kpi-trend av-trend-up" id="avKpiSessionsTrend" name="avKpiSessionsTrend">↑ 3</div>
+              </div>
+              <div class="av-kpi-value" id="avKpiSessionsValue" name="avKpiSessionsValue">28</div>
+              <div class="av-kpi-label">Sesiones Analizadas</div>
+              <div class="av-kpi-bar"><div class="av-kpi-bar-fill av-fill-blue" id="avKpiSessionsBar" name="avKpiSessionsBar" style="width:56%"></div></div>
+            </div>
+
+            <div class="av-kpi-card av-kpi-risk-med" id="avKpiAi" name="avKpiAi">
+              <div class="av-kpi-top">
+                <div class="av-kpi-icon av-icon-amber" id="avKpiAiIcon" name="avKpiAiIcon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+                <div class="av-kpi-trend av-trend-up av-trend-bad" id="avKpiAiTrend" name="avKpiAiTrend">↑ 5%</div>
+              </div>
+              <div class="av-kpi-value" id="avKpiAiValue" name="avKpiAiValue">23<span class="av-kpi-unit">%</span></div>
+              <div class="av-kpi-label">Promedio IA Detectado</div>
+              <div class="av-kpi-bar"><div class="av-kpi-bar-fill av-fill-amber" id="avKpiAiBar" name="avKpiAiBar" style="width:23%"></div></div>
+            </div>
+
+            <div class="av-kpi-card av-kpi-risk-ok" id="avKpiPlagiarism" name="avKpiPlagiarism">
+              <div class="av-kpi-top">
+                <div class="av-kpi-icon av-icon-green" id="avKpiPlagiarismIcon" name="avKpiPlagiarismIcon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </div>
+                <div class="av-kpi-trend av-trend-down" id="avKpiPlagiarismTrend" name="avKpiPlagiarismTrend">↓ 2%</div>
+              </div>
+              <div class="av-kpi-value" id="avKpiPlagiarismValue" name="avKpiPlagiarismValue">17<span class="av-kpi-unit">%</span></div>
+              <div class="av-kpi-label">Promedio Plagio</div>
+              <div class="av-kpi-bar"><div class="av-kpi-bar-fill av-fill-green" id="avKpiPlagiarismBar" name="avKpiPlagiarismBar" style="width:17%"></div></div>
+            </div>
+
+            <div class="av-kpi-card av-kpi-risk-med" id="avKpiImages" name="avKpiImages">
+              <div class="av-kpi-top">
+                <div class="av-kpi-icon av-icon-violet" id="avKpiImagesIcon" name="avKpiImagesIcon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </div>
+                <div class="av-kpi-trend av-trend-up av-trend-bad" id="avKpiImagesTrend" name="avKpiImagesTrend">↑ 4</div>
+              </div>
+              <div class="av-kpi-value" id="avKpiImagesValue" name="avKpiImagesValue">12</div>
+              <div class="av-kpi-label">Imágenes Sin Referencia</div>
+              <div class="av-kpi-bar"><div class="av-kpi-bar-fill av-fill-violet" id="avKpiImagesBar" name="avKpiImagesBar" style="width:42%"></div></div>
+            </div>
+
+            <div class="av-kpi-card" id="avKpiSpelling" name="avKpiSpelling">
+              <div class="av-kpi-top">
+                <div class="av-kpi-icon av-icon-rose" id="avKpiSpellingIcon" name="avKpiSpellingIcon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+                </div>
+                <div class="av-kpi-trend av-trend-down" id="avKpiSpellingTrend" name="avKpiSpellingTrend">↓ 8</div>
+              </div>
+              <div class="av-kpi-value" id="avKpiSpellingValue" name="avKpiSpellingValue">147</div>
+              <div class="av-kpi-label">Faltas Ortográficas</div>
+              <div class="av-kpi-bar"><div class="av-kpi-bar-fill av-fill-rose" id="avKpiSpellingBar" name="avKpiSpellingBar" style="width:65%"></div></div>
+            </div>
+
+            <div class="av-kpi-card av-kpi-risk-med" id="avKpiIntegrity" name="avKpiIntegrity">
+              <div class="av-kpi-top">
+                <div class="av-kpi-icon av-icon-amber" id="avKpiIntegrityIcon" name="avKpiIntegrityIcon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <div class="av-kpi-trend av-trend-down av-trend-bad" id="avKpiIntegrityTrend" name="avKpiIntegrityTrend">↓ 4pts</div>
+              </div>
+              <div class="av-kpi-value" id="avKpiIntegrityValue" name="avKpiIntegrityValue">72<span class="av-kpi-unit">/100</span></div>
+              <div class="av-kpi-label">Puntuación Integridad</div>
+              <div class="av-kpi-bar"><div class="av-kpi-bar-fill av-fill-amber" id="avKpiIntegrityBar" name="avKpiIntegrityBar" style="width:72%"></div></div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── CHARTS ROW 1: Donut + Line ── -->
+        <section class="av-section" id="avChartsRow1Section" name="avChartsRow1Section">
+          <div class="av-charts-r1" id="avChartsRow1" name="avChartsRow1">
+
+            <div class="av-card av-donut-card" id="avDonutCard" name="avDonutCard">
+              <div class="av-card-head">
+                <span class="av-card-title" id="avDonutTitle" name="avDonutTitle">Distribución de Problemas Detectados</span>
+                <span class="av-card-badge av-badge-amber" id="avDonutBadge" name="avDonutBadge">Riesgo Medio</span>
+              </div>
+              <div id="avDonutChart" name="avDonutChart"></div>
+              <div class="av-donut-legend" id="avDonutLegend" name="avDonutLegend">
+                <div class="av-legend-item"><span class="av-leg-dot" style="background:#f87171"></span><span>IA Generado <strong>23%</strong></span></div>
+                <div class="av-legend-item"><span class="av-leg-dot" style="background:#fb923c"></span><span>Plagio <strong>17%</strong></span></div>
+                <div class="av-legend-item"><span class="av-leg-dot" style="background:#007AFF"></span><span>Imágenes <strong>14%</strong></span></div>
+                <div class="av-legend-item"><span class="av-leg-dot" style="background:#94a3b8"></span><span>Ortografía <strong>46%</strong></span></div>
+              </div>
+            </div>
+
+            <div class="av-card av-line-card" id="avLineCard" name="avLineCard">
+              <div class="av-card-head" style="flex-wrap:wrap;gap:10px;">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                  <span class="av-card-title" id="avLineTitle" name="avLineTitle">Evolución de Integridad</span>
+                  <span class="av-trend-badge" id="avTrendBadge" name="avTrendBadge">
+                    <span id="avTrendIcon" name="avTrendIcon">↓</span>
+                    <span id="avTrendLabel" name="avTrendLabel">Decreciendo</span>
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <div class="av-delta-pill" id="avDeltaPill" name="avDeltaPill">
+                    <span id="avDeltaVal" name="avDeltaVal">−4 pts</span>
+                    <span class="av-delta-sub">vs sesión anterior</span>
+                  </div>
+                  <select class="av-line-filter" id="avStudentFilter" name="avStudentFilter" onchange="avFilterLine(this.value)">
+                    <option value="all">Todos los estudiantes</option>
+                    <option value="SES-001">Rubén</option>
+                    <option value="SES-002">Ana</option>
+                    <option value="SES-003">Carlos</option>
+                  </select>
+                </div>
+              </div>
+              <div class="av-line-legend" id="avLineLegend" name="avLineLegend">
+                <span class="av-line-leg-item"><span class="av-line-leg-dot" style="background:#34d399"></span>Integridad</span>
+                <span class="av-line-leg-item"><span class="av-line-leg-dot" style="background:#60a5fa"></span>Promedio grupo</span>
+                <span class="av-line-leg-item"><span class="av-line-leg-dot" style="background:#f87171"></span>% IA</span>
+                <span class="av-line-leg-item"><span class="av-line-leg-dot" style="background:#fb923c"></span>% Plagio</span>
+                <span class="av-line-leg-item"><span class="av-line-leg-dash" style="background:#007AFF"></span>Proyección</span>
+              </div>
+              <div id="avLineChart" name="avLineChart"></div>
+              <div class="av-line-zones-key" id="avLineZonesKey" name="avLineZonesKey">
+                <span class="av-zone-key av-zone-key-g">● Bajo riesgo ≥80</span>
+                <span class="av-zone-key av-zone-key-a">● Medio 60–79</span>
+                <span class="av-zone-key av-zone-key-r">● Alto &lt;60</span>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── CHARTS ROW 2: Grouped Bar ── -->
+        <section class="av-section" id="avBarSection" name="avBarSection">
+          <div class="av-card" id="avBarCard" name="avBarCard">
+            <div class="av-card-head">
+              <span class="av-card-title" id="avBarTitle" name="avBarTitle">Comparación por Sesión</span>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <div class="av-legend-inline" id="avBarLegend" name="avBarLegend">
+                  <span class="av-leg-dot" style="background:#f87171"></span><span>IA</span>
+                  <span class="av-leg-dot" style="background:#fb923c;margin-left:8px"></span><span>Plagio</span>
+                  <span class="av-leg-dot" style="background:#007AFF;margin-left:8px"></span><span>Imágenes</span>
+                  <span class="av-leg-dot" style="background:#94a3b8;margin-left:8px"></span><span>Ortografía</span>
+                </div>
+                <span class="av-card-badge av-badge-violet" id="avBarBadge" name="avBarBadge">28 sesiones</span>
+              </div>
+            </div>
+            <div id="avBarChart" name="avBarChart"></div>
+          </div>
+        </section>
+
+        <!-- ── ALERTS ── -->
+        <section class="av-section" id="avAlertsSection" name="avAlertsSection">
+          <div class="av-section-title" id="avAlertsTitle" name="avAlertsTitle">Alertas de Riesgo Académico</div>
+          <div class="av-alerts-wrap" id="avAlerts" name="avAlerts">
+
+            <div class="av-alert av-alert-crit" id="avAlertIa1" name="avAlertIa1">
+              <div class="av-alert-left">
+                <div class="av-alert-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <div>
+                  <div class="av-alert-title">IA Detectada &gt; 30% — SES-003 · Carlos</div>
+                  <div class="av-alert-desc">El 45% del texto en esta sesión fue identificado como generado por IA. Supera el umbral crítico establecido (30%). Se requiere revisión inmediata.</div>
+                  <div class="av-alert-actions">
+                    <span class="av-alert-action-btn" id="avAlertIa1View" name="avAlertIa1View" onclick="avJumpToSession('SES-003')">Ver sesión →</span>
+                    <span class="av-alert-action-btn" id="avAlertIa1Notify" name="avAlertIa1Notify" onclick="avNotifyStudent('Carlos')">Notificar estudiante</span>
+                  </div>
+                </div>
+              </div>
+              <div class="av-alert-meta">
+                <span class="av-risk-badge av-risk-crit">CRÍTICO</span>
+                <span class="av-alert-time">Hace 18 min</span>
+              </div>
+            </div>
+
+            <div class="av-alert av-alert-crit" id="avAlertPlag1" name="avAlertPlag1">
+              <div class="av-alert-left">
+                <div class="av-alert-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                </div>
+                <div>
+                  <div class="av-alert-title">Plagio &gt; 20% — SES-003 · Carlos</div>
+                  <div class="av-alert-desc">Se detectó un 30% de similitud con fuentes externas no citadas. Fragmentos coinciden con publicaciones en Google Scholar y repositorios abiertos.</div>
+                  <div class="av-alert-actions">
+                    <span class="av-alert-action-btn" id="avAlertPlag1View" name="avAlertPlag1View" onclick="avJumpToSession('SES-003')">Ver fragmentos →</span>
+                    <span class="av-alert-action-btn" id="avAlertPlag1Report" name="avAlertPlag1Report">Generar reporte</span>
+                  </div>
+                </div>
+              </div>
+              <div class="av-alert-meta">
+                <span class="av-risk-badge av-risk-crit">CRÍTICO</span>
+                <span class="av-alert-time">Hace 18 min</span>
+              </div>
+            </div>
+
+            <div class="av-alert av-alert-warn" id="avAlertImg1" name="avAlertImg1">
+              <div class="av-alert-left">
+                <div class="av-alert-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </div>
+                <div>
+                  <div class="av-alert-title">Imágenes sin referencia detectadas — SES-001 · Rubén</div>
+                  <div class="av-alert-desc">3 imágenes insertadas en el documento no tienen fuente ni atribución. Se recomienda solicitar corrección antes de la entrega final.</div>
+                  <div class="av-alert-actions">
+                    <span class="av-alert-action-btn" id="avAlertImg1View" name="avAlertImg1View" onclick="avJumpToSession('SES-001')">Ver imágenes →</span>
+                  </div>
+                </div>
+              </div>
+              <div class="av-alert-meta">
+                <span class="av-risk-badge av-risk-warn">MEDIO</span>
+                <span class="av-alert-time">Hace 1h</span>
+              </div>
+            </div>
+
+            <div class="av-alert av-alert-warn" id="avAlertScore1" name="avAlertScore1">
+              <div class="av-alert-left">
+                <div class="av-alert-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <div>
+                  <div class="av-alert-title">Puntuación de Integridad &lt; 60 — SES-003 · Carlos</div>
+                  <div class="av-alert-desc">Puntuación: 50/100. Requiere revisión manual completa. Se sugiere enviar aviso formal al estudiante y registrar el incidente.</div>
+                  <div class="av-alert-actions">
+                    <span class="av-alert-action-btn" id="avAlertScore1View" name="avAlertScore1View" onclick="avJumpToSession('SES-003')">Revisar ahora →</span>
+                    <span class="av-alert-action-btn" id="avAlertScore1Log" name="avAlertScore1Log">Registrar incidente</span>
+                  </div>
+                </div>
+              </div>
+              <div class="av-alert-meta">
+                <span class="av-risk-badge av-risk-warn">ALERTA</span>
+                <span class="av-alert-time">Hace 18 min</span>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── SESSIONS TABLE ── -->
+        <section class="av-section" id="avTableSection" name="avTableSection">
+          <div class="av-card av-tbl-card" id="avTableCard" name="avTableCard">
+            <div class="av-card-head">
+              <span class="av-card-title" id="avTableTitle" name="avTableTitle">Sesiones Analizadas</span>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <div class="av-tbl-search" id="avTblSearch" name="avTblSearch">
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input type="text" placeholder="Buscar sesión o estudiante…" id="avTblFilter" name="avTblFilter" oninput="avFilterTable(this.value)">
+                </div>
+                <div class="av-tbl-risk-filter" id="avRiskFilter" name="avRiskFilter">
+                  <button class="av-risk-filter-btn active" id="avRiskAll" name="avRiskAll" data-risk="all" onclick="avFilterRisk('all',this)">Todos</button>
+                  <button class="av-risk-filter-btn" id="avRiskCrit" name="avRiskCrit" data-risk="crit" onclick="avFilterRisk('crit',this)">Crítico</button>
+                  <button class="av-risk-filter-btn" id="avRiskWarn" name="avRiskWarn" data-risk="warn" onclick="avFilterRisk('warn',this)">Medio</button>
+                  <button class="av-risk-filter-btn" id="avRiskOk" name="avRiskOk" data-risk="ok" onclick="avFilterRisk('ok',this)">Bajo</button>
+                </div>
+              </div>
+            </div>
+            <div class="av-table-wrap" id="avTableWrap" name="avTableWrap">
+              <table class="av-table" id="avTable" name="avTable">
+                <thead>
+                  <tr>
+                    <th style="width:32px"></th>
+                    <th>ID Sesión</th>
+                    <th>Estudiante</th>
+                    <th>Fecha (Bogotá)</th>
+                    <th>% IA</th>
+                    <th>Imágenes</th>
+                    <th>% Plagio</th>
+                    <th>Faltas</th>
+                    <th>Integridad</th>
+                    <th>Riesgo</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="avTableBody" name="avTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- /av-scroll -->
+    </div><!-- /analyticsView -->
+{% endblock %}

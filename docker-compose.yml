@@ -1,0 +1,204 @@
+# =============================================================================
+# docker-compose.yml — xplagiax / marktrack
+# Stack: MySQL 8 → ProxySQL (R/W split + pool) → Flask app → Redis
+# =============================================================================
+#
+# Quick start:
+#   cp .env.example .env   # fill in secrets
+#   docker compose up -d
+#
+# Topology:
+#   ┌──────────┐    port 3306    ┌──────────┐
+#   │  MySQL   │◄───────────────│ ProxySQL │◄─────────────┐
+#   │  (rw)    │                │  :6033   │              │
+#   └──────────┘                └──────────┘        ┌─────┴──────┐
+#                                                    │  Flask app │
+#   ┌──────────┐    RESP proto                       │  :5000     │
+#   │  Redis   │◄───────────────────────────────────┤            │
+#   │  :6379   │  cache / sessions / pubsub          └────────────┘
+#   └──────────┘
+#
+# =============================================================================
+
+services:
+
+  # ── MySQL 8 ────────────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0.36
+    container_name: marktrack_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootsecret}
+      MYSQL_DATABASE:      ${MYSQL_DATABASE:-xplagiax_db}
+      MYSQL_USER:          ${MYSQL_USER:-marktrack}
+      MYSQL_PASSWORD:      ${MYSQL_PASSWORD:-marktrack_secret}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql.cnf:/etc/mysql/conf.d/marktrack.cnf:ro
+    ports:
+      - "3306:3306"          # expose only for DBA access; remove in pure-prod
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootsecret}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # Hard limits so MySQL can't OOM the host
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+
+  # ── ProxySQL ───────────────────────────────────────────────────────────────
+  # Sits between the Flask app and MySQL.
+  # Provides:
+  #   • connection pooling (reduces MySQL connection overhead by ~90 %)
+  #   • query cache (frequently executed identical SELECTs served from memory)
+  #   • read/write splitting (route SELECTs to read replicas when added)
+  #   • automatic failover
+  proxysql:
+    image: proxysql/proxysql:2.6.3
+    container_name: marktrack_proxysql
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./docker/proxysql.cnf:/etc/proxysql.cnf:ro
+      - proxysql_data:/var/lib/proxysql
+    ports:
+      - "6033:6033"   # MySQL protocol (app connects here)
+      - "6032:6032"   # ProxySQL Admin interface
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "mysqladmin", "-u", "radmin", "-pradmin",
+             "-h", "127.0.0.1", "-P", "6032", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: marktrack_redis
+    restart: unless-stopped
+    command: >
+      redis-server
+        --maxmemory 512mb
+        --maxmemory-policy allkeys-lru
+        --save 60 1000
+        --appendonly yes
+        --appendfsync everysec
+        --tcp-keepalive 60
+        --hz 20
+        --loglevel warning
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 600m
+
+  # ── Flask application ───────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: marktrack_app
+    restart: unless-stopped
+    depends_on:
+      proxysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Flask
+      FLASK_ENV:                production
+      SECRET_KEY:               ${SECRET_KEY}
+      SECURITY_PASSWORD_SALT:   ${SECURITY_PASSWORD_SALT}
+
+      # Database — app speaks to ProxySQL, not MySQL directly
+      DATABASE_URL: >-
+        mysql+mysqldb://${MYSQL_USER:-marktrack}:${MYSQL_PASSWORD:-marktrack_secret}@proxysql:6033/${MYSQL_DATABASE:-xplagiax_db}?charset=utf8mb4
+
+      # Redis — single URL, DB suffix appended in config.py / extensions.py
+      REDIS_URL: redis://redis:6379
+
+      # Mail
+      MAIL_PASSWORD:  ${MAIL_PASSWORD}
+      MAIL_USERNAME:  ${MAIL_USERNAME:-xplagiax@gmail.com}
+
+      # AI
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+
+      # SeaweedFS
+      SEAWEEDFS_FILER_URL:  ${SEAWEEDFS_FILER_URL:-seaweedfs-filer:8888}
+      SEAWEEDFS_MASTER_URL: ${SEAWEEDFS_MASTER_URL:-seaweedfs-master:9333}
+      SEAWEEDFS_SECURE:     ${SEAWEEDFS_SECURE:-false}
+
+      # Gunicorn tuning (can override gunicorn.conf.py via env)
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
+
+    ports:
+      - "5000:5000"
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - backend
+      - frontend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+  # ── Prometheus (optional — uncomment to enable metrics scraping) ────────────
+  # prometheus:
+  #   image: prom/prometheus:v2.52.0
+  #   container_name: marktrack_prometheus
+  #   volumes:
+  #     - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+  #   ports:
+  #     - "9090:9090"
+  #   networks:
+  #     - backend
+
+  # ── Grafana (optional) ──────────────────────────────────────────────────────
+  # grafana:
+  #   image: grafana/grafana:10.4.0
+  #   container_name: marktrack_grafana
+  #   ports:
+  #     - "3000:3000"
+  #   networks:
+  #     - backend
+
+volumes:
+  mysql_data:
+  proxysql_data:
+  redis_data:
+  uploads_data:
+
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge

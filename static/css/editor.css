@@ -150,12 +150,12 @@ body {
 .custom-tooltip {
     display: none;
     position: absolute;
-    background: rgba(220, 160, 255, 0.95);
+    background: rgba(191, 219, 254, 0.95);
     color: white;
     font-size: 12px;
     padding: 8px 12px;
     border-radius: 8px;
-    box-shadow: 0px 4px 12px rgba(113, 4, 255, 0.3);
+    box-shadow: 0px 4px 12px rgba(37, 99, 235, 0.3);
     z-index: 9999;
     pointer-events: none;
     max-width: 300px;
@@ -169,8 +169,8 @@ body {
 }
 
 .source-highlight {
-    background: rgba(220, 160, 255, 0.2);
-    border-bottom: 1px dotted #9c27b0;
+    background: rgba(191, 219, 254, 0.2);
+    border-bottom: 1px dotted #3b82f6;
     cursor: help;
     position: relative;
 }

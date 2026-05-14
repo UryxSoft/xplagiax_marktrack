@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marktrack</title>
+<link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/marktrack.ico') }}">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/home_base.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cache_banner.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cache_dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/home_extra.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/home_modals.css') }}">
+
+<script src="{{ url_for('static', filename='js/refresh_btn.js') }}"></script>
+<meta name="csrf-token" content="{{ csrf_token() }}">
+
+<script id="home-config" type="application/json">
+{
+  "userEmail": {{ current_user.email|tojson if current_user.is_authenticated else '"anonymous"' }},
+  "userName": {{ (current_user.name or current_user.email)|tojson if current_user.is_authenticated else '"anonymous"' }},
+  "csrfToken": {{ csrf_token()|tojson }}
+}
+</script>
+<script>
+  (function() {
+    const config = JSON.parse(document.getElementById('home-config').textContent);
+    window.__APP_USER_EMAIL__ = config.userEmail;
+    window.__APP_USER_NAME__ = config.userName;
+    window.__CSRF_TOKEN__ = config.csrfToken;
+  })();
+</script>
+
+<!-- Editor and Charting Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+{% include 'sections/loader_overlay.html' %}
+
+<div class="app-shell">
+
+  <!-- NAV RAIL -->
+  <nav class="nav-rail">
+    <div class="" data-tip="Files">
+      <div class="app-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="icon-svg  bi bi-pencil-square" viewBox="0 0 16 16">
+            <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+            <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+        </svg>
+      </div>
+    </div>
+    <br>
+    <a href="{{ url_for('users.home') }}" class="nav-btn {% if request.endpoint == 'users.home' %}active{% endif %}" data-tip="Home"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></a>
+    <a href="{{ url_for('users.analytics') }}" class="nav-btn {% if request.endpoint == 'users.analytics' %}active{% endif %}" data-tip="Analytics"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></a>
+    <a href="{{ url_for('users.almacenamiento') }}" class="nav-btn {% if request.endpoint == 'users.almacenamiento' %}active{% endif %}" data-tip="Quick Access"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="3" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="21"/><line x1="3" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="21" y2="12"/></svg></a>
+    <a href="{{ url_for('users.workspace') }}" class="nav-btn {% if request.endpoint == 'users.workspace' %}active{% endif %}" data-tip="Workspace"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></a>
+    <div class="nav-spacer"></div>
+
+    <!-- ── NOTIFICATION BELL ─────────────────────────────────── -->
+    <div class="notif-bell-wrapper" id="notifBellWrapper" style="position:relative;">
+      <div class="nav-btn" data-tip="Notifications" onclick="notifToggle()" role="button" aria-label="Notifications" tabindex="0" style="position:relative;">
+        <i data-lucide="bell"></i>
+        <span class="notif-badge" id="notifBadge" style="display:none">0</span>
+      </div>
+
+      <!-- DROPDOWN -->
+      <div class="notif-dropdown" id="notifDropdown" style="display:none">
+        <!-- Header (Unified with review design) -->
+        <div class="notif-header">
+          <span style="font-weight:600;font-size:13px;">Notifications</span>
+          <button onclick="notifMarkAllRead()" class="notif-link-btn" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--accent-glow,#6366f1);padding:0;">Mark all read</button>
+        </div>
+
+        <!-- Filters -->
+        <div class="notif-filters">
+          <button class="notif-filter-pill active" data-cat="all"           onclick="notifSetFilter(this,'all')">All</button>
+          <button class="notif-filter-pill"         data-cat="unread"        onclick="notifSetFilter(this,'unread')">Unread</button>
+          <button class="notif-filter-pill"         data-cat="collaboration" onclick="notifSetFilter(this,'collaboration')">Collaboration</button>
+          <button class="notif-filter-pill"         data-cat="feedback"      onclick="notifSetFilter(this,'feedback')">Feedback</button>
+        </div>
+
+        <!-- List -->
+        <div class="notif-list" id="notifList">
+          <div class="notif-loading" id="notifLoading">Loading…</div>
+        </div>
+
+        <!-- Footer (Unified with review design) -->
+        <div class="notif-footer">
+          <a href="/notifications" style="font-size:11px;color:rgba(255,255,255,.5);text-decoration:none;">View all notifications →</a>
+          <a href="/notifications/preferences" style="font-size:11px;color:rgba(255,255,255,.3);text-decoration:none;margin-left:auto;display:flex;align-items:center;gap:4px;">
+            <i data-lucide="settings" style="width:12px;height:12px;"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    <!-- ── /NOTIFICATION BELL ──────────────────────────────────── -->
+
+    <div class="nav-btn" data-tip="Settings" id="sidebarSettingsBtn" onclick="openSettingsModal()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></div>
+  </nav>
+
+  <!-- DASHBOARD -->
+  <div class="dashboard">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar-panel" id="sidebarPanel">
+      <div class="sidebar-header">
+        <div class="panel-title">Quick Access</div>
+        <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar" aria-label="Toggle Sidebar" aria-expanded="true">
+          <svg viewBox="0 0 24 24" id="toggleIcon"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+      </div>
+      <div class="panel-group">
+        <div class="p-item active" id="sidebarItemAll" data-filter="all" data-tip="All Documents">
+          <span class="p-ico">
+            <i data-lucide="file-text"></i>
+          </span>
+          <span class="p-label">All</span>
+          <span class="p-count" id="countAll">0</span>
+        </div>
+        <div class="p-item" id="sidebarItemArchive" data-sidebar-action="archive" data-tip="Archived Content">
+          <span class="p-ico">
+            <i data-lucide="archive"></i>
+          </span>
+          <span class="p-label">Archived</span>
+          <span class="p-count" id="realArchivedCount">0</span>
+        </div>
+        <div class="p-item" id="sidebarItemTrash" data-sidebar-action="trash" data-tip="Trash Bin">
+          <span class="p-ico">
+            <i data-lucide="trash-2"></i>
+          </span>
+          <span class="p-label">Trash</span>
+          <span class="p-count" id="archivedCount">0</span>
+        </div>
+      </div>
+      <div class="panel-div"></div>
+      <div class="panel-group">
+        <div class="panel-label">Status</div>
+        <div class="p-item" id="sidebarItemNewFolders" data-filter="new-folders" data-tip="Recent Folders">
+          <span class="p-ico">
+            <i data-lucide="folder-open"></i>
+            </span>
+            <span class="p-label">New Folders</span>
+            <span class="p-count" id="countNewFolders">0</span>
+        </div>
+        <div class="p-item" id="sidebarItemNewFiles" data-filter="new-files" data-tip="Recent Files">
+          <span class="p-ico">
+            <i data-lucide="files"></i>
+          </span>
+          <span class="p-label">New Files</span>
+          <span class="p-count" id="countNewFiles">0</span>
+        </div>
+        <!-- LEGACY ALIAS — hidden, preserves backward compat for any external JS using data-filter="shared" -->
+        <div class="p-item" id="sidebarItemShared" data-filter="shared" style="display:none" aria-hidden="true">
+          <span class="p-ico">
+            <i data-lucide="share"></i>
+          </span>
+          <span class="p-label">Shared</span>
+          <span class="p-count" id="countShared">0</span>
+        </div>
+        <!-- Shared to me: content others shared WITH me -->
+        <div class="p-item" id="sidebarItemSharedToMe" data-filter="shared-to-me" data-tip="Shared with me">
+          <span class="p-ico">
+            <i data-lucide="inbox"></i>
+          </span>
+          <span class="p-label">Shared with me</span>
+          <span class="p-count" id="countSharedToMe">0</span>
+        </div>
+        <!-- Shared with: content I shared with others -->
+        <div class="p-item" id="sidebarItemSharedWith" data-filter="shared-with" data-tip="Shared by me">
+          <span class="p-ico">
+            <i data-lucide="share-2"></i>
+          </span>
+          <span class="p-label">Shared by me</span>
+          <span class="p-count" id="countSharedWith">0</span>
+        </div>
+
+      </div>
+      <div class="panel-div"></div>
+      <div class="panel-group">
+        <div class="panel-label">Workspaces</div>
+        <div class="p-item" id="sidebarItemActiveWorkspaces" data-filter="active_workspaces" data-sidebar-action="workspace-jump" data-tip="Active Workspaces">
+          <span class="p-ico">
+            <i data-lucide="zap"></i>
+          </span>
+          <span class="p-label">Active Workspaces</span>
+          <span class="p-count" id="countActiveWorkspaces">0</span>
+        </div>
+      </div>
+      <div class="panel-div"></div>
+
+    </aside>
+
+
+    {% block view_content %}{% endblock %}
+  </div>
+</div>
+
+<div class="ctx-menu" id="ctxMenu">
+  <div class="ctx-item" data-action="open"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg> Open</div>
+  <div class="ctx-item" data-action="rename"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Rename</div>
+  <div class="ctx-item ctx-folder-only" data-action="change-color"><svg viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12.5" r="2.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg> Change Color</div>
+  <div class="ctx-item ctx-doc-only" data-action="move-to"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"/><line x1="2" y1="12" x2="22" y2="12"/><polyline points="19 9 22 12 19 15"/></svg> Move to</div>
+  <div class="ctx-item" data-action="archive"><svg viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg> Archive</div>
+  <div class="ctx-item" data-action="share"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Share</div>
+  <div class="ctx-divider"></div>
+  <div class="ctx-item danger" data-action="delete"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg> Delete</div>
+</div>
+
+<!-- FOLDER MODAL -->
+<div class="modal-overlay" id="folderModal">
+  <div class="modal-box folder-modal-box" id="folderModalBox">
+    <!-- View Mode Content -->
+    <div id="folderModalViewContent" style="display: flex; flex-direction: column; flex: 1;">
+      <div class="modal-head">
+        <div class="modal-head-left">
+          <div class="modal-folder-icon" id="modalIcon"></div>
+          <div>
+            <div class="modal-folder-title" id="modalTitle">Folder Name</div>
+            <div class="modal-folder-meta">
+              <span><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span id="modalDate">Jan 1, 2025</span></span>
+              <span><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span id="modalCount">0 documents</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-close" onclick="closeModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+      </div>
+      <div class="modal-shared" style="padding: 0 32px 20px;">
+        <span class="shared-label">Shared with</span>
+        <div class="avatar-stack" id="modalAvatars"></div>
+        <div class="share-add" onclick="if(window.currentFolderId) { const f = FOLDERS.find(x => x.id === window.currentFolderId); if(f) hbOpenShare(f.id, 'folder', f.name); }"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+      </div>
+      <!-- Intermediate section for file management -->
+      <div class="modal-management" id="modalFolderManagement">
+        <div class="modal-management-text" id="folderManagementText">Manage documents in this folder</div>
+        <div class="modal-management-actions">
+          <button class="wv-btn-cancel" onclick="hbShowUploadModal(window.currentFolderId)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Upload File
+          </button>
+          <button class="wv-btn-submit" onclick="hbCreateDocInFolder(window.currentFolderId)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            New Document
+          </button>
+        </div>
+      </div>
+      <div class="modal-docs">
+        <div class="modal-docs-grid" id="modalDocsGrid"></div>
+      </div>
+    </div>
+    
+    <!-- Move Mode Content -->
+    <div id="folderModalMoveContent" style="display: none; flex-direction: column; flex: 1;">
+      <div class="modal-head">
+        <div class="modal-head-left">
+          <div class="modal-folder-icon" style="background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.3);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"/><line x1="2" y1="12" x2="22" y2="12"/><polyline points="19 9 22 12 19 15"/></svg>
+          </div>
+          <div>
+            <div class="modal-folder-title">Move Document</div>
+            <div class="modal-folder-meta" style="opacity: 0.7;">Select destination folder</div>
+          </div>
+        </div>
+        <div class="modal-close" onclick="closeModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+      </div>
+      <div class="modal-tree-container" style="padding: 16px 28px; flex: 1; overflow-y: auto; background: rgba(0,0,0,0.1);">
+        <div class="folder-tree-root" id="moveTreeRoot">
+           <!-- Rendered via JS -->
+        </div>
+      </div>
+      <div class="wv-modal-foot" style="justify-content: space-between; align-items: center; margin-top: auto;">
+        <span id="moveSelectionInfo" style="font-size: 11px; color: var(--t3); letter-spacing: 0.05em; font-weight: 500;">Destination: Root Directory</span>
+        <div style="display: flex; gap: 10px;">
+          <button class="wv-btn-cancel" onclick="closeModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            Cancel
+          </button>
+          <button class="wv-btn-submit" id="confirmMoveBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"/><line x1="2" y1="12" x2="22" y2="12"/><polyline points="19 9 22 12 19 15"/></svg>
+            Move Document
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-box settings-modal-box">
+    <div class="settings-sidebar">
+      <div class="settings-sidebar-head">
+        <div class="settings-user-info">
+          <div class="settings-avatar" id="stUserAvatar">U</div>
+          <div class="settings-user-details">
+            <div class="settings-user-name" id="stUserName">User Name</div>
+            <div class="settings-user-email" id="stUserEmail">user@example.com</div>
+          </div>
+        </div>
+      </div>
+      <div class="settings-nav">
+        <div class="st-nav-item active" data-tab="profile" onclick="switchSettingsTab('profile')">
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Profile
+        </div>
+        <div class="st-nav-item" data-tab="workspace" onclick="switchSettingsTab('workspace')">
+          <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          Workspace
+        </div>
+        <div class="st-nav-item" data-tab="security" onclick="switchSettingsTab('security')">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Account & Security
+        </div>
+        <div class="st-nav-item" data-tab="plan" onclick="switchSettingsTab('plan')">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          Usage & Plan
+        </div>
+      </div>
+      <div class="settings-sidebar-foot">
+        <button class="btn-logout" onclick="window.location.href='/logout'">
+          <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Log out
+        </button>
+      </div>
+    </div>
+    
+    <div class="settings-content">
+      <div class="settings-header">
+        <h2 id="settingsTabTitle">Profile Settings</h2>
+        <div class="settings-close" onclick="closeSettings()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+      </div>
+      
+      <div class="settings-scroll-area">
+        <!-- ═══════════════════════════════════════ PROFILE TAB -->
+        <div class="settings-pane active" id="pane-profile">
+          <div class="st-section">
+            <h3>Public Profile</h3>
+            <div class="st-form-grid">
+              <div class="st-form-row">
+                <label>First Name</label>
+                <input type="text" id="stInputName" placeholder="John" autocomplete="given-name">
+              </div>
+              <div class="st-form-row">
+                <label>Last Name</label>
+                <input type="text" id="stInputLastname" placeholder="Doe" autocomplete="family-name">
+              </div>
+            </div>
+            <div class="st-form-row">
+              <label>Institute / Company</label>
+              <select id="stInputInstitute"></select>
+            </div>
+            <div class="st-form-row">
+              <label>Country</label>
+              <select id="stSelectCountry">
+                <option value="">Select country…</option>
+                <option value="AR">Argentina</option>
+                <option value="BO">Bolivia</option>
+                <option value="BR">Brazil</option>
+                <option value="CA">Canada</option>
+                <option value="CL">Chile</option>
+                <option value="CO">Colombia</option>
+                <option value="CR">Costa Rica</option>
+                <option value="CU">Cuba</option>
+                <option value="EC">Ecuador</option>
+                <option value="SV">El Salvador</option>
+                <option value="ES">España</option>
+                <option value="US">United States</option>
+                <option value="MX">Mexico</option>
+                <option value="PA">Panama</option>
+                <option value="PY">Paraguay</option>
+                <option value="PE">Peru</option>
+                <option value="DO">Dominican Republic</option>
+                <option value="UY">Uruguay</option>
+                <option value="VE">Venezuela</option>
+                <option value="GB">United Kingdom</option>
+                <option value="DE">Germany</option>
+                <option value="FR">France</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <button class="wv-btn-submit" id="stBtnSaveProfile" onclick="stSaveProfile()">Save Profile</button>
+            <div id="stProfileAlert" class="st-inline-alert" style="display:none;"></div>
+          </div>
+          <div class="st-section">
+            <h3>Avatar</h3>
+            <div class="st-avatar-section">
+              <div class="st-big-avatar" id="stBigAvatar">U</div>
+              <div class="st-avatar-info">
+                <p>Upload a photo as your profile picture.<br>PNG, JPG or WEBP · Max 2 MB</p>
+                <label class="st-avatar-upload-btn" for="stAvatarFileInput">
+                  <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Upload Image
+                </label>
+                <input type="file" id="stAvatarFileInput" accept=".png,.jpg,.jpeg,.webp" onchange="stUploadAvatar(this)">
+                <div id="stAvatarError" class="st-avatar-upload-error"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════ WORKSPACE TAB -->
+        <div class="settings-pane" id="pane-workspace">
+          <div class="st-section">
+            <h3>Document Layout</h3>
+            <div class="st-option-card">
+              <div class="st-option-info">
+                <strong>Compact View</strong>
+                <span>Show more documents per row in the grid.</span>
+              </div>
+              <label class="wv-switch">
+                <input type="checkbox" id="stCheckCompact">
+                <span class="wv-slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="st-section">
+            <h3>Defaults</h3>
+            <div class="st-form-row">
+              <label>Default Folder Color</label>
+              <div class="st-color-swatch-row" id="stFolderColorSwatches">
+                <div class="st-color-swatch selected" data-color="#6d28d9" style="background:#6d28d9"></div>
+                <div class="st-color-swatch" data-color="#1d4ed8" style="background:#1d4ed8"></div>
+                <div class="st-color-swatch" data-color="#0e7490" style="background:#0e7490"></div>
+                <div class="st-color-swatch" data-color="#15803d" style="background:#15803d"></div>
+                <div class="st-color-swatch" data-color="#be123c" style="background:#be123c"></div>
+                <div class="st-color-swatch" data-color="#d97706" style="background:#d97706"></div>
+                <div class="st-color-swatch" data-color="#64748b" style="background:#64748b"></div>
+              </div>
+              <small style="margin-top:8px;">Pre-selected color when you create a new folder.</small>
+            </div>
+            <div class="st-form-row">
+              <label>Share Link Expiry</label>
+              <select id="stSelectShareExpiry" class="st-select-sm">
+                <option value="1">1 day</option>
+                <option value="3">3 days</option>
+                <option value="7" selected>7 days (default)</option>
+                <option value="14">14 days</option>
+                <option value="30">30 days</option>
+              </select>
+              <small>Applies to all new share links you create.</small>
+            </div>
+          </div>
+          <div class="st-section">
+            <h3>AI Writing</h3>
+            <p class="st-section-desc">Controls how the AI generates suggestions and content in the editor.</p>
+            <div class="st-radio-group" id="stAICreativityGroup">
+              <div class="st-radio-card" data-value="precise" onclick="stSelectCreativity('precise')">
+                <span class="st-radio-card-label">Precise</span>
+                <span class="st-radio-card-desc">Conservative, factual</span>
+              </div>
+              <div class="st-radio-card selected" data-value="balanced" onclick="stSelectCreativity('balanced')">
+                <span class="st-radio-card-label">Balanced</span>
+                <span class="st-radio-card-desc">Default (recommended)</span>
+              </div>
+              <div class="st-radio-card" data-value="creative" onclick="stSelectCreativity('creative')">
+                <span class="st-radio-card-label">Creative</span>
+                <span class="st-radio-card-desc">Exploratory, varied</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════ SECURITY TAB -->
+        <div class="settings-pane" id="pane-security">
+          <div class="st-section">
+            <h3>Account Access</h3>
+            <div class="st-form-row">
+              <label>Email Address</label>
+              <input type="text" id="stInputEmail" readonly disabled>
+              <small>Email cannot be changed once the account is created.</small>
+            </div>
+            <div id="stOAuthInfo" style="margin-top:12px; display:none;">
+              <label style="font-size:12px; font-weight:500; color:var(--st-text-dim); text-transform:uppercase; letter-spacing:0.05em; display:block; margin-bottom:8px;">Connected via</label>
+              <div class="st-oauth-badge" id="stOAuthBadge">—</div>
+            </div>
+          </div>
+          <div class="st-section" id="stPasswordSection">
+            <h3>Password</h3>
+            <div class="st-form-row">
+              <label>Current Password</label>
+              <div class="st-pw-wrap">
+                <input type="password" id="stInputOldPw" placeholder="Enter current password" autocomplete="current-password">
+                <span class="st-pw-eye" onclick="stTogglePw('stInputOldPw', this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>
+              </div>
+            </div>
+            <div class="st-form-row">
+              <label>New Password</label>
+              <div class="st-pw-wrap">
+                <input type="password" id="stInputNewPw" placeholder="Min. 8 characters" autocomplete="new-password">
+                <span class="st-pw-eye" onclick="stTogglePw('stInputNewPw', this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>
+              </div>
+            </div>
+            <button class="wv-btn-cancel" id="stBtnChangePw" onclick="stChangePassword()">Change Password</button>
+            <div id="stPwAlert" class="st-inline-alert" style="display:none;"></div>
+          </div>
+          <div class="st-section">
+            <h3>Active Sessions</h3>
+            <div class="st-session-card">
+              <div class="st-session-info">
+                <div class="st-session-label">Current Session</div>
+                <div class="st-session-meta" id="stSessionMeta">Loading…</div>
+              </div>
+              <button class="st-btn-danger" onclick="stTerminateSessions()" id="stBtnTerminate">
+                <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Terminate All
+              </button>
+            </div>
+            <div id="stSessionAlert" class="st-inline-alert" style="display:none; margin-top:10px;"></div>
+          </div>
+          <div class="st-section">
+            <h3>Auth History</h3>
+            <p class="st-section-desc">Your login and logout activity over the last 14 days.</p>
+            <div id="stAuthHistoryChart" style="min-height: 250px; margin-top: 15px; border-radius: 8px; background: rgba(0,0,0,0.15); border: 1px solid var(--st-border);"></div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════ PLAN TAB -->
+        <div class="settings-pane" id="pane-plan">
+          <div class="st-section">
+            <h3>Current Plan</h3>
+            <div class="plan-card">
+              <div class="plan-badge" id="stPlanBadge">Free</div>
+              <div class="plan-details">
+                <strong id="stPlanName">Starter Plan</strong>
+                <span id="stPlanSubStatus">—</span>
+              </div>
+              <button class="wv-btn-submit" onclick="window.location.href='/almacenamiento'">Upgrade</button>
+            </div>
+          </div>
+          <div class="st-section">
+            <h3>Usage Metrics</h3>
+            <div class="st-usage-grid">
+              <!-- Storage Card -->
+              <div class="st-usage-card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <h4>Storage</h4>
+                  <span id="stStorageText" style="font-size:10px; color:var(--st-text-dim)">0 MB / 0 MB</span>
+                </div>
+                <div class="st-chart-wrap">
+                  <div id="stStorageChart"></div>
+                </div>
+              </div>
+              <!-- Analysis Card -->
+              <div class="st-usage-card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <h4>Analysis Quota</h4>
+                  <span id="stQuotaText" style="font-size:10px; color:var(--st-text-dim)">0 / 0 used</span>
+                </div>
+                <div class="st-chart-wrap">
+                  <div id="stQuotaChart"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="st-section">
+            <h3>System Health</h3>
+            <div class="st-redis-status down" id="stRedisStatus" onclick="window.cacheDashboard && window.cacheDashboard.open()" title="Click for Performance Insights">
+              <div class="st-status-dot down" id="stRedisDot"></div>
+              <span id="stRedisLabel">Checking Redis…</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /settings-scroll-area -->
+
+      <div class="settings-footer">
+        <div id="stSaveStatus" class="save-status" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CREATE FOLDER MODAL ===== -->
+<div class="wv-modal-overlay" id="wvModalOverlay" role="dialog" aria-modal="true" aria-labelledby="wvModalTitleEl">
+  <div class="wv-modal" id="wvModal">
+    <div class="wv-modal-head">
+      <div class="wv-modal-title" id="wvModalTitleEl">Create Folder</div>
+      <div class="wv-modal-close" id="wvModalClose" onclick="closeWvModal()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+    </div>
+    <div class="wv-modal-body">
+
+      <!-- Título -->
+      <div class="wv-field">
+        <label class="wv-label" for="wvInputTitle">Folder Name <span style="color:#f87171">*</span></label>
+        <input class="wv-input" id="wvInputTitle" type="text" placeholder="e.g. 2026 Projects" autocomplete="off">
+        <span class="wv-error-msg" id="wvErrTitle">Name is required</span>
+      </div>
+
+      <!-- Descripción -->
+      <div class="wv-field">
+        <label class="wv-label" for="wvInputDesc">Description <span style="color:var(--t3);font-weight:400">(Optional)</span></label>
+        <textarea class="wv-textarea" id="wvInputDesc" rows="3" placeholder="Add details about this folder…" style="min-height:72px"></textarea>
+      </div>
+
+      <!-- Color -->
+      <div class="wv-field">
+        <label class="wv-label">Folder Color</label>
+        <div class="wv-color-row" id="wvColorRow">
+          <div class="wv-color-swatch selected" data-color="#6d28d9" style="background:#6d28d9"></div>
+          <div class="wv-color-swatch" data-color="#1d4ed8" style="background:#1d4ed8"></div>
+          <div class="wv-color-swatch" data-color="#15803d" style="background:#15803d"></div>
+          <div class="wv-color-swatch" data-color="#be123c" style="background:#be123c"></div>
+          <div class="wv-color-swatch" data-color="#0e7490" style="background:#0e7490"></div>
+          <div class="wv-color-swatch" data-color="#d97706" style="background:#d97706"></div>
+          <div class="wv-color-swatch" data-color="#64748b" style="background:#64748b"></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="wv-modal-foot">
+      <button class="wv-btn-cancel" id="wvBtnCancel" type="button" onclick="closeWvModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Cancel</button>
+      <button class="wv-btn-submit" id="wvBtnSubmit" type="button" onclick="submitCreateFolder()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Create Folder</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CREATE DOC MODAL ===== -->
+<div class="wv-modal-overlay" id="wdModalOverlay" role="dialog" aria-modal="true" aria-labelledby="wdModalTitleEl">
+  <div class="wv-modal" id="wdModal">
+    <div class="wv-modal-head">
+      <div class="wv-modal-title" id="wdModalTitleEl" style="display: flex; align-items: center; gap: 8px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-file-earmark-plus" viewBox="0 0 16 16">
+          <path d="M8 6.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V11a.5.5 0 0 1-1 0V9.5H6a.5.5 0 0 1 0-1h1.5V7a.5.5 0 0 1 .5-.5z"/>
+          <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/>
+        </svg> New Document
+      </div>
+      <div class="wv-modal-close" id="wdModalClose" onclick="closeWdModal()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+    </div>
+    <div class="wv-modal-body">
+      <!-- Título -->
+      <div class="wv-field">
+        <label class="wv-label" for="wdInputTitle">Document Name <span style="color:#f87171">*</span></label>
+        <input class="wv-input" id="wdInputTitle" type="text" placeholder="e.g. Meeting Notes" autocomplete="off">
+        <span class="wv-error-msg" id="wdErrTitle">Name is required</span>
+      </div>
+    </div>
+    <div class="wv-modal-foot">
+      <button class="wv-btn-cancel" id="wdBtnCancel" type="button" onclick="closeWdModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Cancel</button>
+      <button class="wv-btn-submit" id="wdBtnSubmit" type="button" style="display: flex; align-items: center; justify-content: center;" onclick="submitCreateDoc()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <span id="wdBtnText">Create Document</span>
+        <span id="wdBtnLoader" class="wd-spinner" style="display: none;"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== UPLOAD PANEL ===== -->
+<div class="upload-panel" id="uploadPanel">
+  <div class="upload-panel-header">
+    <span class="upload-panel-title" style="display: flex; align-items: center; gap: 8px;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+        <path fill-rule="evenodd" d="M7.646 5.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 6.707V10.5a.5.5 0 0 1-1 0V6.707L6.354 7.854a.5.5 0 1 1-.708-.708l2-2z"/>
+        <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383zm.653.757c-.757.653-1.153 1.44-1.153 2.056v.448l-.445.049C2.064 6.805 1 7.952 1 9.318 1 10.785 2.23 12 3.781 12h8.906C13.98 12 15 10.988 15 9.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 4.825 10.328 3 8 3a4.53 4.53 0 0 0-2.941 1.1z"/>
+      </svg>
+      Uploading Files
+    </span>
+    <div class="upload-panel-actions">
+      <div class="up-chevron" id="upChevron" onclick="toggleUploadCollapse()">
+        <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+      </div>
+      <div class="up-close" onclick="closeUploadPanel()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+    </div>
+  </div>
+  <div id="uploadListWrap">
+    <div class="upload-list" id="uploadList"></div>
+    <div class="upload-footer">
+      <div class="upload-footer-text" id="uploadFooterText">Uploading…</div>
+      <div class="upload-add-btn" onclick="addMoreFiles()">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add more
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== COLOR PICKER MODAL ===== -->
+<div class="cp-overlay" id="cpOverlay">
+  <div class="cp-modal" id="cpModal">
+
+    <!-- Header -->
+    <div class="cp-header">
+      <div class="cp-title">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12.5" r="2.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+        Change Folder Color
+      </div>
+      <div class="cp-close" id="cpClose">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+    </div>
+
+    <!-- Body: left controls + right folder preview -->
+    <div class="cp-body">
+
+      <!-- LEFT: color controls -->
+      <div class="cp-left">
+
+        <!-- SV Canvas -->
+        <div class="cp-sv-wrap">
+          <canvas id="cpCanvas" class="cp-canvas"></canvas>
+          <div class="cp-cursor" id="cpCursor"></div>
+        </div>
+
+        <!-- Hue slider -->
+        <div class="cp-sliders">
+          <div class="cp-slider-row">
+            <div class="cp-preview" id="cpPreview"></div>
+            <div class="cp-hue-track" id="cpHueTrack">
+              <div class="cp-hue-thumb" id="cpHueThumb"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hex input -->
+        <div class="cp-hex-row">
+          <span class="cp-hex-label">HEX</span>
+          <input class="cp-hex-input" id="cpHexInput" type="text" maxlength="7" spellcheck="false">
+        </div>
+
+        <!-- Swatches -->
+        <div class="cp-swatches">
+          <div class="cp-swatch" data-color="#d97706"></div>
+          <div class="cp-swatch" data-color="#f59e0b"></div>
+          <div class="cp-swatch" data-color="#ef4444"></div>
+          <div class="cp-swatch" data-color="#be123c"></div>
+          <div class="cp-swatch" data-color="#ec4899"></div>
+          <div class="cp-swatch" data-color="#8b5cf6"></div>
+          <div class="cp-swatch" data-color="#6d28d9"></div>
+          <div class="cp-swatch" data-color="#1d4ed8"></div>
+          <div class="cp-swatch" data-color="#0ea5e9"></div>
+          <div class="cp-swatch" data-color="#0e7490"></div>
+          <div class="cp-swatch" data-color="#15803d"></div>
+          <div class="cp-swatch" data-color="#10b981"></div>
+        </div>
+
+        <!-- Actions -->
+        <div class="cp-actions">
+          <div class="cp-btn-cancel" id="cpCancel">Cancel</div>
+          <div class="cp-btn-apply" id="cpApply">Apply Color</div>
+        </div>
+      </div>
+
+      <!-- RIGHT: live folder preview -->
+      <div class="cp-right">
+        <div class="cp-preview-label">Preview</div>
+        <div class="cp-folder-preview">
+          <div class="cp-folder-wrap">
+            <div class="cp-folder-inner">
+              <div class="cp-folder-back" id="cpFolderBack">
+                <div class="cp-paper cp-paper-3"></div>
+                <div class="cp-paper cp-paper-2"></div>
+                <div class="cp-paper cp-paper-1" id="cpPaper1"></div>
+              </div>
+              <div class="cp-folder-front" id="cpFolderFront"></div>
+            </div>
+          </div>
+          <div class="cp-folder-name" id="cpFolderName">Folder</div>
+          <div class="cp-folder-hex" id="cpFolderHex">#000000</div>
+        </div>
+      </div>
+
+    </div><!-- /cp-body -->
+  </div>
+</div>
+
+<!-- ===== ARCHIVED OFFCANVAS ===== -->
+<div class="offcanvas-overlay" id="offcanvasOverlay" onclick="closeArchived()"></div>
+<div class="offcanvas" id="offcanvas">
+  <div class="offcanvas-head">
+    <div class="offcanvas-title" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div class="offcanvas-title-icon" id="ocViewIcon"><svg viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg></div>
+        <div id="ocViewTitle" style="font-weight: 600; font-size: 16px;">Trash</div>
+      </div>
+      <div id="ocViewSubtitle" style="font-size: 12px; color: rgba(255, 255, 255, 0.5); font-weight: 400; line-height: 1.2;">Items deleted permanently after 30 days</div>
+    </div>
+    <div class="oc-close" onclick="closeArchived()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+  </div>
+  <div class="offcanvas-toolbar">
+    <div class="oc-select-all" onclick="toggleSelectAll()" id="selectAllBtn">
+      <div class="oc-checkbox" id="selectAllCb">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      Select all
+    </div>
+    <div class="oc-toolbar-sep"></div>
+    <div class="oc-btn oc-btn-restore" id="restoreBtn" onclick="restoreSelected()">
+      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+      Restore
+    </div>
+    <div class="oc-btn oc-btn-delete" id="deletePermaBtn" onclick="deleteSelected()">
+      <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+      Delete
+    </div>
+  </div>
+  <div class="offcanvas-body" id="offcanvasBody"></div>
+  <div class="offcanvas-foot">
+    <div class="oc-count-badge" id="ocCountBadge"><strong>0</strong> items archived</div>
+    <div class="oc-clear-all" onclick="clearAllArchived()">Clear all</div>
+  </div>
+</div>
+
+
+
+
+
+<!-- ══════════════════════════════════════════
+     MODAL: RENAME (doc / folder)
+══════════════════════════════════════════ -->
+<div id="hbRenameBackdrop" onclick="hbCloseRename()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);z-index:9900;align-items:center;justify-content:center;">
+  <div onclick="event.stopPropagation()" style="background:linear-gradient(145deg,rgba(28,32,48,.97),rgba(18,22,38,.97));border:1px solid rgba(255,255,255,.13);border-top:1px solid rgba(255,255,255,.24);border-radius:20px;width:min(400px,90vw);padding:26px 26px 22px;animation:hbModalIn .28s cubic-bezier(.34,1.56,.64,1);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:34px;height:34px;border-radius:10px;background:rgba(96,165,250,.15);display:flex;align-items:center;justify-content:center;">
+          <svg width="15" height="15" fill="none" stroke="#60a5fa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+        <span style="font-size:15px;font-weight:600;color:#fff;" id="hbRenameTitle">Renombrar</span>
+      </div>
+      <div onclick="hbCloseRename()" style="width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.5);font-size:18px;">×</div>
+    </div>
+    <p style="font-size:12.5px;color:rgba(255,255,255,.45);margin-bottom:12px;">Enter the new name.</p>
+    <input id="hbRenameInput" type="text" placeholder="Nuevo nombre…" onkeydown="if(event.key==='Enter') hbSubmitRename()"
+      style="width:100%;padding:10px 13px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;"
+      onfocus="this.style.borderColor='rgba(96,165,250,.5)'" onblur="this.style.borderColor='rgba(255,255,255,.12)'">
+    <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end;">
+      <button onclick="hbCloseRename()" style="display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Cancel</button>
+      <button id="hbRenameSaveBtn" onclick="hbSubmitRename()" style="padding:8px 16px;border-radius:9px;background:linear-gradient(135deg,rgba(96,165,250,.65),rgba(59,130,246,.55));border:1px solid rgba(96,165,250,.4);color:#fff;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;">
+        <span class="hb-spin" id="hbRenameSpinner" style="display:none;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:hbSpin 1s linear infinite;"></span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" id="hbRenameIcon"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        Save
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODAL: SHARE RESOURCE
+══════════════════════════════════════════ -->
+<div id="hbShareBackdrop" onclick="hbCloseShare()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);z-index:9900;align-items:center;justify-content:center;">
+  <div onclick="event.stopPropagation()" style="background:linear-gradient(145deg,rgba(28,32,48,.97),rgba(18,22,38,.97));border:1px solid rgba(255,255,255,.13);border-top:1px solid rgba(255,255,255,.24);border-radius:20px;width:min(480px,90vw);padding:26px 26px 22px;animation:hbModalIn .28s cubic-bezier(.34,1.56,.64,1);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:34px;height:34px;border-radius:10px;background:rgba(96,165,250,.15);display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </div>
+        <span style="font-size:15px;font-weight:600;color:#fff;" id="hbShareTitle">Share Resource</span>
+      </div>
+      <div onclick="hbCloseShare()" style="width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.5);font-size:18px;">×</div>
+    </div>
+    
+    <div style="margin-bottom:16px;">
+       <label style="font-size:12px;color:rgba(255,255,255,.6);display:block;margin-bottom:6px;">Add emails</label>
+       <input id="hbShareEmailInput" type="text" placeholder="Type email & press Enter…" style="width:100%;padding:10px 13px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;font-size:13px;outline:none;box-sizing:border-box;" onkeydown="hbShareInputKeydown(event)" onblur="hbShareInputBlur(event)">
+       <div id="hbSharePillsContainer" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">
+          <!-- Pills will be injected here -->
+       </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-bottom:20px;">
+       <div style="flex:1;">
+         <label style="font-size:12px;color:rgba(255,255,255,.6);display:block;margin-bottom:6px;">Permission</label>
+         <select id="hbSharePermission" style="width:100%;padding:9px 12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;font-size:13px;outline:none;-webkit-appearance:none;appearance:none;cursor:pointer;">
+            <option value="viewer" style="background:#1a1f2e;">Viewer (Read only)</option>
+            <option value="editor" style="background:#1a1f2e;">Editor (Can edit)</option>
+         </select>
+       </div>
+       <div style="flex:1;">
+         <label style="font-size:12px;color:rgba(255,255,255,.6);display:block;margin-bottom:6px;">Message (Optional)</label>
+         <input id="hbShareMessage" type="text" placeholder="Add a note…" style="width:100%;padding:9px 12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;font-size:13px;outline:none;box-sizing:border-box;">
+       </div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="hbCloseShare()" style="display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Cancel</button>
+      <button id="hbShareSubmitBtn" onclick="hbSubmitShare()" style="padding:8px 16px;border-radius:9px;background:linear-gradient(135deg,rgba(96,165,250,.65),rgba(59,130,246,.55));border:1px solid rgba(96,165,250,.4);color:#fff;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;">
+        <span class="hb-spin" id="hbShareSpinner" style="display:none;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:hbSpin 1s linear infinite;"></span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" id="hbShareIcon"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+        Send Invites
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+══════════════════════════════════════════ -->
+<div id="hbNewFolderBackdrop" onclick="hbCloseNewFolder()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);z-index:9900;align-items:center;justify-content:center;">
+  <div onclick="event.stopPropagation()" style="background:linear-gradient(145deg,rgba(28,32,48,.97),rgba(18,22,38,.97));border:1px solid rgba(255,255,255,.13);border-top:1px solid rgba(255,255,255,.24);border-radius:20px;width:min(400px,90vw);padding:26px 26px 22px;animation:hbModalIn .28s cubic-bezier(.34,1.56,.64,1);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:34px;height:34px;border-radius:10px;background:rgba(52,211,153,.15);display:flex;align-items:center;justify-content:center;">
+          <svg width="15" height="15" fill="none" stroke="#34d399" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        </div>
+        <span style="font-size:15px;font-weight:600;color:#fff;">New Folder</span>
+      </div>
+      <div onclick="hbCloseNewFolder()" style="width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.5);font-size:18px;">×</div>
+    </div>
+    <input id="hbNewFolderInput" type="text" placeholder="Folder name…" onkeydown="if(event.key==='Enter') hbSubmitNewFolder()"
+      style="width:100%;padding:10px 13px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;"
+      onfocus="this.style.borderColor='rgba(52,211,153,.5)'" onblur="this.style.borderColor='rgba(255,255,255,.12)'">
+    <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end;">
+      <button onclick="hbCloseNewFolder()" style="display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Cancel</button>
+      <button onclick="hbSubmitNewFolder()" style="display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;background:linear-gradient(135deg,rgba(52,211,153,.55),rgba(16,185,129,.45));border:1px solid rgba(52,211,153,.4);color:#fff;font-size:13px;font-weight:600;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODAL: DELETE FOREVER CONFIRMATION
+══════════════════════════════════════════ -->
+<div id="hbDeleteForeverBackdrop" onclick="hbCloseDeleteForever()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(10px);z-index:9900;align-items:center;justify-content:center;">
+  <div onclick="event.stopPropagation()" style="background:linear-gradient(145deg,rgba(28,32,48,.98),rgba(18,22,38,.98));border:1px solid rgba(239,68,68,.22);border-top:1px solid rgba(239,68,68,.35);border-radius:20px;width:min(400px,90vw);padding:28px 26px 22px;text-align:center;animation:hbModalIn .28s cubic-bezier(.34,1.56,.64,1);">
+    <div style="width:50px;height:50px;border-radius:50%;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+      <svg width="22" height="22" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6m4-6v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+    </div>
+    <h3 style="font-size:16px;font-weight:700;color:#fff;margin:0 0 8px;">Delete Permanently?</h3>
+    <p style="font-size:13px;color:rgba(255,255,255,.5);margin:0 0 14px;">This action is <strong style="color:#f87171;">permanent</strong> and cannot be undone.</p>
+    <div style="background:rgba(239,68,68,.09);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:10px 14px;margin-bottom:20px;">
+      <p style="font-size:13.5px;font-weight:600;color:#f87171;margin:0;" id="hbDeleteForeverName"></p>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:center;">
+      <button onclick="hbCloseDeleteForever()" style="display:flex;align-items:center;gap:6px;padding:9px 20px;border-radius:9px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Cancel</button>
+      <button id="hbDeleteForeverBtn" onclick="hbConfirmDeleteForever()" style="padding:9px 20px;border-radius:9px;background:linear-gradient(135deg,#ef4444,#dc2626);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;box-shadow:0 4px 12px rgba(239,68,68,.3);">
+        <span class="hb-spin" id="hbDeleteForeverSpinner" style="display:none;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:hbSpin 1s linear infinite;"></span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" id="hbDeleteForeverIcon"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+        Delete Forever
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODAL: RESTORE CONFIRMATION
+══════════════════════════════════════════ -->
+<div id="hbRestoreBackdrop" onclick="hbCloseRestore()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);z-index:9900;align-items:center;justify-content:center;">
+  <div onclick="event.stopPropagation()" style="background:linear-gradient(145deg,rgba(28,32,48,.97),rgba(18,22,38,.97));border:1px solid rgba(52,211,153,.18);border-top:1px solid rgba(52,211,153,.3);border-radius:20px;width:min(400px,90vw);padding:26px 26px 22px;text-align:center;animation:hbModalIn .28s cubic-bezier(.34,1.56,.64,1);">
+    <div style="width:50px;height:50px;border-radius:50%;background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.25);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+      <svg width="20" height="20" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+    </div>
+    <h3 style="font-size:16px;font-weight:700;color:#fff;margin:0 0 8px;">Restore item?</h3>
+    <p style="font-size:13px;color:rgba(255,255,255,.5);margin:0 0 14px;">The item will be moved back to your documents.</p>
+    <div style="background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.18);border-radius:10px;padding:10px 14px;margin-bottom:20px;">
+      <p style="font-size:13.5px;font-weight:600;color:#34d399;margin:0;" id="hbRestoreName"></p>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:center;">
+      <button onclick="hbCloseRestore()" style="display:flex;align-items:center;gap:6px;padding:9px 20px;border-radius:9px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Cancel</button>
+      <button id="hbRestoreBtn" onclick="hbConfirmRestore()" style="padding:9px 20px;border-radius:9px;background:linear-gradient(135deg,rgba(52,211,153,.6),rgba(16,185,129,.5));border:1px solid rgba(52,211,153,.4);color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;">
+        <span class="hb-spin" id="hbRestoreSpinner" style="display:none;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:hbSpin 1s linear infinite;"></span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" id="hbRestoreIcon"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 .49-3.5"></path></svg>
+        Restore
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     MODAL: DELETE (move to trash)
+══════════════════════════════════════════ -->
+<div id="hbDeleteBackdrop" onclick="hbCloseDelete()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);z-index:9900;align-items:center;justify-content:center;">
+  <div onclick="event.stopPropagation()" style="background:linear-gradient(145deg,rgba(28,32,48,.97),rgba(18,22,38,.97));border:1px solid rgba(255,255,255,.13);border-top:1px solid rgba(255,255,255,.24);border-radius:20px;width:min(400px,90vw);padding:28px 26px 22px;animation:hbModalIn .28s cubic-bezier(.34,1.56,.64,1);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:34px;height:34px;border-radius:10px;background:rgba(239,68,68,.15);display:flex;align-items:center;justify-content:center;">
+          <svg width="15" height="15" fill="none" stroke="#f87171" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6m4-6v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+        </div>
+        <span id="hbDeleteTitle" style="font-size:15px;font-weight:600;color:#fff;">Delete Assignment</span>
+      </div>
+      <div onclick="hbCloseDelete()" style="width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.5);font-size:18px;">×</div>
+    </div>
+    <p style="font-size:12.5px;color:rgba(255,255,255,.45);margin-bottom:8px;text-align:center;">You are about to delete:</p>
+    <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.18);border-radius:10px;padding:10px 14px;margin-bottom:10px;text-align:center;">
+      <p style="font-size:13.5px;font-weight:600;color:#f87171;margin:0;" id="hbDeleteItemName">Title</p>
+    </div>
+    <p style="font-size:12px;color:rgba(255,255,255,.3);margin-bottom:0;text-align:center;">This will move the item to Trash. You can restore it later.</p>
+    <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end;">
+      <button onclick="hbCloseDelete()" style="padding:8px 16px;border-radius:9px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        Cancel
+      </button>
+      <button id="hbDeleteBtn" onclick="hbConfirmDelete()" style="padding:8px 16px;border-radius:9px;background:linear-gradient(135deg,rgba(239,68,68,.6),rgba(220,38,38,.5));border:1px solid rgba(239,68,68,.4);color:#fff;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;">
+        <span id="hbDeleteSpinner" style="display:none;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:hbSpin 1s linear infinite;"></span>
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
+        Move to Trash
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════
+     CACHE INSIGHTS XL MODAL
+════════════════════════════════════════════ -->
+<div id="cacheInsightsModal" class="cd-overlay">
+    <div class="cd-modal">
+        <!-- Header -->
+        <div class="cd-header">
+            <div class="cd-header-title">
+                <svg width="24" height="24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                <h3 class="cd-title-text">Performance Insights</h3>
+                <div id="cd-status-badge" class="cd-status-badge cd-up">
+                    <div class="cd-dot"></div>
+                    <span id="cd-status-text">Online</span>
+                </div>
+            </div>
+            <div class="cd-header-actions">
+                <span id="cd-last-updated" class="cd-last-updated">Last check: --:--:--</span>
+                <button class="cd-close-btn" data-cd-close aria-label="Close dashboard">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Loader -->
+        <div id="cd-loader" class="cd-loader">
+            <div class="cd-spinner"></div>
+            <span>Analyzing memory stores...</span>
+        </div>
+
+        <!-- Body Content -->
+        <div id="cd-body-content" class="cd-body" style="display: none;">
+            <!-- KPI GRID -->
+            <div class="cd-kpi-grid">
+                <div class="cd-kpi-card">
+                    <div class="cd-kpi-label">Hit Ratio <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>
+                    <div class="cd-kpi-value" id="cd-val-hit-ratio">0<span class="cd-kpi-unit">%</span></div>
+                    <div class="cd-kpi-subtext">Efficiency rating</div>
+                </div>
+                <div class="cd-kpi-card">
+                    <div class="cd-kpi-label">Total Hits</div>
+                    <div class="cd-kpi-value cd-val-good" id="cd-val-total-hits">0</div>
+                    <div class="cd-kpi-subtext">Served from memory</div>
+                </div>
+                <div class="cd-kpi-card">
+                    <div class="cd-kpi-label">Total Misses</div>
+                    <div class="cd-kpi-value cd-val-warn" id="cd-val-total-misses">0</div>
+                    <div class="cd-kpi-subtext">Fetched from Postgres</div>
+                </div>
+                <div class="cd-kpi-card">
+                    <div class="cd-kpi-label">Network Latency</div>
+                    <div class="cd-kpi-value" id="cd-val-latency-cached">0<span class="cd-kpi-unit">ms</span></div>
+                    <div class="cd-kpi-subtext">vs <span id="cd-val-latency-uncached">0</span>ms uncached</div>
+                </div>
+                <div class="cd-kpi-card">
+                    <div class="cd-kpi-label">DB Queries Avoided</div>
+                    <div class="cd-kpi-value cd-val-good" id="cd-val-queries-avoided" style="font-size: 2rem;">0</div>
+                    <div class="cd-kpi-subtext">Significant load reduction on backend instances</div>
+                </div>
+            </div>
+
+            <!-- CHARTS -->
+            <div class="cd-charts-grid">
+                <div class="cd-chart-container">
+                    <div class="cd-chart-header">Hit Ratio Trend (Last 30 Snapshots)</div>
+                    <div id="cd-chart-hitratio" style="min-height: 260px;"></div>
+                </div>
+                <div class="cd-chart-container">
+                    <div class="cd-chart-header">Volume Distribution</div>
+                    <div id="cd-chart-volume" style="min-height: 260px;"></div>
+                </div>
+            </div>
+
+            <!-- RECOMMENDATIONS -->
+            <div id="cd-recommendation-box" class="cd-recommendation cd-rec-good">
+                <div id="cd-rec-icon-wrapper" class="cd-rec-icon"></div>
+                <div class="cd-rec-content">
+                    <h4 id="cd-rec-title">System Optimal</h4>
+                    <p id="cd-rec-text">Cache is executing at expected performance thresholds.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     DYNAMIC GREETING & SIDEBAR FILTERS
+════════════════════════════════════════════ -->
+<script src="{{ url_for('static', filename='js/greeting.js') }}"></script>
+<script src="{{ url_for('static', filename='js/sidebar_collapse.js') }}"></script>
+<script src="{{ url_for('static', filename='js/sidebar_filters.js') }}"></script>
+
+<!-- ═══════════════════════════════════════════
+     CACHE OBSERVER (Global Fault Tolerance UI)
+════════════════════════════════════════════ -->
+<script src="{{ url_for('static', filename='js/cache_dashboard.js') }}"></script>
+<script src="{{ url_for('static', filename='js/cache_banner.js') }}"></script>
+
+<!-- SETTINGS LOGIC -->
+<!-- ══════════════════════════════════════════════════════════
+     NOTIFICATION CENTER — CSS + JS (Vanilla, sin dependencias)
+     ══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════
+     DOCUMENT PREVIEW — docsToText (client-side extraction)
+════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/gh/bshopcho/docsToText@master/docToText.js"></script>
+
+<!-- Socket.IO Client -->
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+<script src="{{ url_for('static', filename='js/pages/home_v3_core.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/home_previews.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/home_notifications.js') }}"></script>
+
+</body>
+</html>

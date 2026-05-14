@@ -1,0 +1,249 @@
+/* invite.css - Dark Glass UI v3 for Student View */
+
+/* New Discrete Metrics Widget (Footer) */
+.app-footer {
+    height: 48px;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    z-index: 1000;
+}
+.footer-metrics {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex: 1;
+    justify-content: center;
+}
+.activity-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--t2);
+    opacity: 0.6;
+    transition: all 0.3s ease;
+}
+.activity-indicator.active {
+    opacity: 1;
+    color: var(--t1);
+}
+.activity-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #94a3b8;
+}
+.activity-indicator.active .activity-dot {
+    background: #22c55e;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+    animation: pulse-green 1.5s infinite;
+}
+.session-timer {
+    font-family: monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary);
+    background: rgba(80, 200, 140, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    min-width: 60px;
+    text-align: center;
+}
+.privacy-notice-inline {
+    font-size: 10px;
+    color: var(--t3);
+    opacity: 0.7;
+    max-width: 250px;
+    line-height: 1.2;
+}
+@keyframes pulse-green {
+    0% { transform: scale(0.9); opacity: 0.7; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(0.9); opacity: 0.7; }
+}
+
+
+/* ── Presence bar ── */
+#presenceBar { display:flex; align-items:center; gap:0; margin-left:8px; }
+.presence-avatar {
+    width:26px; height:26px; border-radius:50%;
+    font-size:10px; font-weight:700; color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    border:2px solid var(--bg, #0f172a);
+    margin-left:-6px; flex-shrink:0;
+    cursor:default; transition:transform 0.15s;
+}
+.presence-avatar:first-child { margin-left:0; }
+.presence-avatar:hover { transform:scale(1.15); z-index:10; }
+
+/* ── Activity Panel — Contribution Tracking ── */
+.contrib-item { margin-bottom: 12px; }
+.contrib-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.contrib-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.contrib-name { font-size: 12px; font-weight: 600; color: var(--t1); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.contrib-words { font-size: 11px; color: var(--t2); white-space: nowrap; }
+.contrib-bar-track { height: 4px; background: var(--glass-bdr, rgba(255,255,255,0.1)); border-radius: 2px; overflow: hidden; }
+.contrib-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+.activity-empty { text-align: center; padding: 16px 8px; font-size: 12px; color: var(--t3); }
+.activity-updated { font-size: 10px; color: var(--t3); text-align: right; margin-top: 8px; }
+
+/* ── Comment cards in sidebar ── */
+.cp-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 10px 11px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+}
+.cp-card:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.14); }
+.cp-card.cp-resolved { opacity: 0.5; }
+.cp-card.cp-resolved.cp-validated { opacity: 0.35; }
+.cp-card-top {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 6px;
+}
+.cp-color-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.cp-author { font-weight: 600; color: rgba(255,255,255,.8); font-size: 11px; }
+.cp-time   { font-size: 10px; color: rgba(255,255,255,.35); margin-left: auto; }
+.cp-snippet {
+    font-style: italic;
+    color: rgba(255,255,255,.4);
+    font-size: 11px;
+    margin-bottom: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cp-text { color: rgba(255,255,255,.75); line-height: 1.45; margin-bottom: 6px; }
+.cp-mention {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(59, 130, 246,.2); color: #93c5fd;
+    border-radius: 4px; padding: 1px 7px; font-size: 10px; font-weight: 600;
+    margin-bottom: 6px;
+}
+.cp-resolved-badge {
+    display: inline-block;
+    background: rgba(52,211,153,.15); color: #34d399;
+    border: 1px solid rgba(52,211,153,.3);
+    border-radius: 4px; padding: 1px 7px; font-size: 10px; font-weight: 600;
+    margin-bottom: 6px;
+}
+.cp-validated-badge {
+    display: inline-block;
+    background: rgba(99,102,241,.12); color: #818cf8;
+    border: 1px solid rgba(99,102,241,.25);
+    border-radius: 4px; padding: 1px 7px; font-size: 10px; font-weight: 600;
+    margin-bottom: 6px;
+}
+.cp-actions { display: flex; gap: 6px; margin-top: 6px; }
+.cp-btn {
+    flex: 1; padding: 5px 0; border-radius: 6px; font-size: 11px; font-weight: 600;
+    border: none; cursor: pointer; transition: opacity .15s;
+}
+.cp-btn:hover { opacity: 0.8; }
+.cp-btn-view    { background: rgba(99,102,241,.2); color: #818cf8; }
+.cp-btn-resolve { background: rgba(52,211,153,.15); color: #34d399; }
+
+/* ── Validate correction checkbox (student) ── */
+.cp-validate-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 6px; padding: 6px 8px;
+    background: rgba(52,211,153,.06);
+    border: 1px solid rgba(52,211,153,.15);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background .15s;
+}
+.cp-validate-row:hover { background: rgba(52,211,153,.12); }
+.cp-validate-cb {
+    width: 16px; height: 16px;
+    accent-color: #34d399;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.cp-validate-label {
+    font-size: 11px; font-weight: 500;
+    color: #34d399;
+    cursor: pointer;
+    user-select: none;
+}
+.cp-validate-row.validated {
+    background: rgba(99,102,241,.08);
+    border-color: rgba(99,102,241,.2);
+}
+.cp-validate-row.validated .cp-validate-label {
+    color: #818cf8;
+    text-decoration: line-through;
+}
+
+/* ── Invite notification dropdown ── */
+.invite-notif-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 320px;
+    background: #1e293b;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(0,0,0,.55);
+    z-index: 9999;
+    overflow: hidden;
+}
+.invite-notif-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px 8px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    color: #f1f5f9;
+}
+.invite-notif-list {
+    max-height: 340px;
+    overflow-y: auto;
+}
+.invite-notif-footer {
+    padding: 8px 14px;
+    border-top: 1px solid rgba(255,255,255,.08);
+    text-align: center;
+}
+.invite-notif-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+    transition: background .12s;
+    position: relative;
+}
+.invite-notif-item:hover { background: rgba(255,255,255,.04); }
+.invite-notif-item.unread { background: rgba(99,102,241,.08); }
+.invite-notif-icon {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: rgba(99,102,241,.2);
+    color: #818cf8;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.invite-notif-icon.type-comment_added  { background: rgba(59,130,246,.2);  color: #60a5fa; }
+.invite-notif-icon.type-mention        { background: rgba(96, 165, 250,.2);  color: #93c5fd; }
+.invite-notif-icon.type-comment_resolved { background: rgba(52,211,153,.2); color: #34d399; }
+.invite-notif-body { flex: 1; min-width: 0; }
+.invite-notif-title { font-size: 12px; font-weight: 600; color: #f1f5f9; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.invite-notif-msg   { font-size: 11px; color: rgba(255,255,255,.55); line-height: 1.4; margin-bottom: 2px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.invite-notif-time  { font-size: 10px; color: rgba(255,255,255,.3); }
+.invite-notif-dot   { width: 7px; height: 7px; border-radius: 50%; background: #6366f1; flex-shrink: 0; margin-top: 6px; }

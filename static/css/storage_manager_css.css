@@ -1,0 +1,735 @@
+/* Storage Services Panel Styles */
+.storage-services-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  min-width: 200px;
+}
+
+.storage-title {
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.storage-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  max-width: 180px;
+}
+
+.storage-icon {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text);
+  font-size: 1.5rem;
+  overflow: hidden;
+}
+
+.storage-icon:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.storage-icon.connected {
+  background: linear-gradient(135deg, var(--primary), #f4f5f6);
+  color: white;
+  border-color: var(--primary);
+  box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3);
+}
+
+.storage-icon.connecting {
+  animation: pulse 2s infinite;
+  background: linear-gradient(135deg, #ffc107, #fd7e14);
+  color: white;
+}
+
+.connection-status {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.storage-icon.connected .connection-status {
+  background: #28a745;
+  opacity: 1;
+}
+
+.storage-icon.connecting .connection-status {
+  background: #ffc107;
+  opacity: 1;
+  animation: blink 1s infinite;
+}
+
+/* Provider specific colors */
+.storage-icon[data-provider="google_drive"]:hover,
+.storage-icon[data-provider="google_drive"].connected {
+  background: linear-gradient(135deg, #4285f4, #34a853);
+}
+
+.storage-icon[data-provider="dropbox"]:hover,
+.storage-icon[data-provider="dropbox"].connected {
+  background: linear-gradient(135deg, #c1c3c7, #c2c2c3);
+}
+
+.storage-icon[data-provider="box"]:hover,
+.storage-icon[data-provider="box"].connected {
+  background: linear-gradient(135deg, #0061d5, #004bb5);
+}
+
+.storage-icon[data-provider="pcloud"]:hover,
+.storage-icon[data-provider="pcloud"].connected {
+  background: linear-gradient(135deg, #4d9eff, #1976d2);
+}
+
+.storage-icon[data-provider="mega"]:hover,
+.storage-icon[data-provider="mega"].connected {
+  background: linear-gradient(135deg, #d9272e, #b71c1c);
+}
+
+.storage-icon[data-provider="yandex"]:hover,
+.storage-icon[data-provider="yandex"].connected {
+  background: linear-gradient(135deg, #ffcc00, #ff9900);
+}
+
+/* Storage Tabs Styles */
+.storage-tabs-container {
+  margin: 1.5rem 0;
+  padding: 0 1rem;
+}
+
+.storage-tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.storage-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.storage-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: fit-content;
+  position: relative;
+}
+
+.storage-tab:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--primary);
+}
+
+.storage-tab.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
+}
+
+.storage-tab i {
+  font-size: 1rem;
+}
+
+.tab-close {
+  background: none;
+  border: none;
+  color: inherit;
+  padding: 0.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+  margin-left: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.tab-close:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.tab-close::before {
+  content: "×";
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Storage Loading Modal */
+.storage-loading-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(5px);
+}
+
+.storage-loading-modal.active {
+  display: flex;
+}
+
+.loading-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.loading-spinner {
+  margin-bottom: 1.5rem;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+.loading-content h3 {
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.loading-content p {
+
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+/* Animations */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Document Manager Header Adjustments */
+.document-manager-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.dm-title-section {
+  flex: 1;
+  min-width: 200px;
+}
+
+.dashboard-title {
+  color: var(--primary);
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+  background: linear-gradient(135deg, var(--primary), #0056b3);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* White Actions Dropdown - Versión Blanca */
+.white-actions-dropdown {
+  position: relative;
+}
+
+.white-actions-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: white;
+  color: #374151;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
+}
+
+.white-actions-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  transform: translateY(-2px);
+  box-shadow: rgba(0, 0, 0, 0.15) 0px 8px 20px;
+}
+
+.white-actions-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.white-actions-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 8px 24px;
+  padding: 0.5rem;
+  min-width: 14rem;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+}
+
+.white-actions-dropdown.active .white-actions-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.white-action-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  color: #374151;
+  cursor: pointer;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.white-action-item:hover {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+.white-action-item svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+
+.actions-dropdown {
+  position: relative;
+}
+
+
+.actions-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.actions-btn:hover {
+  background: #0056b3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+}
+
+.actions-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.actions-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  min-width: 200px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.actions-dropdown.active .actions-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.action-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  color: var(--text);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.action-item:last-child {
+  border-bottom: none;
+}
+
+.action-item:hover {
+  background: rgba(13, 110, 253, 0.1);
+  color: var(--primary);
+}
+
+.action-item svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Provider Tab Icons */
+.storage-tab[data-storage="google_drive"] i::before {
+  content: "\f1a0"; /* Google icon */
+}
+
+.storage-tab[data-storage="dropbox"] i::before {
+  content: "\f16b"; /* Dropbox icon */
+}
+
+.storage-tab[data-storage="box"] i::before {
+  content: "\f187"; /* Box icon */
+}
+
+.storage-tab[data-storage="pcloud"] i::before {
+  content: "\f0c2"; /* Cloud icon */
+}
+
+.storage-tab[data-storage="mega"] i::before {
+  content: "\f3ed"; /* Shield icon */
+}
+
+.storage-tab[data-storage="yandex"] i::before {
+  content: "\f0ac"; /* Globe icon */
+}
+
+.storage-tab[data-storage="native"] i::before {
+  content: "\f0a0"; /* HDD icon */
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .storage-services-panel {
+    min-width: 180px;
+  }
+  
+  .storage-icons {
+    max-width: 160px;
+  }
+  
+  .storage-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .document-manager-header {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  
+  .dm-title-section {
+    min-width: auto;
+    margin-bottom: 1rem;
+  }
+  
+  .storage-services-panel {
+    min-width: auto;
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+  
+  .storage-icons {
+    max-width: none;
+    justify-content: center;
+  }
+  
+  .storage-tabs {
+    justify-content: flex-start;
+  }
+  
+  .storage-tab {
+    font-size: 0.8rem;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .dashboard-title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .storage-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+  }
+  
+  .storage-icons {
+    gap: 0.5rem;
+  }
+  
+  .storage-tab {
+    padding: 0.5rem;
+    gap: 0.25rem;
+  }
+  
+  .storage-tab span {
+    display: none;
+  }
+  
+  .storage-tab i {
+    font-size: 1.1rem;
+  }
+  
+  .loading-content {
+    padding: 1.5rem;
+  }
+  
+  .loading-content h3 {
+    font-size: 1.1rem;
+  }
+}
+
+/* Connection Status Tooltips */
+.storage-icon[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* Smooth transitions for tab changes */
+.documents-container {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.documents-container.switching {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+/* Loading states for storage content */
+.storage-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: var(--text);
+  opacity: 0.7;
+}
+
+.storage-loading .spinner {
+  width: 30px;
+  height: 30px;
+  margin-right: 1rem;
+}
+
+/* Error states for storage */
+.storage-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #dc3545;
+  text-align: center;
+}
+
+.storage-error i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.7;
+}
+
+.storage-error h4 {
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+}
+
+.storage-error p {
+  margin: 0;
+  opacity: 0.8;
+}
+
+/* Enhanced document cards for different providers */
+.document-card[data-provider] {
+  position: relative;
+}
+
+.document-card[data-provider]::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 8px 8px 0 0;
+}
+
+.document-card[data-provider="google_drive"]::before {
+  background: linear-gradient(90deg, #4285f4, #34a853);
+}
+
+.document-card[data-provider="dropbox"]::before {
+  background: #0061ff;
+}
+
+.document-card[data-provider="box"]::before {
+  background: #0061d5;
+}
+
+.document-card[data-provider="pcloud"]::before {
+  background: #4d9eff;
+}
+
+.document-card[data-provider="mega"]::before {
+  background: #d9272e;
+}
+
+.document-card[data-provider="yandex"]::before {
+  background: #ffcc00;
+}
+
+/* Provider badges */
+.provider-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .storage-services-panel {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  .storage-tabs {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  .storage-tab {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .storage-tab:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .loading-content {
+    background: #2d3748;
+    color: white;
+  }
+  
+  .actions-menu {
+    background: #2d3748;
+    color: white;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+

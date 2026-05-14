@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime
 
 from settings.extensions import db, limiter, logger
+from flask_login import login_required, current_user
 from models.models import Document, User, DocumentActivity
 from settings.utils import (
     allowed_file, generate_safe_filename, process_docx_upload,
@@ -14,6 +15,7 @@ from settings.utils import (
 upload_bp = Blueprint('upload', __name__)
 
 @upload_bp.route('/api/document/upload', methods=['POST'])
+@login_required
 @limiter.limit("10/minute")
 def upload_document():
     """Subir documento DOCX/DOC y convertir a formato del editor"""
@@ -27,16 +29,19 @@ def upload_document():
     if file.filename == '':
         return jsonify({'error': 'No se seleccionó archivo'}), 400
     
-    # Obtener metadatos adicionales
-    owner_email = request.form.get('owner_email', '').strip()
+    # Optional custom title from form
     custom_title = request.form.get('title', '').strip()
     
-    # Validar email del propietario si se proporciona
-    owner = None
-    if owner_email:
-        if not validate_email(owner_email):
-            return jsonify({'error': 'Email del propietario no válido'}), 400
-        owner = User.get_or_create(owner_email)
+    # Optional folder_id from form
+    folder_id = request.form.get('folder_id')
+    if folder_id:
+        try:
+            folder_id = int(folder_id)
+            from models.models import Folder
+            if not Folder.query.filter_by(id=folder_id, user_id=current_user.id).first():
+                return jsonify({'error': 'Carpeta destino no encontrada o no autorizada'}), 404
+        except ValueError:
+            folder_id = None
     
     # Validar archivo
     if not allowed_file(file.filename, {'doc', 'docx'}):
@@ -96,7 +101,8 @@ def upload_document():
             document_type='uploaded',
             original_filename=original_filename,
             mime_type=f'application/vnd.openxmlformats-officedocument.wordprocessingml.document' if file_ext == 'docx' else 'application/msword',
-            owner_id=owner.id if owner else None
+            owner_id=current_user.id,
+            folder_id=folder_id
         )
         
         # Calcular tamaño del contenido
@@ -123,7 +129,7 @@ def upload_document():
         # Registrar actividad
         DocumentActivity.log_activity(
             doc.id, 
-            owner_email or 'anonymous', 
+            current_user.email, 
             'uploaded', 
             f'Documento "{original_filename}" subido y convertido',
             request
@@ -139,7 +145,7 @@ def upload_document():
             'storage_type': doc.storage_type,
             'size_bytes': content_size,
             'created_at': doc.created_at.isoformat(),
-            'owner_email': owner.email if owner else None,
+            'owner_id': current_user.id,
             'message': f'Documento "{original_filename}" subido y convertido exitosamente'
         })
         
@@ -155,7 +161,86 @@ def upload_document():
     #    logger.error(f"Error subiendo documento: {e}")
     #    return jsonify({'error': 'Error procesando archivo'}), 500
 
+@upload_bp.route('/api/image/upload', methods=['POST'])
+@limiter.limit("20/minute")
+def upload_image():
+    """Subir imagen a SeaweedFS y retornar URL"""
+    if 'file' not in request.files:
+        return jsonify({'error': 'No se seleccionó archivo'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No se seleccionó archivo'}), 400
+    
+    # Validar extensión de imagen
+    if not allowed_file(file.filename, {'png', 'jpg', 'jpeg', 'gif', 'webp'}):
+        return jsonify({'error': 'Formato de imagen no soportado'}), 400
+    
+    try:
+        from settings.utils import optimize_image
+        from settings.extensions import minio_client
+        from io import BytesIO
+        
+        image_bytes = file.read()
+        if not image_bytes:
+            return jsonify({'error': 'Contenido de imagen vacío'}), 400
+            
+        file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'png'
+        
+        # Generar nombre único
+        filename = f"{uuid.uuid4()}.{file_ext}"
+        
+        logger.info(f"[UploadImage] Procesando imagen: {filename}, tamaño: {len(image_bytes)}")
+        
+        # Optimizar imagen
+        try:
+            optimized_bytes = optimize_image(image_bytes, file_ext)
+        except Exception as opt_err:
+            logger.warning(f"Error optimizando imagen, usando original: {opt_err}")
+            optimized_bytes = image_bytes
+        
+        # Intentar subir a SeaweedFS con timeout corto
+        try:
+            # Subir a SeaweedFS
+            minio_client.put_object(
+                bucket_name='images',
+                object_name=filename,
+                data=BytesIO(optimized_bytes),
+                length=len(optimized_bytes),
+                content_type=f'image/{file_ext}'
+            )
+            logger.info(f"[UploadImage] Imagen subida a SeaweedFS: {filename}")
+        except Exception as minio_err:
+            logger.warning(f"[UploadImage] SeaweedFS no disponible, usando almacenamiento local: {minio_err}")
+            
+            # Almacenamiento local fallback
+            from flask import current_app
+            upload_folder = current_app.config['UPLOAD_FOLDER']
+            images_dir = os.path.join(upload_folder, 'images')
+            os.makedirs(images_dir, exist_ok=True)
+            
+            local_path = os.path.join(images_dir, filename)
+            with open(local_path, 'wb') as f:
+                f.write(optimized_bytes)
+            
+            logger.info(f"[UploadImage] Imagen guardada localmente: {local_path}")
+        
+        # Retornar URL que apunta al serve_image en document_bp
+        url = f"/api/image/{filename}"
+        
+        return jsonify({
+            'success': True,
+            'url': url,
+            'filename': filename,
+            'message': 'Imagen subida exitosamente (fallback local activo si SeaweedFS falló)'
+        })
+        
+    except Exception as e:
+        logger.exception(f"Error crítico en subida de imagen: {e}")
+        return jsonify({'error': f'Error interno: {str(e)}'}), 500
+
 @upload_bp.route('/api/document/<int:doc_id>/replace', methods=['POST'])
+@login_required
 @limiter.limit("5/minute")
 def replace_document_content(doc_id):
     """Reemplazar contenido de un documento existente con archivo subido"""
@@ -170,11 +255,13 @@ def replace_document_content(doc_id):
             return jsonify({'error': 'No se seleccionó archivo'}), 400
         
         # Obtener metadatos
-        user_email = request.form.get('user_email', 'anonymous')
         keep_title = request.form.get('keep_title', 'true').lower() == 'true'
         
-        # Buscar documento existente
+        # Buscar documento existente y verificar ownership
         doc = Document.query.get_or_404(doc_id)
+        
+        if doc.owner_id != current_user.id:
+            return jsonify({'error': 'No autorizado'}), 403
         
         if doc.is_deleted:
             return jsonify({'error': 'Documento no encontrado'}), 404
@@ -239,9 +326,18 @@ def replace_document_content(doc_id):
             if doc.minio_path:
                 try:
                     from settings.extensions import minio_client
-                    minio_client.remove_object('documents', doc.minio_path)
-                except:
-                    pass
+                    if doc.minio_path.startswith('local://'):
+                        import os
+                        real_filename = doc.minio_path.replace('local://', '')
+                        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+                        local_path = os.path.join(upload_folder, 'documents', real_filename)
+                        if os.path.exists(local_path):
+                            os.remove(local_path)
+                            logger.info(f"Archivo local eliminado (reemplazo): {real_filename}")
+                    else:
+                        minio_client.remove_object('documents', doc.minio_path)
+                except Exception as rem_err:
+                    logger.warning(f"Error eliminando objeto previo: {rem_err}")
                 doc.minio_path = None
             
             # Decidir nuevo almacenamiento
@@ -266,7 +362,7 @@ def replace_document_content(doc_id):
             
             # Registrar actividad
             DocumentActivity.log_activity(
-                doc_id, user_email, 'content_replaced', 
+                doc_id, current_user.email, 'content_replaced', 
                 f'Contenido reemplazado con archivo "{original_filename}"',
                 request
             )
@@ -348,37 +444,17 @@ def validate_upload():
         return jsonify({'error': 'Error validando archivo'}), 500
 
 @upload_bp.route('/upload/stats', methods=['GET'])
+@login_required
 def get_upload_stats():
-    """Obtener estadísticas de documentos subidos"""
+    """Obtener estadísticas de documentos subidos por el usuario autenticado"""
     try:
-        owner_email = request.args.get('owner_email')
-        
-        # Construir query base
-        query = Document.query.filter_by(document_type='uploaded', is_deleted=False)
-        
-        if owner_email:
-            user = User.query.filter_by(email=owner_email).first()
-            if user:
-                query = query.filter_by(owner_id=user.id)
-            else:
-                return jsonify({
-                    'total_uploaded': 0,
-                    'total_size_bytes': 0,
-                    'total_size_mb': 0,
-                    'by_format': {},
-                    'recent_uploads': [],
-                    'owner_email': owner_email
-                })
+        # ALWAYS scoped to current user
+        query = Document.query.filter_by(document_type='uploaded', is_deleted=False, owner_id=current_user.id)
         
         # Estadísticas generales
         total_uploaded = query.count()
         total_size = db.session.query(db.func.sum(Document.size_bytes))\
-            .filter_by(document_type='uploaded', is_deleted=False)
-        
-        if owner_email and user:
-            total_size = total_size.filter_by(owner_id=user.id)
-        
-        total_size = total_size.scalar() or 0
+            .filter_by(document_type='uploaded', is_deleted=False, owner_id=current_user.id).scalar() or 0
         
         # Estadísticas por formato
         from sqlalchemy import func
@@ -386,10 +462,7 @@ def get_upload_stats():
             Document.mime_type,
             func.count(Document.id).label('count'),
             func.sum(Document.size_bytes).label('total_size')
-        ).filter_by(document_type='uploaded', is_deleted=False)
-        
-        if owner_email and user:
-            format_stats = format_stats.filter_by(owner_id=user.id)
+        ).filter_by(document_type='uploaded', is_deleted=False, owner_id=current_user.id)
         
         format_stats = format_stats.group_by(Document.mime_type).all()
         
@@ -418,7 +491,7 @@ def get_upload_stats():
                     'owner_email': doc.owner.email if doc.owner else None
                 } for doc in recent_uploads
             ],
-            'owner_email': owner_email
+            'owner_id': current_user.id
         })
         
     except Exception as e:

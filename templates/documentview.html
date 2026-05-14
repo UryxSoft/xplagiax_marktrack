@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarkTrack - Document View</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/marktrack.ico') }}">
+    <!-- Theme Script -->
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            let theme = 'light';
+            if (savedTheme) {
+                theme = savedTheme;
+            } else if (savedTheme === 'auto' || (!savedTheme && prefersDark)) {
+                theme = 'dark';
+            }
+            if (theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/invite-v3.css') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/documentview.css') }}">
+</head>
+<body>
+    <div class="view-container">
+        <!-- Header -->
+        <header class="app-header teacher-header">
+            <div class="header-left">
+                <button class="btn-icon" onclick="window.history.back()" title="Back" style="margin-right: 12px; border: 1px solid var(--glass-bdr); border-radius: 8px; padding: 6px;">
+                    <i data-lucide="arrow-left" style="width: 18px; height: 18px;"></i>
+                </button>
+                <div class="app-icon">
+                    <i data-lucide="file-text"></i>
+                </div>
+                <div class="assignment-title">
+                    <a href="/home" class="assignment-label" style="text-decoration:none; cursor:pointer;" title="Return to home screen">
+                        Back to home
+                    </a>
+                    <span class="assignment-name">{{ document.title }}</span>
+                </div>
+            </div>
+
+            <div class="header-right header-actions">
+                <span style="background:rgba(16, 185, 129, 0.15);color:#34d399;border:1px solid rgba(16, 185, 129, 0.3);padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.1em;white-space:nowrap;">READ ONLY</span>
+                <div style="height:24px;width:1px;background:var(--glass-bdr);flex-shrink:0;"></div>
+                <button class="btn-clean" onclick="alert('Download feature coming soon!')" title="Download Document">
+                    <i data-lucide="download" style="width:16px;height:16px;"></i>
+                    Download
+                </button>
+            </div>
+        </header>
+
+        <main class="pdf-viewer-container">
+            {% if document.minio_path or document.cloud_url %}
+            <iframe src="{{ document.cloud_url or '/api/document/' ~ document.id ~ '/raw' }}" class="pdf-iframe" title="PDF Viewer"></iframe>
+            {% else %}
+            <div style="text-align: center; color: var(--t2); font-size: 14px; padding: 20px;">
+                <i data-lucide="file-question" style="width: 48px; height: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                <p>Preview not available natively in MarkTrack yet.</p>
+                <button class="btn btn-primary" onclick="alert('Download feature coming soon!')" style="margin-top: 12px; border: none; background: #3b82f6; padding: 8px 16px; border-radius: 8px; color: white;">Download File</button>
+            </div>
+            {% endif %}
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/pages/documentview.js') }}"></script>
+</body>
+</html>

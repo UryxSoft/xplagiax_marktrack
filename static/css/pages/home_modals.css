@@ -1,0 +1,29 @@
+/* ═══════════════════════════════════════════════════
+   HOME MODALS & PANELS STYLES
+   ═══════════════════════════════════════════════════ */
+
+/* Create Doc Spinner */
+@keyframes wdSpin { 
+  0% { transform: rotate(0deg); } 
+  100% { transform: rotate(360deg); } 
+}
+.wd-spinner {
+  display: inline-block;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  animation: wdSpin 0.8s linear infinite;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* Home Modal Animations */
+@keyframes hbModalIn { 
+  from { opacity:0; transform:scale(.91) translateY(10px); } 
+  to { opacity:1; transform:scale(1) translateY(0); } 
+}
+@keyframes hbSpin { 
+  to { transform:rotate(360deg); } 
+}

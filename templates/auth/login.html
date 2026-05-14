@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication - XplagiaX MarkTrack</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/marktrack.ico') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth-login-inline.css') }}">
+</head>
+
+<body>
+    <div class="bg-glow"></div>
+
+    <div id="notification" class="notification"></div>
+
+    <div class="auth-wrapper" id="authWrapper">
+        <div class="form-box login-side">
+            <div class="form-header">
+                <div class="app-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                        class="icon-svg bi bi-pencil-square" viewBox="0 0 16 16">
+                        <path
+                            d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z">
+                        </path>
+                        <path fill-rule="evenodd"
+                            d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z">
+                        </path>
+                    </svg>
+                </div>
+                <h1>Welcome Back</h1>
+                <p class="subtitle">Enter your credentials to access your account</p>
+            </div>
+
+            <form id="loginForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" name="email" placeholder="name@company.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" name="password" placeholder="••••••••" required>
+                </div>
+
+                <div class="form-options">
+                    <label class="checkbox-group">
+                        <input type="checkbox" name="remember_me">
+                        <span>Remember me</span>
+                    </label>
+                    <a href="{{ url_for('auth_bp.forgot_password') }}" class="forgot-link">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="btn-primary">Sign In</button>
+            </form>
+
+            <div class="divider"><span>OR CONTINUE WITH</span></div>
+
+            <div class="oauth-group">
+                <a href="{{ url_for('auth_bp.google_login') }}" class="btn-oauth">
+                    <svg viewBox="0 0 24 24">
+                        <path fill="#EA4335"
+                            d="M5.266 9.765C6.199 6.939 8.854 4.91 12 4.91c1.691 0 3.218.6 4.418 1.49l3.491-3.49C17.782 1.145 15.055 0 12 0 7.27 0 3.198 2.698 1.24 6.65l4.026 3.115z" />
+                        <path fill="#34A853"
+                            d="M16.04 18.013c-1.09.704-2.475 1.078-4.04 1.078-3.134 0-5.781-2.014-6.723-4.823l-4.04 3.067C3.193 21.294 7.265 24 12 24c2.933 0 5.735-1.043 7.834-3l-3.794-2.987z" />
+                        <path fill="#4A90E2"
+                            d="M19.834 21c2.195-2.048 3.62-5.096 3.62-9 0-.71-.11-1.473-.273-2.182H12v4.636h6.436c-.317 1.559-1.17 2.767-2.396 3.559L19.834 21z" />
+                        <path fill="#FBBC05"
+                            d="M5.277 14.268c-.239-.712-.368-1.474-.368-2.268 0-.782.125-1.533.357-2.235L1.24 6.65C.437 8.26 0 10.075 0 12c0 1.92.445 3.735 1.237 5.335l4.04-3.067z" />
+                    </svg>
+                    Google
+                </a>
+                <a href="{{ url_for('auth_bp.microsoft_login') }}" class="btn-oauth">
+                    <svg viewBox="0 0 24 24">
+                        <rect x="1" y="1" width="10" height="10" fill="#f25022" />
+                        <rect x="13" y="1" width="10" height="10" fill="#7fba00" />
+                        <rect x="1" y="13" width="10" height="10" fill="#00a4ef" />
+                        <rect x="13" y="13" width="10" height="10" fill="#ffb900" />
+                    </svg>
+                    Microsoft
+                </a>
+            </div>
+        </div>
+        <!-- Branding side with the requested image -->
+        <div class="overlay-container">
+            <div class="overlay">
+                <div class="overlay-content">
+                    <h2>Welcome Back!</h2>
+                    <p>Access your dashboard and manage your academic documents in one place.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const notification = document.getElementById('notification');
+
+        function showNotification(msg, type = 'success') {
+            notification.textContent = msg;
+            notification.className = `notification notification-${type} show`;
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Form Handlers
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            data.remember_me = formData.get('remember_me') === 'on';
+
+            try {
+                const loginUrl = new URL('{{ url_for("auth_bp.login") }}', window.location.origin);
+                const currentParams = new URLSearchParams(window.location.search);
+                currentParams.forEach((val, key) => loginUrl.searchParams.set(key, val));
+
+                const resp = await fetch(loginUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': data.csrf_token
+                    },
+                    body: JSON.stringify(data)
+                });
+                const res = await resp.json();
+                if (resp.ok) {
+                    showNotification('Login successful! Redirecting...');
+                    setTimeout(() => window.location.href = res.redirect || '/', 1000);
+                } else {
+                    showNotification(res.error || 'Login failed', 'error');
+                }
+            } catch (err) {
+                showNotification('Connection error', 'error');
+            }
+        });
+    </script>
+</body>
+
+</html>

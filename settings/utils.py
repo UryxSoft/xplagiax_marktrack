@@ -24,7 +24,8 @@ from models.models import DocumentVersion
 from flask import current_app, request
 from flask_mail import Message
 
-from .extensions import minio_client, redis_client, mail, logger,db
+from .extensions import minio_client, redis_client, mail, logger, db
+from services.mail_service import mail_service
 
 def allowed_file(filename, allowed_extensions=None):
     """Verificar si el archivo tiene una extensión permitida"""
@@ -100,19 +101,32 @@ def extract_and_upload_images(delta):
                         # Optimizar imagen si es necesario
                         optimized_bytes = optimize_image(image_bytes, file_ext)
                         
-                        # Subir a Minio
-                        minio_client.put_object(
-                            bucket_name='images',
-                            object_name=filename,
-                            data=BytesIO(optimized_bytes),
-                            length=len(optimized_bytes),
-                            content_type=f'image/{file_ext}'
-                        )
+                        # Intentar subir a SeaweedFS
+                        try:
+                            minio_client.put_object(
+                                bucket_name='images',
+                                object_name=filename,
+                                data=BytesIO(optimized_bytes),
+                                length=len(optimized_bytes),
+                                content_type=f'image/{file_ext}'
+                            )
+                            logger.info(f"Imagen subida a SeaweedFS: {filename}")
+                        except Exception as minio_err:
+                            logger.warning(f"SeaweedFS no disponible para imagen, usando almacenamiento local: {minio_err}")
+                            
+                            # Almacenamiento local fallback
+                            import os
+                            upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+                            images_dir = os.path.join(upload_folder, 'images')
+                            os.makedirs(images_dir, exist_ok=True)
+                            
+                            local_path = os.path.join(images_dir, filename)
+                            with open(local_path, 'wb') as f:
+                                f.write(optimized_bytes)
+                            logger.info(f"Imagen guardada localmente: {local_path}")
                         
                         # Reemplazar en delta con URL
                         op['insert']['image'] = f"/document_bp/api/image/{filename}"
-                        
-                        logger.info(f"Imagen subida: {filename}")
                         
                     except Exception as e:
                         logger.error(f"Error subiendo imagen: {e}")
@@ -153,7 +167,7 @@ def optimize_image(image_bytes, format_ext, max_size=(1920, 1920), quality=85):
         return image_bytes
 
 def save_to_minio_compressed(delta, html):
-    """Guardar contenido comprimido en Minio"""
+    """Guardar contenido comprimido en SeaweedFS con fallback local"""
     content = {
         'delta': delta,
         'html': html,
@@ -166,21 +180,55 @@ def save_to_minio_compressed(delta, html):
     
     filename = f"doc_{uuid.uuid4()}.json.gz"
     
-    minio_client.put_object(
-        bucket_name='documents',
-        object_name=filename,
-        data=BytesIO(compressed),
-        length=len(compressed),
-        content_type='application/gzip'
-    )
-    
-    return filename
+    try:
+        # Intentar subir a SeaweedFS
+        minio_client.put_object(
+            bucket_name='documents',
+            object_name=filename,
+            data=BytesIO(compressed),
+            length=len(compressed),
+            content_type='application/gzip'
+        )
+        logger.info(f"Documento guardado en SeaweedFS: {filename}")
+        return filename
+    except Exception as e:
+        logger.warning(f"SeaweedFS no disponible, usando almacenamiento local: {e}")
+        
+        # Almacenamiento local fallback
+        import os
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+        documents_dir = os.path.join(upload_folder, 'documents')
+        os.makedirs(documents_dir, exist_ok=True)
+        
+        local_path = os.path.join(documents_dir, filename)
+        with open(local_path, 'wb') as f:
+            f.write(compressed)
+        
+        logger.info(f"Documento guardado localmente: {local_path}")
+        return f"local://{filename}"
 
 def load_from_minio_compressed(filename):
-    """Cargar contenido comprimido desde Minio"""
+    """Cargar contenido comprimido desde SeaweedFS o almacenamiento local"""
     try:
-        response = minio_client.get_object('documents', filename)
-        compressed_data = response.read()
+        if filename.startswith('local://'):
+            # Cargar desde almacenamiento local
+            import os
+            real_filename = filename.replace('local://', '')
+            upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+            local_path = os.path.join(upload_folder, 'documents', real_filename)
+            
+            if not os.path.exists(local_path):
+                logger.error(f"Archivo local no encontrado: {local_path}")
+                return None, None
+                
+            with open(local_path, 'rb') as f:
+                compressed_data = f.read()
+            logger.info(f"Documento cargado desde local: {real_filename}")
+        else:
+            # Cargar desde SeaweedFS
+            response = minio_client.get_object('documents', filename)
+            compressed_data = response.read()
+            logger.info(f"Documento cargado desde SeaweedFS: {filename}")
         
         # Descomprimir
         json_content = gzip.decompress(compressed_data).decode('utf-8')
@@ -189,7 +237,7 @@ def load_from_minio_compressed(filename):
         return content.get('delta', {}), content.get('html', '')
         
     except Exception as e:
-        logger.error(f"Error cargando desde Minio: {e}")
+        logger.error(f"Error cargando desde almacenamiento (file: {filename}): {e}")
         return None, None
 
 def process_docx_upload(file_path):
@@ -336,9 +384,19 @@ def create_version_backup(document):
             for old_version in oldest_versions:
                 if old_version.minio_path:
                     try:
-                        minio_client.remove_object('documents', old_version.minio_path)
-                    except:
-                        pass
+                        if old_version.minio_path and old_version.minio_path.startswith('local://'):
+                            # Eliminar archivo local
+                            import os
+                            real_filename = old_version.minio_path.replace('local://', '')
+                            upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+                            local_path = os.path.join(upload_folder, 'documents', real_filename)
+                            if os.path.exists(local_path):
+                                os.remove(local_path)
+                                logger.info(f"Archivo local eliminado (versión antigua): {real_filename}")
+                        else:
+                            minio_client.remove_object('documents', old_version.minio_path)
+                    except Exception as remove_err:
+                        logger.error(f"Error eliminando objeto de versión fija: {remove_err}")
                 db.session.delete(old_version)
         
         # Crear nueva versión
@@ -369,12 +427,12 @@ def clean_html_for_export(html):
     
     soup = BeautifulSoup(html, 'html.parser')
     
-    # Convertir imágenes de Minio a URLs completas
+    # Convertir imágenes de SeaweedFS a URLs completas
     for img in soup.find_all('img'):
         src = img.get('src', '')
         if src.startswith('/document_bp/api/image/'):
             filename = src.replace('/document_bp/api/image/', '')
-            # Generar URL temporal de Minio
+            # Generar URL temporal de SeaweedFS
             try:
                 img_url = minio_client.presigned_get_object(
                     'images', filename, expires=timedelta(hours=1)
@@ -750,8 +808,8 @@ def send_share_notification_email(recipient_email, document_title, shared_by_ema
             html=html_body
         )
         
-        # Enviar email
-        mail.send(msg)
+        # Enviar email con redundancia
+        mail_service.send(msg)
         logger.info(f"Email de compartir enviado a {recipient_email}")
         return True
         

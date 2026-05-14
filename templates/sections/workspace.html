@@ -1,0 +1,1825 @@
+{% extends "home_base.html" %}
+{% block view_content %}
+<!-- ═══════════════════════════════════════════
+         WORKSPACE VIEW
+    ═══════════════════════════════════════════ -->
+<div class="main wv-main" id="workspaceView" name="workspaceView">
+
+  <!-- Header -->
+  <div class="wv-head" id="wvHead" name="wvHead">
+    <div class="wv-title-block" id="wvTitleBlock" name="wvTitleBlock">
+      <h1 class="wv-page-title" id="wvPageTitle" name="wvPageTitle">Session Workspaces</h1>
+      <p class="wv-subtitle" id="wvSubtitle" name="wvSubtitle">Organize your teaching sessions and track student
+        participation</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <!-- REFRESH BUTTON -->
+      <button class="btn-refresh" aria-label="Actualizar" data-tooltip="Actualizar Workspaces"
+        onclick="RefreshManager.execute(this, fetchWorkspaces)">
+        <svg viewBox="0 0 24 24">
+          <path d="M21 2v6h-6" />
+          <path d="M21 13a9 9 0 11-3-7.7L21 8" />
+        </svg>
+      </button>
+
+      <button class="wv-create-btn" id="wvCreateBtn" name="wvCreateBtn" onclick="openWorkspaceModal()">
+        <svg viewBox="0 0 24 24">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        Create Workspace
+      </button>
+    </div>
+  </div>
+
+  <div class="wv-scroll" id="wvScroll" name="wvScroll">
+    <section id="wvActiveSection" name="wvActiveSection">
+      <div class="wv-section-head" id="wvActiveSectionHead" name="wvActiveSectionHead">
+        <span class="wv-section-title" id="wvActiveTitle" name="wvActiveTitle">Active Sessions</span>
+        <span class="wv-section-badge active-badge" id="wvActiveBadge" name="wvActiveBadge">0</span>
+        <div class="wv-section-divider" id="wvActiveDivider" name="wvActiveDivider"></div>
+      </div>
+      <div class="wv-grid" id="wvActiveGrid" name="wvActiveGrid"
+        style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 15px;">
+      </div>
+    </section>
+    <section id="wvClosedSection" name="wvClosedSection" style="margin-top:40px;">
+      <div class="wv-section-head" id="wvClosedSectionHead" name="wvClosedSectionHead">
+        <span class="wv-section-title" id="wvClosedTitle" name="wvClosedTitle">Closed Sessions</span>
+        <span class="wv-section-badge" id="wvClosedBadge" name="wvClosedBadge">0</span>
+        <div class="wv-section-divider" id="wvClosedDivider" name="wvClosedDivider"></div>
+      </div>
+      <div class="wv-grid" id="wvClosedGrid" name="wvClosedGrid"
+        style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 15px;">
+      </div>
+    </section>
+  </div>
+</div><!-- /workspaceView -->
+
+<!-- ════════════════════════════════════
+         MODAL: CREATE WORKSPACE
+    ════════════════════════════════════ -->
+<div class="modal-backdrop" id="wvWorkspaceModalBackdrop" onclick="closeWorkspaceModal()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);z-index:9000;align-items:center;justify-content:center;">
+  <div class="modal-box" onclick="event.stopPropagation()"
+    style="background:linear-gradient(145deg,rgba(30,34,50,.97),rgba(20,24,40,.97));border:1px solid rgba(255,255,255,.14);border-top:1px solid rgba(255,255,255,.25);border-radius:20px;width:min(500px,90vw);padding:28px 28px 24px;animation:modalIn .3s cubic-bezier(0.34,1.56,0.64,1);max-height:85vh;overflow-y:auto;">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div
+          style="width:38px;height:38px;border-radius:10px;background:rgba(99,102,241,.15);display:flex;align-items:center;justify-content:center;">
+          <svg width="18" height="18" fill="none" stroke="#818CF8" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M12 20h9" />
+            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+          </svg>
+        </div>
+        <h3 id="wvWorkspaceModalTitle" style="font-size:16px;font-weight:600;color:#fff;margin:0;">Create Workspace
+          Session</h3>
+      </div>
+      <div onclick="closeWorkspaceModal()"
+        style="width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.5);font-size:18px;transition:background .15s;"
+        onmouseover="this.style.background='rgba(255,255,255,.14)'"
+        onmouseout="this.style.background='rgba(255,255,255,.07)'">×</div>
+    </div>
+
+    <form id="wvForm" onsubmit="handleWorkspaceSubmit(event)">
+      <!-- Title -->
+      <div style="margin-bottom:16px;">
+        <label
+          style="display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Theme
+          Title <span style="color:#f87171">*</span></label>
+        <input type="text" id="wvTitle" required placeholder="e.g. Introduction to Biology" class="wv-input">
+      </div>
+
+      <!-- Classroom -->
+      <div style="margin-bottom:16px;">
+        <label
+          style="display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Classroom / Group</label>
+        <input type="text" id="wvClassroom" placeholder="e.g. Group 101, Room A" class="wv-input">
+      </div>
+
+      <!-- Description -->
+      <div style="margin-bottom:16px;">
+        <label
+          style="display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Description</label>
+        <textarea id="wvDesc" placeholder="Brief description of the session..." class="wv-input"
+          style="min-height:70px;resize:vertical;"></textarea>
+      </div>
+
+      <!-- Dates -->
+      <div style="display:flex;gap:16px;margin-bottom:16px;">
+        <div style="flex:1;">
+          <label
+            style="display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Start
+            Date <span style="color:#f87171">*</span></label>
+          <input type="datetime-local" id="wvStart" required class="wv-input">
+        </div>
+        <div style="flex:1;">
+          <label
+            style="display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">End
+            Date <span style="color:#f87171">*</span></label>
+          <input type="datetime-local" id="wvEnd" required class="wv-input">
+        </div>
+      </div>
+
+      <!-- Word Limit -->
+      <div
+        style="margin-bottom:16px;padding:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#fff;">
+          <input type="checkbox" id="wvLimitToggle" onchange="toggleWordLimit(this.checked)"
+            style="width:16px;height:16px;accent-color:#6366f1;">
+          <span>Enable word limit</span>
+        </label>
+        <div id="wvLimitWrap" style="display:none;margin-top:12px;">
+          <input type="number" id="wvLimitValue" placeholder="e.g. 1000" class="wv-input" min="50" max="50000">
+        </div>
+      </div>
+
+      <!-- Participants -->
+      <div style="margin-bottom:8px;">
+        <label
+          style="display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Participants
+          <span style="color:#f87171">*</span></label>
+        <div id="wvPillContainer" class="wv-input"
+          style="display:flex;flex-wrap:wrap;gap:6px;padding:6px 12px;min-height:42px;align-items:center;cursor:text;"
+          onclick="document.getElementById('wvEmailInput').focus()">
+          <input type="text" id="wvEmailInput" placeholder="Add email and press Enter..."
+            style="flex:1;min-width:150px;background:transparent;border:none;color:#fff;font-size:13px;outline:none;"
+            onkeydown="handleEmailKeydown(event)">
+        </div>
+        <div id="wvEmailError" style="color:#f87171;font-size:11px;margin-top:6px;display:none;">Invalid email format
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:10px;margin-top:28px;justify-content:flex-end;">
+        <button type="button" onclick="closeWorkspaceModal()"
+          style="display:flex;align-items:center;gap:6px;padding:10px 20px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.65);font-size:13px;font-weight:500;cursor:pointer;transition:background .15s;"
+          onmouseover="this.style.background='rgba(255,255,255,.14)'"
+          onmouseout="this.style.background='rgba(255,255,255,.08)'"><svg width="16" height="16" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>Cancel</button>
+        <button type="submit" id="wvSubmitBtn"
+          style="padding:10px 20px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:1px solid rgba(139,92,246,.4);color:#fff;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;transition:opacity .15s;">
+          <span class="loading" id="wvLoading"
+            style="display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;"></span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span id="wvBtnText">Create</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+         MODAL: DELETE WORKSPACE
+    ════════════════════════════════════ -->
+<div class="modal-backdrop" id="wvDeleteModalBackdrop" onclick="closeDeleteModal()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);z-index:9000;align-items:center;justify-content:center;">
+  <div class="modal-box" onclick="event.stopPropagation()"
+    style="background:linear-gradient(145deg,rgba(30,34,50,.97),rgba(20,24,40,.97));border:1px solid rgba(255,255,255,.14);border-top:1px solid rgba(255,255,255,.25);border-radius:20px;width:min(420px,90vw);padding:28px 28px 24px;animation:modalIn .3s cubic-bezier(0.34,1.56,0.64,1);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div
+          style="width:36px;height:36px;border-radius:10px;background:rgba(239,68,68,.15);display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" viewBox="0 0 24 24">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+            <path d="M10 11v6" />
+            <path d="M14 11v6" />
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+          </svg>
+        </div>
+        <h3 style="font-size:15px;font-weight:600;color:#fff;margin:0;">Delete Assignment</h3>
+      </div>
+      <div onclick="closeDeleteModal()"
+        style="width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.5);font-size:18px;transition:background .15s;"
+        onmouseover="this.style.background='rgba(255,255,255,.14)'"
+        onmouseout="this.style.background='rgba(255,255,255,.07)'">×</div>
+    </div>
+    <p style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:6px;text-align:center;">Are you sure you want to
+      delete this session?</p>
+    <div
+      style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.18);border-radius:10px;padding:10px 14px;margin-bottom:10px;text-align:center;">
+      <p style="font-size:14px;font-weight:600;color:#f87171;margin:0;" id="deleteWsName">Title</p>
+    </div>
+    <p style="font-size:12px;color:rgba(255,255,255,.35);margin-bottom:0;text-align:center;">This action cannot be
+      undone and will remove all participant access instantly.</p>
+    <div style="display:flex;gap:10px;margin-top:22px;justify-content:flex-end;">
+      <button onclick="closeDeleteModal()"
+        style="padding:9px 18px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.65);font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s;"
+        onmouseover="this.style.background='rgba(255,255,255,.14)'"
+        onmouseout="this.style.background='rgba(255,255,255,.08)'">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" viewBox="0 0 24 24">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+        Cancel
+      </button>
+      <button onclick="handleDeleteSubmit()"
+        style="padding:9px 18px;border-radius:10px;background:linear-gradient(135deg,rgba(239,68,68,.6),rgba(220,38,38,.5));border:1px solid rgba(239,68,68,.4);color:#fff;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;transition:opacity .15s;">
+        <span class="loading" id="deleteWsLoading"
+          style="display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;"></span>
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" viewBox="0 0 24 24">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+          <path d="M10 11v6"></path>
+          <path d="M14 11v6"></path>
+        </svg>
+        <span id="deleteWsBtnText">Delete</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+         MODAL: DETAIL WORKSPACE (Participant List)
+    ════════════════════════════════════ -->
+<div class="modal-backdrop" id="wvDetailModalBackdrop" onclick="closeDetailModal()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);z-index:9000;align-items:center;justify-content:center;">
+  <div class="modal-box" onclick="event.stopPropagation()"
+    style="background:linear-gradient(145deg,rgba(30,34,50,.97),rgba(20,24,40,.97));border:1px solid rgba(255,255,255,.14);border-top:1px solid rgba(255,255,255,.25);border-radius:20px;width:min(600px,95vw);padding:28px;animation:modalIn .3s cubic-bezier(0.34,1.56,0.64,1);max-height:85vh;display:flex;flex-direction:column;">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <h3 style="font-size:18px;font-weight:600;color:#fff;margin:0 0 6px 0;" id="dtTitle">...</h3>
+        <p style="font-size:12px;color:rgba(255,255,255,.5);margin:0;" id="dtDates">...</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="btn-refresh" style="width:30px;height:30px;border-radius:8px;" aria-label="Actualizar"
+          data-tooltip="Actualizar Participantes"
+          onclick="if(currentDetailId) RefreshManager.execute(this, () => openDetailModal(currentDetailId, true))">
+          <svg width="14" height="14" viewBox="0 0 24 24">
+            <path d="M21 2v6h-6" />
+            <path d="M21 13a9 9 0 11-3-7.7L21 8" />
+          </svg>
+        </button>
+        <div onclick="closeDetailModal()"
+          style="width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.5);font-size:18px;transition:background .15s;"
+          onmouseover="this.style.background='rgba(255,255,255,.14)'"
+          onmouseout="this.style.background='rgba(255,255,255,.07)'">×</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-bottom:24px;">
+      <div
+        style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:4px;">Access</div>
+        <div style="font-size:20px;font-weight:700;color:#60a5fa;" id="dtAccessVal">-</div>
+      </div>
+      <div
+        style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:4px;">Completion
+        </div>
+        <div style="font-size:20px;font-weight:700;color:#34d399;" id="dtCompVal">-</div>
+      </div>
+      <div
+        style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:4px;">Total</div>
+        <div style="font-size:20px;font-weight:700;color:#e2e8f0;" id="dtTotalVal">-</div>
+      </div>
+    </div>
+
+    <div
+      style="font-size:13px;font-weight:600;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.1);">
+      Participants</div>
+
+    <div id="dtList"
+      style="overflow-y:auto;overflow-x:hidden;flex:1;padding-right:8px;display:flex;flex-direction:column;gap:12px;">
+      <!-- Items render here -->
+      <div style="font-size:13px;color:rgba(255,255,255,.4);text-align:center;padding:20px;">Loading details...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+         MODAL: SUBMISSION METRICS DASHBOARD
+    ════════════════════════════════════ -->
+<div class="modal-backdrop" id="wvMetricsModalBackdrop" onclick="closeMetricsModal()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);z-index:9100;align-items:center;justify-content:center;">
+  <div class="modal-box" onclick="event.stopPropagation()"
+    style="background:linear-gradient(145deg,rgba(30,34,50,.97),rgba(20,24,40,.97));border:1px solid rgba(255,255,255,.14);border-top:1px solid rgba(255,255,255,.25);border-radius:20px;width:min(900px,95vw);padding:28px;animation:modalIn .3s cubic-bezier(0.34,1.56,0.64,1);max-height:90vh;display:flex;flex-direction:column; overflow-y:auto;">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <h3 style="font-size:18px; font-weight:600; color:#fff; margin:0 0 6px 0;" id="metTitle">Writing Analytics</h3>
+        <p style="font-size:12px; color:rgba(255,255,255,.5); margin:0;" id="metEmail">loading...</p>
+      </div>
+      <div onclick="closeMetricsModal()"
+        style="width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.5);font-size:18px;transition:background .15s;"
+        onmouseover="this.style.background='rgba(255,255,255,.14)'"
+        onmouseout="this.style.background='rgba(255,255,255,.07)'">×</div>
+    </div>
+
+    <!-- Metrics Summary: Primary -->
+    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; margin-bottom:12px;">
+      <div style="background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:12px; text-align:center;">
+        <div style="font-size:11px; color:rgba(255,255,255,.5); text-transform:uppercase; margin-bottom:4px;">Approx. WPM</div>
+        <div style="font-size:20px; font-weight:700; color:#60a5fa;" id="metWPM">-</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:12px; text-align:center;">
+        <div style="font-size:11px; color:rgba(255,255,255,.5); text-transform:uppercase; margin-bottom:4px;">Effective Time</div>
+        <div style="font-size:20px; font-weight:700; color:#34d399;" id="metTime">-</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:12px; text-align:center;">
+        <div style="font-size:11px; color:rgba(255,255,255,.5); text-transform:uppercase; margin-bottom:4px;">Backspaces</div>
+        <div style="font-size:20px; font-weight:700; color:#fbbf24;" id="metBackspaces">-</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:12px; text-align:center;">
+        <div style="font-size:11px; color:rgba(255,255,255,.5); text-transform:uppercase; margin-bottom:4px;">Long Pauses</div>
+        <div style="font-size:20px; font-weight:700; color:#f87171;" id="metPauses">-</div>
+      </div>
+    </div>
+
+    <!-- Metrics Summary: Behavioral (New) -->
+    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; margin-bottom:24px;">
+      <div style="background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.05); border-radius:12px; padding:10px; text-align:center;">
+        <div style="font-size:10px; color:rgba(255,255,255,.4); text-transform:uppercase; margin-bottom:2px;">Longest Burst</div>
+        <div style="font-size:16px; font-weight:600; color:#a78bfa;" id="metBurst">-</div>
+      </div>
+      <div style="background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.05); border-radius:12px; padding:10px; text-align:center;">
+        <div style="font-size:10px; color:rgba(255,255,255,.4); text-transform:uppercase; margin-bottom:2px;">Focus Time</div>
+        <div style="font-size:16px; font-weight:600; color:#4ade80;" id="metFocus">-</div>
+      </div>
+      <div style="background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.05); border-radius:12px; padding:10px; text-align:center;">
+        <div style="font-size:10px; color:rgba(255,255,255,.4); text-transform:uppercase; margin-bottom:2px;">Paste Events</div>
+        <div style="font-size:16px; font-weight:600; color:#fb923c;" id="metPastes">-</div>
+      </div>
+      <div style="background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.05); border-radius:12px; padding:10px; text-align:center;">
+        <div style="font-size:10px; color:rgba(255,255,255,.4); text-transform:uppercase; margin-bottom:2px;">Bulk Deletes</div>
+        <div style="font-size:16px; font-weight:600; color:#f87171;" id="metDeletes">-</div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:20px;">
+      <!-- Activity Chart -->
+      <div style="flex:2; background:rgba(0,0,0,.2); border-radius:12px; padding:16px;">
+        <h4 style="font-size:13px; color:#fff; margin-top:0;">Writing Activity (Keystrokes per minute)</h4>
+        <div style="height:250px; position:relative;">
+          <canvas id="metricsChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Signature and Document -->
+      <div style="flex:1; display:flex; flex-direction:column; gap:16px;">
+        <div style="background:rgba(0,0,0,.2); border-radius:12px; padding:16px; text-align:center;">
+          <h4 style="font-size:13px; color:#fff; margin-top:0;">Integrity Signature</h4>
+          <div style="width:100%; height:120px; border:1px dashed rgba(255,255,255,.2); border-radius:8px; display:flex; align-items:center; justify-content:center; overflow:hidden; background: #fff;">
+            <img id="metSignature" src="" style="width:100%; height:100%; object-fit:contain; display:none;" />
+            <span id="metNoSignature" style="color:rgba(0,0,0,.4); font-size:12px;">No digital signature</span>
+          </div>
+        </div>
+
+        <a id="metDocLink" href="#" target="_blank"
+          style="display:block; text-align:center; padding:12px; border-radius:10px; background:rgba(99,102,241,.15); color:#818cf8; font-weight:600; text-decoration:none; font-size:13px; border:1px solid rgba(99,102,241,.3); transition:background .2s;">
+          View Final Document
+        </a>
+      </div>
+    </div>
+
+    <!-- Logs Summary -->
+    <div style="margin-top:20px;">
+      <h4 style="font-size:13px; color:#fff;">Critical Events Log</h4>
+      <div style="background:rgba(0,0,0,.2); border:1px solid rgba(255,255,255,.05); border-radius:8px; max-height:150px; overflow-y:auto; padding:10px; font-family:monospace; font-size:11px; color:rgba(255,255,255,.7);" id="metLogs"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+         STYLES
+    ═══════════════════════════════════════════ -->
+<style>
+  .wv-input {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, .05);
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .2s, background .2s;
+    box-sizing: border-box;
+  }
+
+  .wv-input:focus-within {
+    border-color: rgba(99, 102, 241, .5);
+    background: rgba(255, 255, 255, .08);
+  }
+
+  .wv-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--card-bg, rgba(255, 255, 255, .1));
+    border: 1px solid rgba(255, 255, 255, .15);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: #fff;
+  }
+
+  .wv-pill-del {
+    cursor: pointer;
+    color: rgba(255, 255, 255, .5);
+    transition: color .15s;
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .wv-pill-del:hover {
+    color: #f87171;
+  }
+
+  /* Workspace Card Styles */
+  .ws-card {
+    background: rgba(30, 35, 48, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: transform 0.2s, border-color 0.2s, background 0.2s;
+    cursor: pointer;
+  }
+
+  .ws-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(30, 35, 48, 0.6);
+  }
+
+  .ws-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .ws-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .ws-dates {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .ws-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    padding: 12px;
+  }
+
+  .ws-metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+  }
+
+  .ws-metric-label {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .ws-metric-val {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .ws-bar-wrap {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+
+  .ws-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  .ws-bar.access {
+    background: #3b82f6;
+  }
+
+  .ws-bar.completion {
+    background: #10b981;
+  }
+
+  .ws-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+  }
+
+  .ws-avatars {
+    display: flex;
+  }
+
+  .ws-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #374151;
+    border: 2px solid #111827;
+    margin-left: -8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: #fff;
+    text-transform: uppercase;
+  }
+
+  .ws-avatar:first-child {
+    margin-left: 0;
+  }
+
+  /* Detail List Item */
+  .dt-item {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, .15);
+    border: 1px solid rgba(255, 255, 255, .05);
+    border-radius: 10px;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .dt-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .dt-email {
+    font-size: 13px;
+    font-weight: 500;
+    color: #fff;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dt-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Refresh Button ── */
+  .btn-refresh {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
+    flex-shrink: 0;
+  }
+  .btn-refresh:hover {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.4);
+    color: #818cf8;
+  }
+  .btn-refresh:active {
+    transform: scale(0.92);
+  }
+  .btn-refresh svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.3s;
+  }
+  .btn-refresh.spinning svg {
+    animation: btn-spin 0.7s linear infinite;
+  }
+  .btn-refresh.spinning {
+    pointer-events: none;
+    color: #818cf8;
+    border-color: rgba(99, 102, 241, 0.4);
+    background: rgba(99, 102, 241, 0.12);
+  }
+  @keyframes btn-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+</style>
+
+<!-- ═══════════════════════════════════════════
+         SCRIPTS
+    ═══════════════════════════════════════════ -->
+<!-- Chart.js for Metrics Modal -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+
+
+
+  let emailsList = [];
+  let currentEditId = null;
+  let currentDeleteId = null;
+
+  // ── Hashing Utility for Colors ──
+  function getHashColor(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    let c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+    return '#' + '00000'.substring(0, 6 - c.length) + c;
+  }
+
+  // ── Modal Handling ──
+  function openWorkspaceModal(wsId = null) {
+    const titleEl = document.getElementById('wvWorkspaceModalTitle');
+    const btnTextEl = document.getElementById('wvBtnText');
+
+    currentEditId = wsId;
+    document.getElementById('wvWorkspaceModalBackdrop').style.display = 'flex';
+    document.getElementById('wvForm').reset();
+    emailsList = [];
+    renderEmails();
+    document.getElementById('wvLimitWrap').style.display = 'none';
+    document.getElementById('wvEmailError').style.display = 'none';
+
+    if (wsId) {
+      titleEl.textContent = 'Edit Workspace Session';
+      btnTextEl.textContent = 'Save Changes';
+
+      fetch(`/api/workspaces/${wsId}/detail`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            const ws = data.workspace;
+            document.getElementById('wvTitle').value = ws.title || '';
+            document.getElementById('wvClassroom').value = ws.classroom || '';
+            document.getElementById('wvDesc').value = ws.description || '';
+
+            if (ws.start_date) {
+              const sd = new Date(ws.start_date);
+              document.getElementById('wvStart').value = new Date(sd.getTime() - (sd.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+            }
+            if (ws.deadline) {
+              const ed = new Date(ws.deadline);
+              document.getElementById('wvEnd').value = new Date(ed.getTime() - (ed.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+            }
+
+            if (ws.has_word_limit) {
+              document.getElementById('wvLimitToggle').checked = true;
+              toggleWordLimit(true);
+              if (ws.word_limit) document.getElementById('wvLimitValue').value = ws.word_limit;
+            }
+
+            if (ws.participants) {
+              emailsList = ws.participants.map(p => p.email);
+              renderEmails();
+            }
+          }
+        });
+    } else {
+      titleEl.textContent = 'Create Workspace Session';
+      btnTextEl.textContent = 'Create';
+
+      const now = new Date();
+      const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      document.getElementById('wvStart').value = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+      document.getElementById('wvEnd').value = new Date(nextWeek.getTime() - (nextWeek.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+    }
+  }
+
+  function closeWorkspaceModal() {
+    document.getElementById('wvWorkspaceModalBackdrop').style.display = 'none';
+  }
+
+  function toggleWordLimit(isChecked) {
+    const wrap = document.getElementById('wvLimitWrap');
+    const input = document.getElementById('wvLimitValue');
+    wrap.style.display = isChecked ? 'block' : 'none';
+    if (!isChecked) input.value = '';
+  }
+
+  // ── Email Pills Handling ──
+  function handleEmailKeydown(e) {
+    if (e.key === 'Enter' || e.key === ' ' || e.key === ',') {
+      e.preventDefault();
+      const input = e.target;
+      const val = input.value.trim().toLowerCase();
+
+      if (!val) return;
+
+      // Regex validation
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const errorEl = document.getElementById('wvEmailError');
+
+      if (!re.test(val)) {
+        errorEl.textContent = 'Invalid email format';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (emailsList.includes(val)) {
+        errorEl.textContent = 'Email already added';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      errorEl.style.display = 'none';
+      emailsList.push(val);
+      input.value = '';
+      renderEmails();
+    }
+  }
+
+  function removeEmail(index) {
+    emailsList.splice(index, 1);
+    renderEmails();
+  }
+
+  function renderEmails() {
+    const container = document.getElementById('wvPillContainer');
+    const input = document.getElementById('wvEmailInput');
+
+    // Keep only the input element
+    while (container.firstChild) {
+      if (container.firstChild === input) break;
+      container.removeChild(container.firstChild);
+    }
+
+    emailsList.forEach((email, i) => {
+      const pill = document.createElement('div');
+      pill.className = 'wv-pill';
+      pill.innerHTML = `
+            ${email}
+            <span class="wv-pill-del" onclick="removeEmail(${i}); event.stopPropagation();">&times;</span>
+          `;
+      container.insertBefore(pill, input);
+    });
+  }
+
+  // ── Delete Handling ──
+  function openWsDeleteModal(id, title, e) {
+    if (e) e.stopPropagation();
+    currentDeleteId = id;
+    document.getElementById('deleteWsName').textContent = title;
+    document.getElementById('wvDeleteModalBackdrop').style.display = 'flex';
+  }
+
+  function closeDeleteModal() {
+    currentDeleteId = null;
+    document.getElementById('wvDeleteModalBackdrop').style.display = 'none';
+  }
+
+  async function handleDeleteSubmit() {
+    if (!currentDeleteId) return;
+
+    const btnText = document.getElementById('deleteWsBtnText');
+    const loading = document.getElementById('deleteWsLoading');
+    btnText.style.display = 'none';
+    loading.style.display = 'block';
+
+    try {
+      const res = await fetch(`/api/workspaces/${currentDeleteId}`, { 
+        method: 'DELETE',
+        headers: {
+          'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        closeDeleteModal();
+        fetchWorkspaces();
+        if (window.showToast) showToast('Workspace deleted successfully');
+      } else {
+        console.error(data.error);
+        if (window.showToast) showToast(data.error || 'Failed to delete workspace', 'error');
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      btnText.style.display = 'block';
+      loading.style.display = 'none';
+    }
+  }
+
+  let currentDetailId = null;
+
+  // ── Detail Handling ──
+  async function openDetailModal(wsId, isRefresh = false) {
+    currentDetailId = wsId;
+    if (!isRefresh) {
+      document.getElementById('wvDetailModalBackdrop').style.display = 'flex';
+    }
+    document.getElementById('dtList').innerHTML = '<div style="font-size:13px;color:rgba(255,255,255,.4);text-align:center;padding:20px;">Loading details...</div>';
+
+    // Fetch submission metrics summary for this workspace
+    try {
+      const subRes = await fetch('/api/task-submissions/' + wsId);
+      const subData = await subRes.json();
+      if (subData.success) {
+        window.currentWsSubmissions = subData.submissions;
+      }
+    } catch (e) {
+      console.error("Could not fetch metrics", e);
+      window.currentWsSubmissions = [];
+    }
+
+    return fetch(`/api/workspaces/${wsId}/detail`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const ws = data.workspace;
+          const metrics = ws.metrics || { access_rate: 0, completion_rate: 0, total_users: 0 };
+
+          const sDate = new Date(ws.start_date).toLocaleDateString();
+          const eDate = ws.deadline ? new Date(ws.deadline).toLocaleDateString() : 'No limit';
+
+          document.getElementById('dtTitle').textContent = ws.title;
+          document.getElementById('dtDates').textContent = `${sDate} — ${eDate}`;
+          document.getElementById('dtAccessVal').textContent = Math.round(metrics.access_rate * 100) + '%';
+          document.getElementById('dtCompVal').textContent = Math.round(metrics.completion_rate * 100) + '%';
+          document.getElementById('dtTotalVal').textContent = metrics.total_users;
+
+          let listHtml = '';
+          const parts = ws.participants || [];
+          if (parts.length === 0) {
+            listHtml = '<div style="font-size:13px;color:rgba(255,255,255,.4);text-align:center;padding:20px;">No participants found</div>';
+          } else {
+            parts.forEach(p => {
+              const initial = p.email ? p.email.charAt(0) : '?';
+              const color = p.email ? getHashColor(p.email) : '#6b7280';
+
+              // Access Setup (storing whether they have touched it at all)
+              const isAccessed = (p.status === 'active' || p.status === 'completed');
+              const accBadge = isAccessed ? '<span class="dt-badge" style="background:rgba(96,165,250,.15);color:#60a5fa;">Accessed</span>' : '<span class="dt-badge" style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);">Not accessed</span>';
+
+              // Completion Setup
+              let compStr = 'Not started', compPct = 0, compColor = '#9ca3af';
+              let statusActionBtn = '';
+
+              if (p.status === 'completed') {
+                compStr = 'Completed'; 
+                compPct = 100; 
+                compColor = '#34d399';
+              } else if (p.status === 'active') {
+                compStr = 'In progress'; 
+                compPct = 50; 
+                compColor = '#fbbf24';
+                // Button to manually mark as completed
+                statusActionBtn = `
+                  <button onclick="setParticipantStatus(${p.id}, 'completed')" 
+                    style="background:rgba(52,211,153,.15); border:1px solid rgba(52,211,153,.3); border-radius:4px; padding:4px 8px; color:#34d399; font-size:10px; font-weight:600; cursor:pointer; margin-top:6px; display:flex; align-items:center; gap:4px;"
+                    onmouseover="this.style.background='rgba(52,211,153,.25)'" onmouseout="this.style.background='rgba(52,211,153,.15)'">
+                    <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    Mark as Completed
+                  </button>`;
+              }
+
+              let reportBtnHtml = '';
+              let metricsData = window.currentWsSubmissions ? window.currentWsSubmissions.find(s => s.invitation_id === p.id) : null;
+
+              if (metricsData) {
+                reportBtnHtml = `<button onclick="openMetricsModal(${metricsData.id}, '${p.email.replace(/'/g, "\\'")}')" style="background:#50c88c; border:none; padding:4px 8px; border-radius:4px; margin-top:6px; color:#1a1a1a; font-size:10px; font-weight:600; cursor:pointer;" title="Writing Analytics">View Analytics</button>`;
+              }
+
+              listHtml += `
+                    <div class="dt-item">
+                      <div class="dt-avatar" style="background-color:${color}40; border(1px solid ${color}); color:${color};">${initial}</div>
+                      <div style="flex:1;min-width:0;">
+                         <div class="dt-email" title="${p.email}">${p.email}</div>
+                         <div>${accBadge}</div>
+                         <div style="display:flex; gap:8px; align-items:center;">
+                            ${reportBtnHtml}
+                            ${statusActionBtn}
+                         </div>
+                      </div>
+                      <div style="flex:1; max-width:120px;">
+                        <div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.5);margin-bottom:4px;font-weight:600;text-transform:uppercase;">
+                          <span>Status</span><span>${compStr}</span>
+                        </div>
+                        <div class="ws-bar-wrap" style="height:4px;margin:0;"><div class="ws-bar" style="background:${compColor};width:${compPct}%"></div></div>
+                      </div>
+                    </div>
+                  `;
+            });
+          }
+          document.getElementById('dtList').innerHTML = listHtml;
+        }
+      })
+      .catch(err => console.error('Error fetching detail', err));
+  }
+
+  function closeDetailModal() {
+    document.getElementById('wvDetailModalBackdrop').style.display = 'none';
+  }
+
+  async function setParticipantStatus(participantId, status) {
+    // Note: Removed native confirm() as it was confusing users.
+    // Progress will update immediately and can be seen in metrics.
+    try {
+      const res = await fetch(`/api/workspaces/invitation/${participantId}/status`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content 
+        },
+        body: JSON.stringify({ status: status })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (window.showToast) showToast(data.message);
+        // Refresh detail view
+        if (currentDetailId) openDetailModal(currentDetailId, true);
+        // Refresh main grids
+        fetchWorkspaces();
+      } else {
+        alert(data.error || 'Failed to update status');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Network error');
+    }
+  }
+
+  // ── Form Submission ──
+  async function handleWorkspaceSubmit(e) {
+    e.preventDefault();
+
+    if (emailsList.length === 0) {
+      const errorEl = document.getElementById('wvEmailError');
+      errorEl.textContent = 'At least one participant is required';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    const title = document.getElementById('wvTitle').value;
+    const classroom = document.getElementById('wvClassroom').value;
+    const desc = document.getElementById('wvDesc').value;
+    const start = document.getElementById('wvStart').value;
+    const end = document.getElementById('wvEnd').value;
+    const hasLimit = document.getElementById('wvLimitToggle').checked;
+    const limitVal = document.getElementById('wvLimitValue').value;
+
+    const payload = {
+      title: title,
+      classroom: classroom,
+      description: desc,
+      start_date: new Date(start).toISOString(),
+      end_date: new Date(end).toISOString(),
+      word_limit_enabled: hasLimit,
+      word_limit: hasLimit ? parseInt(limitVal) : null,
+      participants: emailsList
+    };
+
+    const btnText = document.getElementById('wvBtnText');
+    const loading = document.getElementById('wvLoading');
+    const submitBtn = document.getElementById('wvSubmitBtn');
+
+    submitBtn.disabled = true;
+    btnText.style.display = 'none';
+    loading.style.display = 'block';
+
+    try {
+      const url = currentEditId ? `/api/workspaces/${currentEditId}` : '/api/workspaces';
+      const methodType = currentEditId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method: methodType,
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        closeWorkspaceModal();
+        fetchWorkspaces();
+        
+        if (data.email_errors && data.email_errors.length > 0) {
+          const errMsg = `Workspace created, but ${data.total_emails - data.emails_sent} email(s) failed to send.\nCheck your .env configuration.\n\nDetails: ${data.email_errors.join(", ")}`;
+          if (window.showToast) {
+            showToast(errMsg, 'error');
+          } else {
+            alert(errMsg);
+          }
+        } else if (window.showToast) {
+          showToast('Workspace created and invitations sent!');
+        }
+      } else {
+        alert(data.error || 'Error creating workspace');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error');
+    } finally {
+      submitBtn.disabled = false;
+      btnText.style.display = 'block';
+      loading.style.display = 'none';
+    }
+  }
+
+  // ── Fetch & Render Workspaces ──
+  async function fetchWorkspaces() {
+    try {
+      const res = await fetch('/api/workspaces');
+      const data = await res.json();
+      if (data.success) {
+        const activeGrid = document.getElementById('wvActiveGrid');
+        const closedGrid = document.getElementById('wvClosedGrid');
+
+        activeGrid.innerHTML = '';
+        closedGrid.innerHTML = '';
+
+        let activeCount = 0;
+        let closedCount = 0;
+
+        data.workspaces.forEach(ws => {
+          const card = createWorkspaceCard(ws);
+          if (ws.is_closed) {
+            closedGrid.appendChild(card);
+            closedCount++;
+          } else {
+            activeGrid.appendChild(card);
+            activeCount++;
+          }
+        });
+
+        document.getElementById('wvActiveBadge').textContent = activeCount;
+        document.getElementById('wvClosedBadge').textContent = closedCount;
+      }
+    } catch (err) {
+      console.error('Error fetching workspaces', err);
+    }
+  }
+
+  function createWorkspaceCard(ws) {
+    const div = document.createElement('div');
+    div.className = 'ws-card';
+    div.onclick = () => openDetailModal(ws.id); // Triggers Detail View Instead
+
+    const startDate = new Date(ws.start_date).toLocaleDateString();
+    const endDate = ws.deadline ? new Date(ws.deadline).toLocaleDateString() : 'No deadline';
+
+    const metrics = ws.metrics || { access_rate: 0, completion_rate: 0, accessed: 0, completed: 0, total_users: 0 };
+    const rawAccess = Math.round(metrics.access_rate * 100);
+    const accessPct = rawAccess + '%';
+    const accessColor = rawAccess === 100 ? '#10b981' : '#007AFF';
+    const completePct = Math.round(metrics.completion_rate * 100) + '%';
+
+    // Avatars HTML
+    let avatarsHtml = '';
+    if (ws.participants && ws.participants.length > 0) {
+      const showMax = 4;
+      const displayUsers = ws.participants.slice(0, showMax);
+      const extra = ws.participants.length - showMax;
+
+      avatarsHtml = '<div class="ws-avatars">';
+      displayUsers.forEach(p => {
+        const letter = p.email ? p.email.charAt(0) : '?';
+        avatarsHtml += `<div class="ws-avatar">${letter}</div>`;
+      });
+      if (extra > 0) {
+        avatarsHtml += `<div class="ws-avatar" style="background:rgba(255,255,255,.1)">+${extra}</div>`;
+      }
+      avatarsHtml += '</div>';
+    } else {
+      avatarsHtml = '<div style="font-size:12px;color:rgba(255,255,255,.4);">No participants</div>';
+    }
+
+    div.innerHTML = `
+          <div class="ws-header">
+            <div>
+              <div class="ws-title" title="${ws.title}">${ws.title}</div>
+              ${ws.classroom ? `<div style="font-size:11px; color:#818cf8; margin-bottom:4px; font-weight:600;">${ws.classroom}</div>` : ''}
+              <div class="ws-dates">${startDate} — ${endDate}</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <div onclick="openWorkspaceModal(${ws.id}); event.stopPropagation();" style="width:28px;height:28px;border-radius:6px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='rgba(0,122,255,.2)';this.style.color='#47A1FF';" onmouseout="this.style.background='rgba(255,255,255,.05)';this.style.color='rgba(255,255,255,.5)';">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              </div>
+              <div onclick="openWsStateModal(${ws.id}, ${ws.is_closed}, '${ws.title.replace(/'/g, "\\'")}'); event.stopPropagation();" style="width:28px;height:28px;border-radius:6px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='rgba(59,130,246,.15)';this.style.color='#3b82f6';" onmouseout="this.style.background='rgba(255,255,255,.05)';this.style.color='rgba(255,255,255,.5)';">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              </div>
+              <div onclick="openWsDeleteModal(${ws.id}, '${ws.title.replace(/'/g, "\\'")}'); event.stopPropagation();" style="width:28px;height:28px;border-radius:6px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='rgba(239,68,68,.15)';this.style.color='#f87171';" onmouseout="this.style.background='rgba(255,255,255,.05)';this.style.color='rgba(255,255,255,.5)';">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+              </div>
+            </div>
+          </div>
+          
+          <div class="ws-metrics">
+            <div>
+              <div class="ws-metric-row">
+                <span class="ws-metric-label">Access Progress</span>
+                <span class="ws-metric-val">${accessPct}</span>
+              </div>
+              <div class="ws-bar-wrap">
+                <div class="ws-bar access" style="width: ${accessPct}; background: ${accessColor};"></div>
+              </div>
+            </div>
+            <div>
+              <div class="ws-metric-row">
+                <span class="ws-metric-label">Completion Progress</span>
+                <span class="ws-metric-val">${completePct}</span>
+              </div>
+              <div class="ws-bar-wrap">
+                <div class="ws-bar completion" style="width: ${completePct}"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="ws-footer">
+            ${avatarsHtml}
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div style="font-size:11px; font-weight:500; color:#ffffff; background:rgba(255,255,255,.1); padding:4px 8px; border-radius:6px;">
+                ${metrics.total_users} Users
+              </div>
+              <button onclick="openExtReqModal(${ws.id}); event.stopPropagation();"
+                style="padding:4px 9px;border-radius:6px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);color:#60a5fa;font-size:10px;font-weight:600;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:4px;"
+                title="Extension Requests"
+                onmouseover="this.style.background='rgba(59,130,246,.22)'"
+                onmouseout="this.style.background='rgba(59,130,246,.12)'">
+                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Requests
+              </button>
+            </div>
+          </div>
+        `;
+    return div;
+  }
+
+
+  // Initialize Load
+  document.addEventListener('DOMContentLoaded', () => {
+    fetchWorkspaces().then(() => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('focus') === 'active') {
+        setTimeout(() => {
+          const workspaceEl = document.getElementById('wvActiveSectionHead');
+          if (workspaceEl) {
+            workspaceEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            workspaceEl.classList.add('highlight-active-section');
+            setTimeout(() => workspaceEl.classList.remove('highlight-active-section'), 2500);
+          }
+        }, 50); // Small delay to let DOM render settling
+
+        // Clean up URL so refresh doesn't trigger it again
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    });
+  });
+
+  // ── Dashboard de Metricas ──
+  let metricsChartInstance = null;
+
+  function closeMetricsModal() {
+    const modal = document.getElementById('wvMetricsModalBackdrop');
+    if (modal) modal.style.display = 'none';
+  }
+
+  async function openMetricsModal(submissionId, email) {
+    console.log("[Metrics] Opening modal for submission:", submissionId, email);
+    const emailEl = document.getElementById('metEmail');
+    const backdropEl = document.getElementById('wvMetricsModalBackdrop');
+    
+    if (emailEl) emailEl.textContent = email;
+    if (backdropEl) backdropEl.style.display = 'flex';
+
+    // Reset UI to loading state
+    const fields = ['metWPM', 'metTime', 'metBackspaces', 'metPauses', 'metBurst', 'metFocus', 'metPastes', 'metDeletes'];
+    fields.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '...';
+    });
+    
+    const logsEl = document.getElementById('metLogs');
+    if (logsEl) logsEl.innerHTML = '<div style="opacity:0.5;text-align:center;padding:10px;">Loading analytics...</div>';
+    
+    const sigImg = document.getElementById('metSignature');
+    const noSigEl = document.getElementById('metNoSignature');
+    if (sigImg) sigImg.style.display = 'none';
+    if (noSigEl) noSigEl.style.display = 'block';
+
+    if (metricsChartInstance) {
+      metricsChartInstance.destroy();
+      metricsChartInstance = null;
+    }
+
+    try {
+      const res = await fetch('/api/submission-metrics/' + submissionId);
+      if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+      
+      const data = await res.json();
+      console.log("[Metrics] Data received:", data);
+
+      if (data.success && data.data) {
+        const met = data.data;
+        const meta = met.session_metadata || met.metrics_snapshot || met.metadata || {};
+
+        // 1. Primary Metrics
+        const wpmEl = document.getElementById('metWPM');
+        if (wpmEl) wpmEl.textContent = (met.wpm !== undefined && met.wpm !== null) ? met.wpm : '0';
+        
+        const timeEl = document.getElementById('metTime');
+        if (timeEl) {
+          const effectiveSec = met.effective_time_seconds || 0;
+          
+          // Safety: If activity_by_minute has a minute key higher than total duration, use that as fallback
+          const activityMap = meta.activity_by_minute || {};
+          const keys = Object.keys(activityMap).map(Number);
+          const maxMin = keys.length > 0 ? Math.max(...keys) : 0;
+          const displaySec = Math.max(effectiveSec, maxMin * 60);
+
+          const min = Math.floor(displaySec / 60);
+          const sec = Math.floor(displaySec % 60);
+          timeEl.textContent = `${min}m ${sec}s`;
+        }
+
+        const backEl = document.getElementById('metBackspaces');
+        if (backEl) backEl.textContent = met.backspaces || '0';
+        const pauseEl = document.getElementById('metPauses');
+        if (pauseEl) pauseEl.textContent = met.long_pauses || '0';
+
+        // 2. Advanced Metrics (Behavioral)
+        const burstEl = document.getElementById('metBurst');
+        if (burstEl) burstEl.textContent = (meta.longest_burst || 0) + ' chars';
+        
+        const focusEl = document.getElementById('metFocus');
+        if (focusEl) {
+          const focusSec = meta.total_focus_seconds || met.total_time_seconds || 0;
+          const fMin = Math.floor(focusSec / 60);
+          const fSec = Math.floor(focusSec % 60);
+          focusEl.textContent = `${fMin}m ${fSec}s`;
+        }
+        
+        const pasteCountEl = document.getElementById('metPastes');
+        if (pasteCountEl) pasteCountEl.textContent = meta.paste_count || '0';
+        const delEl = document.getElementById('metDeletes');
+        if (delEl) delEl.textContent = meta.large_deletions || '0';
+
+        // 3. Signature
+        if (met.signature_data && met.signature_data.length > 50 && sigImg && noSigEl) {
+          noSigEl.style.display = 'none';
+          sigImg.style.display = 'block';
+          sigImg.src = met.signature_data;
+        }
+
+        // 4. Document Link
+        const docLink = document.getElementById('metDocLink');
+        if (docLink) {
+          docLink.href = 'javascript:void(0)';
+          // Prevent multiple event listeners by cloning
+          const newLink = docLink.cloneNode(true);
+          docLink.parentNode.replaceChild(newLink, docLink);
+          if (met.secure_review_url) {
+            newLink.style.display = 'block';
+            newLink.addEventListener('click', (e) => {
+              e.preventDefault();
+              window.open(met.secure_review_url, '_blank');
+            });
+          } else {
+            newLink.style.display = 'none';
+          }
+        }
+
+        // 5. Render Logs
+        let logsHtml = '';
+        const rawLogs = met.raw_logs || [];
+        rawLogs.forEach(lg => {
+          const dateObj = lg.timestamp ? new Date(lg.timestamp) : null;
+          const timeStr = (dateObj && !isNaN(dateObj)) ? dateObj.toLocaleTimeString() : (lg.ms ? `T+${Math.round(lg.ms/1000)}s` : 'Event');
+          
+          let desc = '';
+          const type = lg.event_type || lg.t;
+          if (type === 'pause' || type === 'pause-long') {
+             const dur = lg.details?.durationSeconds || Math.round(lg.duration / 1000) || '?';
+             desc = `<span style="color:#f87171">[PAUSE] ${dur}s pause</span>`;
+          }
+          else if (type === 'paste') desc = `<span style="color:#fbbf24">[PASTE] Text pasted (${lg.details?.length || lg.length || 0} chars)</span>`;
+          else if (type === 'visibility-hidden' || type === 'visibility-hidden') desc = `<span style="color:#a78bfa">[FOCUS] Left assignment tab</span>`;
+          else if (type === 'visibility-visible' || type === 'visibility-visible') desc = `<span style="color:#34d399">[FOCUS] Returned to assignment</span>`;
+          else if (type === 'large-deletion') desc = `<span style="color:#f87171">[DELETE] Significant text removed</span>`;
+          else return;
+
+          logsHtml += `<div style="margin-bottom:4px;">[${timeStr}] ${desc}</div>`;
+        });
+        
+        if (!logsHtml) logsHtml = '<div style="opacity:0.3;text-align:center;">No integrity-critical events detected.</div>';
+        if (logsEl) logsEl.innerHTML = logsHtml;
+
+        // 6. Render Chart
+        _renderMetricsChartInternal(meta, rawLogs);
+
+      } else {
+        console.error("[Metrics] API success=false or data missing", data);
+        alert('Analytics not yet available for this submission.');
+        closeMetricsModal();
+      }
+    } catch (e) {
+      console.error("[Metrics] Fatal error loading modal:", e);
+      alert('Error fetching analytics. Please check your connection.');
+    }
+  }
+
+  function _renderMetricsChartInternal(meta, rawLogs) {
+    const ctxEl = document.getElementById('metricsChart');
+    if (!ctxEl) return;
+    
+    if (typeof Chart === 'undefined') {
+      console.warn("[Metrics] Chart.js not loaded, skipping visualization.");
+      return;
+    }
+
+    try {
+      let labels = [];
+      let dps = [];
+      const activityMap = meta.activity_by_minute || {};
+      const keys = Object.keys(activityMap).map(Number).filter(n => !isNaN(n)).sort((a,b)=>a-b);
+      
+      if (keys.length > 0) {
+        const minMin = 0; // Always start at 0
+        const maxMin = Math.max(...keys);
+        
+        // Helper robusto: acepta claves numéricas o string, y coerce a número
+        function getActivityVal(map, minute) {
+          const byNum = map[minute];
+          if (byNum !== undefined && byNum !== null) return Math.max(0, Number(byNum) || 0);
+          const byStr = map[String(minute)];
+          if (byStr !== undefined && byStr !== null) return Math.max(0, Number(byStr) || 0);
+          return 0;
+        }
+
+        // Fill all minutes to ensure a continuous timeline
+        for (let m = minMin; m <= maxMin; m++) {
+          labels.push('Min ' + (m + 1));
+          dps.push(getActivityVal(activityMap, m));
+        }
+      } else {
+        labels = ['No activity yet'];
+        dps = [0];
+      }
+
+      if (metricsChartInstance) {
+        metricsChartInstance.destroy();
+      }
+
+      const ctx = ctxEl.getContext('2d');
+      metricsChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Keystrokes per minute',
+            data: dps,
+            borderColor: '#8b5cf6',
+            backgroundColor: 'rgba(139,92,246,0.12)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: dps.length > 30 ? 0 : 3, // Hide dots if too many points
+            pointHoverRadius: 5,
+            pointBackgroundColor: '#8b5cf6'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } },
+              title: { display: true, text: 'Keystrokes', color: 'rgba(255,255,255,0.4)', font: { size: 10 } }
+            },
+            x: {
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              ticks: {
+                color: 'rgba(255,255,255,0.5)',
+                font: { size: 10 },
+                maxTicksLimit: 15  // Prevent label crowding
+              }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(17,24,39,0.95)',
+              titleColor: '#a78bfa',
+              bodyColor: '#e5e7eb',
+              borderColor: 'rgba(139,92,246,0.3)',
+              borderWidth: 1,
+              callbacks: {
+                title: (items) => items[0]?.label || '',
+                label: (item) => ` ${item.raw} keystrokes`
+              }
+            }
+          }
+        }
+      });
+    } catch (err) {
+      console.error("Chart.js error:", err);
+    }
+  }
+
+  // ── Session State Management Modal ──
+  let stateActionTarget = null;
+  function openWsStateModal(id, isClosed, title) {
+      stateActionTarget = { id, isClosed };
+      const backdrop = document.getElementById('wvStateModalBackdrop');
+      document.getElementById('wsStateTitle').textContent = title;
+      
+      const btnClose = document.getElementById('wsActionClose');
+      const btnReopen = document.getElementById('wsActionReopen');
+      const btnExt15 = document.getElementById('wsActionExt15');
+      const btnExt30 = document.getElementById('wsActionExt30');
+      
+      if (isClosed) {
+          btnClose.style.display = 'none';
+          btnReopen.style.display = 'flex';
+      } else {
+          btnClose.style.display = 'flex';
+          btnReopen.style.display = 'none';
+      }
+      
+      backdrop.style.display = 'flex';
+  }
+  
+  function closeWsStateModal() {
+      document.getElementById('wvStateModalBackdrop').style.display = 'none';
+      stateActionTarget = null;
+  }
+  
+  async function performWsStateAction(actionType) {
+      if (!stateActionTarget) return;
+      const { id } = stateActionTarget;
+      
+      let url = '';
+      let payload = {};
+      
+      if (actionType === 'close') {
+          url = `/api/workspaces/${id}/close`;
+      } else if (actionType === 'reopen') {
+          // Reabrir por 24 horas por defecto para pruebas
+          const nextDay = new Date();
+          nextDay.setHours(nextDay.getHours() + 24);
+          url = `/api/workspaces/${id}/reopen`;
+          payload = { new_deadline: nextDay.toISOString() };
+      } else if (actionType === 'ext15' || actionType === 'ext30') {
+          url = `/api/workspaces/${id}/extensions`;
+          payload = { add_minutes: actionType === 'ext15' ? 15 : 30 };
+      }
+      
+      try {
+          const res = await fetch(url, {
+              method: 'POST',
+              headers: { 
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+              },
+              body: JSON.stringify(payload)
+          });
+          
+          if (!res.ok) throw new Error("Request failed");
+          closeWsStateModal();
+          fetchWorkspaces();
+      } catch (e) {
+          alert("Error actualizando la sesión.");
+      }
+  }
+
+</script>
+
+<!-- MODAL: SESSION STATE MANAGEMENT -->
+<div class="modal-backdrop" id="wvStateModalBackdrop" onclick="closeWsStateModal()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);z-index:9000;align-items:center;justify-content:center;">
+  <div class="modal-box" onclick="event.stopPropagation()"
+    style="background:linear-gradient(145deg,rgba(30,34,50,.97),rgba(20,24,40,.97));border:1px solid rgba(255,255,255,.14);border-top:1px solid rgba(255,255,255,.25);border-radius:20px;width:min(420px,90vw);padding:28px 28px 24px;animation:modalIn .3s cubic-bezier(0.34,1.56,0.64,1);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(59,130,246,.15);display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        </div>
+        <h3 style="font-size:15px;font-weight:600;color:#fff;margin:0;">Session Status</h3>
+      </div>
+      <div onclick="closeWsStateModal()"
+        style="width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.5);font-size:18px;transition:background .15s;"
+        onmouseover="this.style.background='rgba(255,255,255,.14)'" onmouseout="this.style.background='rgba(255,255,255,.07)'">×</div>
+    </div>
+    
+    <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:12px;margin-bottom:20px;">
+      <p style="font-size:14px;font-weight:600;color:#fff;margin:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="wsStateTitle">Title</p>
+    </div>
+    
+    <div style="display:flex;flex-direction:column;gap:10px;">
+        <button id="wsActionClose" onclick="performWsStateAction('close')" style="width:100%;padding:12px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:#f87171;border-radius:10px;cursor:pointer;text-align:left;font-weight:600;display:flex;align-items:center;gap:10px;transition:0.2s;" onmouseover="this.style.background='rgba(239,68,68,.2)'" onmouseout="this.style.background='rgba(239,68,68,.1)'">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Force Close Session Now
+        </button>
+        <button id="wsActionReopen" onclick="performWsStateAction('reopen')" style="width:100%;padding:12px;border:1px solid rgba(16,185,129,.3);background:rgba(16,185,129,.1);color:#34d399;border-radius:10px;cursor:pointer;text-align:left;font-weight:600;display:flex;align-items:center;gap:10px;transition:0.2s;" onmouseover="this.style.background='rgba(16,185,129,.2)'" onmouseout="this.style.background='rgba(16,185,129,.1)'">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Reopen Session (Global)
+        </button>
+        <button id="wsActionExt15" onclick="performWsStateAction('ext15')" style="width:100%;padding:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#007AFF;border-radius:10px;cursor:pointer;text-align:left;font-weight:600;display:flex;align-items:center;gap:10px;transition:0.2s;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 15 15"/></svg>
+            Extend Everyone by +15 mins
+        </button>
+        <button id="wsActionExt30" onclick="performWsStateAction('ext30')" style="width:100%;padding:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#007AFF;border-radius:10px;cursor:pointer;text-align:left;font-weight:600;display:flex;align-items:center;gap:10px;transition:0.2s;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 15 15"/></svg>
+            Extend Everyone by +30 mins
+        </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     MODAL: EXTENSION REQUESTS (Teacher Review)
+════════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" id="wvExtReqModalBackdrop" onclick="closeExtReqModal()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);z-index:9200;align-items:center;justify-content:center;">
+  <div class="modal-box" onclick="event.stopPropagation()"
+    style="background:linear-gradient(145deg,rgba(30,34,50,.97),rgba(20,24,40,.97));border:1px solid rgba(255,255,255,.14);border-top:1px solid rgba(255,255,255,.25);border-radius:20px;width:min(680px,95vw);padding:28px;animation:modalIn .3s cubic-bezier(0.34,1.56,0.64,1);max-height:88vh;display:flex;flex-direction:column;">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:rgba(59,130,246,.15);display:flex;align-items:center;justify-content:center;">
+          <svg width="18" height="18" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div>
+          <h3 style="font-size:16px;font-weight:600;color:#fff;margin:0;">Extension Requests</h3>
+          <p style="font-size:11px;color:rgba(255,255,255,.4);margin:2px 0 0;" id="extReqModalSub">All requests</p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <!-- Filter tabs -->
+        <div style="display:flex;gap:4px;background:rgba(0,0,0,.25);border-radius:8px;padding:3px;">
+          <button onclick="loadExtReqs('pending')" id="extFiltPending" class="ext-filt-btn ext-filt-active">⏳ Pending</button>
+          <button onclick="loadExtReqs('approved')" id="extFiltApproved" class="ext-filt-btn">✅ Approved</button>
+          <button onclick="loadExtReqs('rejected')" id="extFiltRejected" class="ext-filt-btn">❌ Rejected</button>
+          <button onclick="loadExtReqs('')" id="extFiltAll" class="ext-filt-btn">All</button>
+        </div>
+        <div onclick="closeExtReqModal()"
+          style="width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.5);font-size:18px;transition:background .15s;"
+          onmouseover="this.style.background='rgba(255,255,255,.14)'"
+          onmouseout="this.style.background='rgba(255,255,255,.07)'">×</div>
+      </div>
+    </div>
+
+    <!-- List -->
+    <div id="extReqList" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px;padding-right:4px;">
+      <div style="text-align:center;color:rgba(255,255,255,.3);padding:30px;font-size:13px;">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Approve sub-modal -->
+<div id="extApproveOverlay" style="display:none;position:fixed;inset:0;z-index:9300;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);align-items:center;justify-content:center;">
+  <div onclick="event.stopPropagation()" style="background:linear-gradient(145deg,rgba(30,34,50,.98),rgba(20,24,40,.98));border:1px solid rgba(255,255,255,.14);border-radius:18px;padding:28px;width:min(420px,92vw);animation:modalIn .25s ease;">
+    <h3 style="font-size:15px;font-weight:600;color:#fff;margin:0 0 18px;">Approve — Set New Deadline</h3>
+    <label style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:8px;">New Deadline (UTC)</label>
+    <input type="datetime-local" id="extApproveDate" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;font-size:13px;padding:10px 14px;outline:none;box-sizing:border-box;margin-bottom:14px;">
+    <label style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:8px;">Comment (optional)</label>
+    <textarea id="extApproveComment" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;font-size:13px;padding:10px 14px;outline:none;box-sizing:border-box;min-height:72px;resize:vertical;font-family:inherit;" placeholder="Let the student know why..."></textarea>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+      <button onclick="document.getElementById('extApproveOverlay').style.display='none'" style="padding:9px 18px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;">Cancel</button>
+      <button onclick="submitExtApprove()" style="padding:9px 20px;border-radius:10px;background:linear-gradient(135deg,#10b981,#059669);border:1px solid rgba(16,185,129,.4);color:#fff;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;">
+        <span id="extApproveSpinner" style="display:none;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;"></span>
+        Approve & Notify
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Reject sub-modal -->
+<div id="extRejectOverlay" style="display:none;position:fixed;inset:0;z-index:9300;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);align-items:center;justify-content:center;">
+  <div onclick="event.stopPropagation()" style="background:linear-gradient(145deg,rgba(30,34,50,.98),rgba(20,24,40,.98));border:1px solid rgba(255,255,255,.14);border-radius:18px;padding:28px;width:min(420px,92vw);animation:modalIn .25s ease;">
+    <h3 style="font-size:15px;font-weight:600;color:#f87171;margin:0 0 18px;">Reject Request</h3>
+    <label style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:8px;">Reason / Comment (optional)</label>
+    <textarea id="extRejectComment" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;font-size:13px;padding:10px 14px;outline:none;box-sizing:border-box;min-height:90px;resize:vertical;font-family:inherit;" placeholder="Tell the student why the request was denied..."></textarea>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+      <button onclick="document.getElementById('extRejectOverlay').style.display='none'" style="padding:9px 18px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;">Cancel</button>
+      <button onclick="submitExtReject()" style="padding:9px 20px;border-radius:10px;background:linear-gradient(135deg,rgba(239,68,68,.7),rgba(220,38,38,.6));border:1px solid rgba(239,68,68,.4);color:#fff;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;">
+        <span id="extRejectSpinner" style="display:none;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;"></span>
+        Reject & Notify
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .ext-filt-btn {
+    padding: 4px 10px; border-radius: 6px; border: none; background: none;
+    color: rgba(255,255,255,.5); font-size: 11px; font-weight: 600;
+    cursor: pointer; transition: background .15s, color .15s;
+  }
+  .ext-filt-btn:hover { background: rgba(255,255,255,.08); color: #fff; }
+  .ext-filt-active { background: rgba(59,130,246,.2) !important; color: #60a5fa !important; }
+
+  .ext-req-item {
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07);
+    border-radius: 12px; padding: 14px 16px; display: flex; gap: 14px; align-items: flex-start;
+  }
+  .ext-req-avatar {
+    width: 36px; height: 36px; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+    color: #fff; flex-shrink: 0;
+  }
+  .ext-req-status {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 5px; letter-spacing: .05em;
+  }
+  .ext-req-status.pending  { background:rgba(251,191,36,.15); color:#fde68a; }
+  .ext-req-status.approved { background:rgba(34,197,94,.15);  color:#86efac; }
+  .ext-req-status.rejected { background:rgba(239,68,68,.15);  color:#fca5a5; }
+</style>
+
+<script>
+// ── Extension Requests — Teacher Side ─────────────────────────────────────
+let _extReqCurrentWsId = null;
+let _extReqCurrentId   = null;
+let _extReqCurrentFilter = 'pending';
+
+function openExtReqModal(wsId) {
+  _extReqCurrentWsId = wsId || null;
+  document.getElementById('wvExtReqModalBackdrop').style.display = 'flex';
+  const sub = wsId ? `Workspace #${wsId}` : 'All your workspaces';
+  document.getElementById('extReqModalSub').textContent = sub;
+  // Reset filter buttons
+  document.querySelectorAll('.ext-filt-btn').forEach(b => b.classList.remove('ext-filt-active'));
+  document.getElementById('extFiltPending').classList.add('ext-filt-active');
+  loadExtReqs('pending');
+}
+
+function closeExtReqModal() {
+  document.getElementById('wvExtReqModalBackdrop').style.display = 'none';
+}
+
+function loadExtReqs(statusFilter) {
+  _extReqCurrentFilter = statusFilter;
+  document.querySelectorAll('.ext-filt-btn').forEach(b => b.classList.remove('ext-filt-active'));
+  const map = { pending:'extFiltPending', approved:'extFiltApproved', rejected:'extFiltRejected', '':'extFiltAll' };
+  if (map[statusFilter]) document.getElementById(map[statusFilter]).classList.add('ext-filt-active');
+
+  const list = document.getElementById('extReqList');
+  list.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,.3);padding:30px;font-size:13px;">Loading...</div>';
+
+  let url = `/api/teacher/extension-requests?per_page=50`;
+  if (statusFilter) url += `&status=${statusFilter}`;
+  if (_extReqCurrentWsId) url += `&workspace_id=${_extReqCurrentWsId}`;
+
+  fetch(url, { credentials: 'same-origin' })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) { list.innerHTML = `<p style="color:#f87171;text-align:center;padding:20px;">${data.error || 'Error loading requests'}</p>`; return; }
+      if (!data.requests.length) {
+        list.innerHTML = '<p style="color:rgba(255,255,255,.3);text-align:center;padding:30px;font-size:13px;">No requests found.</p>'; return;
+      }
+      list.innerHTML = data.requests.map(r => renderExtReqItem(r)).join('');
+    })
+    .catch(() => { list.innerHTML = '<p style="color:#f87171;text-align:center;padding:20px;">Network error</p>'; });
+}
+
+function renderExtReqItem(r) {
+  const initials = (r.student_name || 'S').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  const reasonMap = { health:'Health Issues', technical:'Technical Issue', family:'Family Situation', overload:'Academic Overload', error:'Submission Error', other:'Other' };
+  const isPending = r.status === 'pending';
+  const colors = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4'];
+  const color  = colors[r.student_id % colors.length];
+  const dt = new Date(r.requested_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  const actionBtns = isPending ? `
+    <div style="display:flex;gap:6px;margin-top:10px;">
+      <button onclick="openExtApprove(${r.id})" style="flex:1;padding:7px 10px;border-radius:8px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:#34d399;font-size:11px;font-weight:600;cursor:pointer;transition:.15s;" onmouseover="this.style.background='rgba(16,185,129,.22)'" onmouseout="this.style.background='rgba(16,185,129,.12)'">✅ Approve</button>
+      <button onclick="openExtReject(${r.id})" style="flex:1;padding:7px 10px;border-radius:8px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#fca5a5;font-size:11px;font-weight:600;cursor:pointer;transition:.15s;" onmouseover="this.style.background='rgba(239,68,68,.22)'" onmouseout="this.style.background='rgba(239,68,68,.12)'">❌ Reject</button>
+    </div>` : `<p style="font-size:11px;color:rgba(255,255,255,.35);margin:8px 0 0;">${r.review_comment ? `Comment: "${r.review_comment}"` : ''}</p>`;
+  return `
+    <div class="ext-req-item">
+      <div class="ext-req-avatar" style="background:${color}33;color:${color};">${initials}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:13px;font-weight:600;color:#fff;">${r.student_name || r.student_email}</span>
+          <span class="ext-req-status ${r.status}">${r.status}</span>
+          <span style="font-size:11px;color:rgba(255,255,255,.35);margin-left:auto;">${dt}</span>
+        </div>
+        <p style="font-size:12px;color:rgba(255,255,255,.5);margin:4px 0 0;">${r.workspace_title || 'Assignment'} — <em>${reasonMap[r.reason] || r.reason}</em></p>
+        ${r.description ? `<p style="font-size:11px;color:rgba(255,255,255,.4);margin:4px 0 0;font-style:italic;">"${r.description}"</p>` : ''}
+        ${r.evidence_url ? `<a href="${r.evidence_url}" target="_blank" style="font-size:11px;color:#60a5fa;display:inline-flex;align-items:center;gap:4px;margin-top:4px;">📎 View evidence</a>` : ''}
+        ${r.new_deadline ? `<p style="font-size:11px;color:#86efac;margin:4px 0 0;">New deadline: ${new Date(r.new_deadline).toLocaleString()}</p>` : ''}
+        ${actionBtns}
+      </div>
+    </div>`;
+}
+
+function openExtApprove(reqId) {
+  _extReqCurrentId = reqId;
+  const now = new Date();
+  const suggested = new Date(now.getTime() + 48*60*60*1000);
+  document.getElementById('extApproveDate').value = new Date(suggested.getTime() - suggested.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  document.getElementById('extApproveComment').value = '';
+  document.getElementById('extApproveOverlay').style.display = 'flex';
+}
+
+function openExtReject(reqId) {
+  _extReqCurrentId = reqId;
+  document.getElementById('extRejectComment').value = '';
+  document.getElementById('extRejectOverlay').style.display = 'flex';
+}
+
+async function submitExtApprove() {
+  const dateVal = document.getElementById('extApproveDate').value;
+  const comment = document.getElementById('extApproveComment').value.trim();
+  if (!dateVal) { alert('Please select a new deadline date.'); return; }
+
+  const spinner = document.getElementById('extApproveSpinner');
+  spinner.style.display = 'inline-block';
+
+  try {
+    const res = await fetch(`/api/teacher/extension-request/${_extReqCurrentId}/approve`, {
+      method: 'PUT', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ new_deadline: new Date(dateVal).toISOString(), comment })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('extApproveOverlay').style.display = 'none';
+      loadExtReqs(_extReqCurrentFilter);
+    } else {
+      alert(data.error || 'Could not approve request.');
+    }
+  } catch (e) { alert('Network error.'); }
+  spinner.style.display = 'none';
+}
+
+async function submitExtReject() {
+  const comment = document.getElementById('extRejectComment').value.trim();
+  const spinner = document.getElementById('extRejectSpinner');
+  spinner.style.display = 'inline-block';
+
+  try {
+    const res = await fetch(`/api/teacher/extension-request/${_extReqCurrentId}/reject`, {
+      method: 'PUT', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comment })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('extRejectOverlay').style.display = 'none';
+      loadExtReqs(_extReqCurrentFilter);
+    } else {
+      alert(data.error || 'Could not reject request.');
+    }
+  } catch (e) { alert('Network error.'); }
+  spinner.style.display = 'none';
+}
+</script>
+
+{% endblock %}

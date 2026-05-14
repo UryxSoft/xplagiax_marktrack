@@ -1,0 +1,385 @@
+/* ===================================================================
+   QUILL PAGINATION - ADDITIONAL STYLES
+   Microsoft Word-like document editor with automatic page breaks
+   =================================================================== */
+
+/* Override default Quill styles for better Word-like appearance */
+.ql-editor {
+    font-family: 'Times New Roman', 'Georgia', serif !important;
+    font-size: 12pt;
+    line-height: 1.6;
+    text-align: left;
+}
+
+.ql-editor h1 {
+    font-size: 24pt;
+    font-weight: bold;
+    margin: 0 0 12pt 0;
+}
+
+.ql-editor h2 {
+    font-size: 18pt;
+    font-weight: bold;
+    margin: 0 0 10pt 0;
+}
+
+.ql-editor h3 {
+    font-size: 14pt;
+    font-weight: bold;
+    margin: 0 0 8pt 0;
+}
+
+.ql-editor p {
+    margin: 0 0 10pt 0;
+    text-indent: 0;
+}
+
+.ql-editor blockquote {
+    border-left: 4px solid #ccc;
+    margin: 10pt 0;
+    padding-left: 16pt;
+    font-style: italic;
+}
+
+.ql-editor ul, .ql-editor ol {
+    margin: 0 0 10pt 0;
+    padding-left: 30pt;
+}
+
+/* Toolbar customization for professional look */
+.ql-toolbar.ql-snow {
+    border: 1px solid #E5E7EB;
+    border-radius: 8px 8px 0 0;
+    background: white;
+    padding: 12px;
+}
+
+.ql-toolbar .ql-formats {
+    margin-right: 15px;
+}
+
+.ql-toolbar button {
+    height: 32px;
+    width: 32px;
+    padding: 5px;
+}
+
+.ql-toolbar button:hover {
+    background: #F3F4F6;
+    border-radius: 4px;
+}
+
+.ql-toolbar button.ql-active {
+    background: #E0E7FF;
+    color: #6366F1;
+    border-radius: 4px;
+}
+
+/* Page shadow and depth */
+.quill-page {
+    transition: box-shadow 0.3s ease;
+}
+
+.quill-page:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Page break visual indicator */
+.page-break-indicator {
+    height: 2px;
+    background: linear-gradient(to right, transparent, #3B82F6, transparent);
+    margin: 10px 0;
+    position: relative;
+}
+
+.page-break-indicator::before {
+    content: 'PAGE BREAK';
+    position: absolute;
+    left: 50%;
+    top: -10px;
+    transform: translateX(-50%);
+    background: white;
+    padding: 0 10px;
+    font-size: 9pt;
+    color: #3B82F6;
+    font-weight: 600;
+}
+
+/* Print optimization */
+@media print {
+    .quill-page-container {
+        background: white !important;
+        padding: 0 !important;
+    }
+
+    .quill-page {
+        box-shadow: none !important;
+        margin: 0 !important;
+        width: 100% !important;
+        page-break-after: always;
+    }
+
+    .quill-page:last-child {
+        page-break-after: avoid;
+    }
+
+    .ql-toolbar {
+        display: none !important;
+    }
+
+    .quill-page-number {
+        display: block !important;
+    }
+}
+
+/* Loading state */
+.quill-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.quill-loading-spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3B82F6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive design for tablets */
+@media screen and (max-width: 1024px) {
+    .quill-page {
+        max-width: 90vw;
+    }
+}
+
+/* Mobile optimization */
+@media screen and (max-width: 768px) {
+    .quill-page-container {
+        padding: 20px 10px;
+    }
+
+    .ql-toolbar.ql-snow {
+        border-radius: 0;
+    }
+
+    .ql-toolbar .ql-formats {
+        margin-right: 8px;
+    }
+
+    .ql-toolbar button {
+        height: 28px;
+        width: 28px;
+    }
+
+    .quill-page {
+        width: 100%;
+        min-height: auto;
+    }
+
+    .quill-page-content {
+        padding: 15mm;
+    }
+}
+
+/* Focus state for better UX */
+.quill-page .ql-container.ql-snow {
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.quill-page .ql-container.ql-snow:focus-within {
+    border-color: #3B82F6;
+}
+
+/* Selection highlight */
+.ql-editor ::selection {
+    background-color: rgba(59, 130, 246, 0.3);
+}
+
+/* Placeholder styling */
+.ql-editor.ql-blank::before {
+    color: #9CA3AF;
+    font-style: italic;
+}
+
+/* Code block styling */
+.ql-editor pre.ql-syntax {
+    background-color: #1F2937;
+    color: #F9FAFB;
+    border-radius: 6px;
+    padding: 12pt;
+    font-family: 'Courier New', monospace;
+    font-size: 10pt;
+    overflow-x: auto;
+    margin: 10pt 0;
+}
+
+/* Link styling */
+.ql-editor a {
+    color: #3B82F6;
+    text-decoration: underline;
+}
+
+.ql-editor a:hover {
+    color: #2563EB;
+}
+
+/* Image handling in paginated view */
+.ql-editor img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 10pt auto;
+}
+
+/* Table styling (if tables module added) */
+.ql-editor table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10pt 0;
+}
+
+.ql-editor table td,
+.ql-editor table th {
+    border: 1px solid #D1D5DB;
+    padding: 8pt;
+}
+
+.ql-editor table th {
+    background-color: #F3F4F6;
+    font-weight: bold;
+}
+
+/* Word count and page info overlay */
+.document-info-overlay {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    padding: 12px 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    font-size: 11pt;
+    z-index: 1000;
+}
+
+.document-info-overlay .info-item {
+    margin: 4px 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.document-info-overlay .info-label {
+    color: #6B7280;
+}
+
+.document-info-overlay .info-value {
+    font-weight: 600;
+    color: #111827;
+}
+
+/* Zoom controls */
+.zoom-controls {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    padding: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    gap: 8px;
+    z-index: 1000;
+}
+
+.zoom-controls button {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: #F3F4F6;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.zoom-controls button:hover {
+    background: #E5E7EB;
+}
+
+.zoom-controls .zoom-level {
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    font-size: 11pt;
+    font-weight: 500;
+    color: #374151;
+}
+
+/* Smooth transitions */
+.quill-page,
+.quill-page-content {
+    transition: all 0.3s ease;
+}
+
+/* Accessibility improvements */
+.ql-toolbar button[aria-label]:hover::after {
+    content: attr(aria-label);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1F2937;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10pt;
+    white-space: nowrap;
+    pointer-events: none;
+    margin-bottom: 5px;
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+    .quill-page-container {
+        background: #1F2937;
+    }
+
+    .quill-page {
+        background: #374151;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .ql-editor {
+        color: #F9FAFB;
+    }
+
+    .ql-toolbar.ql-snow {
+        background: #374151;
+        border-color: #4B5563;
+    }
+
+    .ql-snow .ql-stroke {
+        stroke: #D1D5DB;
+    }
+
+    .ql-snow .ql-fill {
+        fill: #D1D5DB;
+    }
+}

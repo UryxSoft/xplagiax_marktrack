@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title or "Error" }} - MarkTrack</title>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: #0f172a;
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        .container {
+            max-width: 400px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+        }
+        h1 { color: #f87171; margin-bottom: 16px; font-size: 24px; }
+        p { color: #94a3b8; line-height: 1.6; margin-bottom: 24px; }
+        .btn {
+            display: inline-block;
+            background: #6366f1;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #4f46e5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ title or "Error" }}</h1>
+        <p>{{ message or "Something went wrong." }}</p>
+        <a href="/" class="btn">Return Home</a>
+    </div>
+</body>
+</html>

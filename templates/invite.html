@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ workspace.title if workspace else 'Invite' }} — MarkTrack</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/marktrack.ico') }}">
+    <link rel="icon" href="data:,">
+    <!-- [JINJA] CSRF token — required by Flask-WTF -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <!-- Theme detection: runs before render to prevent FOUC -->
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            let theme = 'light';
+            if (savedTheme) { theme = savedTheme; }
+            else if (savedTheme === 'auto' || (!savedTheme && prefersDark)) { theme = 'dark'; }
+            document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+        })();
+    </script>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icon libraries -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Quill.js CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+
+    <!-- Syntax highlighting (Quill code blocks) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+
+    <!-- KaTeX (Quill formula module) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+    <!-- MarkTrack CSS: modal system + quill pagination (kept; dark-overridden by invite-v3.css) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/marktrack_modals3.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/plagiarism-detector.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/quill-pagination-styles.css') }}">
+
+    <!-- NEW: Dark-glass design system (v3) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/invite-v3.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/editor-find.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/invite.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/quill-bubble-toolbar.css') }}">
+
+    <!-- Quill Modules CSS -->
+    <!-- quill-emoji -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill-emoji@0.2.0/dist/quill-emoji.css">
+    <!-- quill-table-better (Quill v2 native) — invite may show tables from professor templates -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill-table-better@1.1.4/dist/quill-table-better.css">
+    <!-- quill-blot-formatter2 (official Quill v2 fork) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@enzedonline/quill-blot-formatter2@2.2.0/dist/quill-blot-formatter.css">
+    <!-- quill-image-compress -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill-image-compress@1.2.30/dist/quill-image-compress.css">
+    <!-- quill-paste-smart -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill-paste-smart@1.1.2/dist/quill-paste-smart.css">
+    <!-- NOTE: quill-find-replace-module omitted (conflicts with EditorFind) -->
+    <!-- NOTE: quill-html-edit-button omitted (incompatible with pagination) -->
+    <!-- NOTE: quill-table-ui omitted (superseded by quill-table-better) -->
+    <style>
+        .panel-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+            margin-right: 8px;
+        }
+        .btn-panel-action {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.6);
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 0;
+        }
+        .btn-panel-action:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border-color: rgba(255,255,255,0.2);
+        }
+        .btn-panel-action.active {
+            color: var(--primary, #3b82f6);
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.2);
+        }
+        .btn-panel-action i {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Comment Initials on Page Cards */
+        .page-comments-container {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            display: flex;
+            flex-direction: row-reverse;
+            gap: -6px; /* Overlap bubbles */
+        }
+        .comment-initial-bubble {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary, #3b82f6);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1.5px solid #1e293b;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            margin-left: -6px;
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .comment-initial-bubble:hover {
+            transform: translateY(-4px) scale(1.1);
+            z-index: 10;
+        }
+        
+        .doc-card {
+            overflow: visible !important; /* Required to show the bubble at -6px */
+        }
+        
+        .page-comment-count-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ef4444; /* Standard notification red */
+            color: #fff;
+            font-size: 10px;
+            font-weight: 800;
+            height: 20px;
+            min-width: 20px;
+            padding: 0 6px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #fff; /* White border to pop against the white card */
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+            z-index: 10;
+            pointer-events: none;
+            animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.3); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Modal Comment List */
+        .modal-comments-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding-right: 4px;
+        }
+        .modal-comment-item {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .modal-comment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .modal-comment-author {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+        }
+        .modal-comment-text {
+            font-size: 13px;
+            color: #fff;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+        .modal-comment-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .btn-comment-action {
+            background: none;
+            border: none;
+            color: var(--t3);
+            font-size: 11px;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.2s;
+        }
+        .btn-comment-action:hover { color: #fff; }
+
+        /* Inline Deletion Confirm */
+        .modal-comment-delete-confirm {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(239, 68, 68, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            animation: fadeInDown 0.2s ease;
+        }
+        .delete-confirm-text {
+            font-size: 11px;
+            font-weight: 600;
+            color: #f87171;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .delete-confirm-btns {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-delete-confirm {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        .btn-delete-confirm.yes {
+            background: #ef4444;
+            color: #fff;
+        }
+        .btn-delete-confirm.no {
+            background: rgba(255,255,255,0.05);
+            color: var(--t3);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .btn-delete-confirm.yes:hover { background: #dc2626; transform: translateY(-1px); }
+        .btn-delete-confirm.no:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+
+<body>
+{% include 'sections/loader_overlay.html' %}
+
+
+<!-- ================================================================
+     JINJA CONDITIONAL STATES
+================================================================ -->
+
+{% if error and not is_closed %}
+<!-- [JINJA] Error state: invalid / expired token — redesigned v2 -->
+<div class="error-page">
+
+    <!-- ── Main error content ── -->
+    <main class="error-container" role="main">
+
+        <!-- Visual icon with status ring -->
+        <div class="error-icon-wrapper" aria-hidden="true">
+            <div class="error-icon-ring"></div>
+            <div class="error-icon">
+                <i class="bi bi-link-45deg"></i>
+            </div>
+        </div>
+
+        <!-- Text hierarchy -->
+        <div class="error-body">
+            <span class="error-badge">Access Unavailable</span>
+            <h1 class="error-title">This link is not valid</h1>
+            <p class="error-message">
+                The link you used has expired, was already used, or does not correspond to an active assignment.
+                Please check that you copied the full link or contact your instructor to get a new one.
+            </p>
+        </div>
+
+
+        <!-- Contextual hint -->
+        <p class="error-hint">
+            <i class="bi bi-info-circle"></i>
+            If your instructor sent the link recently, it may not be active yet. Try again in a few minutes.
+        </p>
+
+    </main>
+
+
+
+    <!-- ── Footer ── -->
+    <footer class="ef-footer" role="contentinfo">
+        <div class="ef-footer-inner">
+
+            <!-- Left card: brand + tagline + socials -->
+            <div class="ef-brand-card">
+
+                <div class="ef-brand-top">
+                    <div class="app-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                             class="icon-svg bi bi-pencil-square" viewBox="0 0 16 16">
+                            <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                            <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+                        </svg>
+                    </div>
+                    <span class="ef-brand-name">MarkTrack</span>
+                </div>
+                <p class="ef-tagline">Smarter academic integrity,<br>powered by Xplagiax.</p>
+                <div class="ef-socials">
+                    <span class="ef-socials-label">Stay in touch!</span>
+                    <div class="ef-social-icons">
+                        <a href="#" class="ef-social-btn" aria-label="LinkedIn" title="LinkedIn">
+                            <i class="bi bi-linkedin"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center: nav columns -->
+            <nav class="ef-nav" aria-label="Footer navigation">
+                <div class="ef-nav-col">
+                    <span class="ef-nav-heading">Product</span>
+                    <a href="#" class="ef-nav-link">How it works</a>
+                    <a href="#" class="ef-nav-link">Features</a>
+                    <a href="#" class="ef-nav-link">Pricing</a>
+                </div>
+                <div class="ef-nav-col">
+                    <span class="ef-nav-heading">Explore</span>
+                    <a href="#" class="ef-nav-link">Testimonials</a>
+                    <a href="#" class="ef-nav-link">FAQ</a>
+                </div>
+                <div class="ef-nav-col">
+                    <span class="ef-nav-heading">Company</span>
+                    <a href="#" class="ef-nav-link">Blog</a>
+                    <a href="#" class="ef-nav-link">About</a>
+                </div>
+                <div class="ef-nav-col">
+                    <span class="ef-nav-heading">Legal</span>
+                    <a href="#" class="ef-nav-link">Terms &amp; Conditions</a>
+                    <a href="#" class="ef-nav-link">Privacy Policy</a>
+                </div>
+            </nav>
+
+
+        </div>
+
+        <!-- Bottom bar -->
+        <div class="ef-bottom-bar">
+            <span class="ef-copyright">&copy; 2025 MarkTrack. All rights reserved.</span>
+        </div>
+    </footer>
+
+</div><!-- /.error-page -->
+
+{% elif is_closed is defined and is_closed %}
+<!-- [JINJA] Workspace closed state -->
+<div class="closed-container">
+    <div class="closed-icon"><i class="bi bi-lock-fill"></i></div>
+    <h2 class="closed-title">Assignment Closed</h2>
+    <!-- [JINJA] {{ error }} or default message; {{ workspace }} object -->
+    <p class="closed-message">{{ error or 'This assignment has been closed. You can no longer edit this document.' }}</p>
+    {% if workspace %}
+    <p class="closed-message" style="margin-top:1rem;font-size:0.9rem;">
+        <!-- [JINJA] workspace.title, workspace.deadline -->
+        <strong>{{ workspace.title }}</strong><br>
+        Closing Date: {{ workspace.deadline.strftime('%d/%m/%Y %H:%M') }}
+    </p>
+    {% endif %}
+</div>
+
+{% elif workspace and invitation %}
+<!-- [JINJA] Main editor — workspace and invitation objects available -->
+
+<!-- ----------------------------------------------------------------
+     REGISTRATION OVERLAY — shown when student has not registered yet
+     [JINJA] needs_registration flag controls visibility
+---------------------------------------------------------------- -->
+{% if needs_registration %}
+<div class="registration-overlay" id="registrationOverlay">
+    <div class="registration-modal">
+        <h2 style="display:flex;align-items:center;gap:10px;"><i data-lucide="user-check" style="color:var(--primary);"></i> Create Account</h2>
+        <p>To access this assignment, create a free student account. You'll use it to log in later from your homework dashboard.</p>
+
+        <div class="workspace-info">
+            <!-- [JINJA] workspace.title, workspace.classroom, workspace.deadline -->
+            <h3>{{ workspace.title }}</h3>
+            <div class="meta">
+                {% if workspace.classroom %}Classroom: {{ workspace.classroom }} · {% endif %}
+                Deadline: {{ workspace.deadline.strftime('%d/%m/%Y %H:%M') }}
+            </div>
+        </div>
+
+        <form id="registrationForm" onsubmit="handleRegistration(event)">
+            <div class="form-group">
+                <label for="firstName">First Name</label>
+                <input type="text" id="firstName" placeholder="Enter your first name" required autocomplete="given-name">
+                <div class="form-error" id="firstNameError">First name is required</div>
+            </div>
+            <div class="form-group">
+                <label for="lastName">Last Name</label>
+                <input type="text" id="lastName" placeholder="Enter your last name" required autocomplete="family-name">
+                <div class="form-error" id="lastNameError">Last name is required</div>
+            </div>
+
+            <!-- NEW: Email (pre-filled, readonly) -->
+            <div class="form-group">
+                <label for="regEmail">Email</label>
+                <input type="email" id="regEmail"
+                       value="{{ invitation.email }}"
+                       readonly
+                       style="opacity:0.65;cursor:not-allowed;"
+                       autocomplete="email">
+            </div>
+
+            <!-- NEW: Password with strength meter -->
+            <div class="form-group">
+                <label for="regPassword">Password</label>
+                <input type="password" id="regPassword"
+                       placeholder="Min 8 chars, 1 uppercase, 1 number"
+                       required autocomplete="new-password"
+                       oninput="updatePasswordStrength(this.value)">
+                <!-- Strength bar -->
+                <div id="pwStrengthWrap" style="margin-top:6px;display:none;">
+                    <div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.1);overflow:hidden;">
+                        <div id="pwStrengthBar" style="height:100%;width:0;transition:width 0.3s,background 0.3s;border-radius:2px;"></div>
+                    </div>
+                    <div id="pwStrengthLabel" style="font-size:10px;margin-top:3px;color:rgba(255,255,255,0.5);"></div>
+                </div>
+                <div class="form-error" id="passwordError"></div>
+            </div>
+
+            <!-- NEW: Confirm password -->
+            <div class="form-group">
+                <label for="regPasswordConfirm">Confirm Password</label>
+                <input type="password" id="regPasswordConfirm"
+                       placeholder="Repeat your password"
+                       required autocomplete="new-password"
+                       oninput="checkPasswordMatch()">
+                <div class="form-error" id="passwordConfirmError"></div>
+            </div>
+
+            <button type="submit" class="btn-register" id="registerBtn">Create Account &amp; Continue</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- ----------------------------------------------------------------
+     LOGIN MODAL — for registered students who are not logged in
+     [JINJA] show_login_modal flag controls visibility
+---------------------------------------------------------------- -->
+{% if show_login_modal is defined and show_login_modal %}
+<div class="registration-overlay" id="loginOverlay">
+    <div class="registration-modal">
+        <h2 style="display:flex;align-items:center;gap:10px;"><i data-lucide="log-in" style="color:var(--primary);"></i> Sign In</h2>
+        <p>You have already registered for this assignment. Sign in to continue.</p>
+
+        <div class="workspace-info">
+            <h3>{{ workspace.title }}</h3>
+            <div class="meta">
+                {% if workspace.classroom %}Classroom: {{ workspace.classroom }} · {% endif %}
+                Deadline: {{ workspace.deadline.strftime('%d/%m/%Y %H:%M') }}
+            </div>
+        </div>
+
+        <div id="loginError"
+             style="display:none;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);color:#f87171;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:12px;">
+        </div>
+
+        <form id="inviteLoginForm" onsubmit="handleInviteLogin(event)">
+            <div class="form-group">
+                <label for="loginEmail">Email</label>
+                <input type="email" id="loginEmail"
+                       value="{{ invitation.email }}"
+                       readonly
+                       style="opacity:0.65;cursor:not-allowed;"
+                       autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" placeholder="Your password" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn-register" id="loginBtn">Sign In &amp; Continue</button>
+        </form>
+
+        <p style="font-size:11px;color:rgba(255,255,255,0.4);text-align:center;margin-top:14px;">
+            Go to your <a href="/homework" style="color:rgba(255,255,255,0.6);">homework dashboard</a>
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<!-- ----------------------------------------------------------------
+     MAIN EDITOR AREA
+     [JINJA] Hidden until registration / login completes
+---------------------------------------------------------------- -->
+<div id="editorArea" {% if needs_registration or (show_login_modal is defined and show_login_modal) %}style="display:none;"{% endif %}>
+<div id="studentView" class="view-container">
+
+    <!-- ============================================================
+         HEADER — dark glass, v3 design
+    ============================================================ -->
+    <header class="app-header">
+        <div class="header-left">
+            <div class="app-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                     class="icon-svg bi bi-pencil-square" viewBox="0 0 16 16">
+                    <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                    <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+                </svg>
+            </div>
+            <div class="assignment-title">
+                <a href="/homework" class="assignment-label" style="text-decoration:none; transition: color 0.2s; display: flex; align-items: center; gap: 4px;" onmouseover="this.style.color='var(--t1)'" onmouseout="this.style.color='var(--t3)'">
+                    <i data-lucide="arrow-left" style="width:12px;height:12px;"></i> back to home
+                </a>
+                <!-- [JINJA] workspace.title -->
+                <span class="assignment-name">{{ workspace.title }}</span>
+            </div>
+        </div>
+
+        <div class="header-center">
+            <div class="save-status" id="saveStatus">
+                <i data-lucide="check-circle"></i><span>Saved</span>
+            </div>
+
+
+            <!-- S5: presencia en tiempo real -->
+            <div id="presenceBar" title="Active users in this document"></div>
+        </div>
+
+        <div class="header-right">
+            <!-- Find in document -->
+            <button class="btn-icon" id="findOpenBtn" title="Find in document (Ctrl+F)">
+                <i data-lucide="search"></i>
+            </button>
+            <!-- NEW (v3): pages offcanvas toggle -->
+            <button class="btn-icon" id="pagesOffcanvasBtn" title="Document Pages" style="position:relative;">
+                <i data-lucide="layout-grid"></i>
+                <span id="pageCountBadge" style="position:absolute;top:-5px;right:-5px;background:rgba(80,200,140,.85);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:9px;min-width:16px;text-align:center;">1</span>
+            </button>
+            <!-- NEW (v3): sidebar toggle -->
+            <button class="btn-icon" id="sidebarToggleBtn" title="Toggle Panels">
+                <i data-lucide="panel-right"></i>
+            </button>
+            <!-- Notification bell for student -->
+            <div class="invite-notif-wrapper" id="inviteNotifWrapper" style="position:relative;z-index:200;">
+                <button class="btn-icon" id="inviteNotifBtn" title="Notifications" onclick="toggleInviteNotifs(event)" style="position:relative;">
+                    <i data-lucide="bell"></i>
+                    <span id="inviteNotifBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:9px;min-width:16px;text-align:center;pointer-events:none;"></span>
+                </button>
+                <div id="inviteNotifDropdown" class="invite-notif-dropdown" style="display:none;">
+                    <div class="invite-notif-header">
+                        <span style="font-weight:600;font-size:13px;">Notifications</span>
+                        <button onclick="markAllInviteRead(event)" style="background:none;border:none;cursor:pointer;font-size:11px;color:#3b82f6;padding:0;">Mark all read</button>
+                    </div>
+                    <div id="inviteNotifList" class="invite-notif-list">
+                        <div style="padding:20px;text-align:center;font-size:12px;color:rgba(255,255,255,.4);">Loading…</div>
+                    </div>
+                    <div class="invite-notif-footer">
+                        <a href="/notifications" onclick="if(window.openAllNotifsModal){ window.openAllNotifsModal(event); } else { console.warn('Notification modal logic not ready.'); event.preventDefault(); } return false;" style="font-size:11px;color:rgba(255,255,255,.5);text-decoration:none;">View all notifications →</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings button (preserved — id="settingsBtn" used by JS) -->
+            <button class="btn-icon" id="settingsBtn" title="Settings">
+                <i data-lucide="settings"></i>
+            </button>
+
+            <!-- User dropdown (PRESERVED — functional, Jinja-bound) -->
+            <div class="user-dropdown-wrapper" id="userDropdownWrapper">
+                <button class="user-dropdown-btn" id="userDropdownBtn" onclick="toggleUserDropdown()">
+                    <!-- [JINJA] invitation.first_name, invitation.last_name initials -->
+                    <div class="user-initials-avatar">{{ (invitation.first_name or '?')[0]|upper }}{{ (invitation.last_name or '?')[0]|upper }}</div>
+                    <!-- [JINJA] invitation.first_name, invitation.last_name -->
+                    <span class="user-dropdown-name">{{ invitation.first_name or '' }} {{ invitation.last_name or '' }}</span>
+                    <svg class="user-dropdown-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                </button>
+                <div class="user-dropdown-menu" id="userDropdownMenu">
+                    <div class="dropdown-user-info">
+                        <!-- [JINJA] invitation.first_name, invitation.last_name, invitation.email -->
+                        <div class="dropdown-user-fullname">{{ invitation.first_name or '' }} {{ invitation.last_name or '' }}</div>
+                        <div class="dropdown-user-email">{{ invitation.email }}</div>
+                    </div>
+                    <button class="dropdown-menu-item logout-item" onclick="showLogoutModal()">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16 17 21 12 16 7"/>
+                            <line x1="21" x2="9" y1="12" y2="12"/>
+                        </svg>
+                        <span>Sign Out</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- NEW (v3): Global Quill toolbar bar — populated dynamically by quill-pagination-system.js -->
+    <div id="quill-toolbar-bar">
+        <!-- The existing custom toolbar is placed here so both the old #custom-toolbar ID
+             and the new #quill-toolbar-bar container ID remain available to their respective JS -->
+        <div id="custom-toolbar" class="ql-toolbar ql-snow">
+            <span class="ql-formats">
+                <select class="ql-header" title="Header Style">
+                    <option value="1"></option><option value="2"></option><option value="3"></option>
+                    <option selected></option>
+                </select>
+            </span>
+            <span class="ql-formats">
+                <select class="ql-size" title="Font Size">
+                    <option value="small"></option><option selected></option>
+                    <option value="large"></option><option value="huge"></option>
+                </select>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-bold" title="Bold (Ctrl+B)"></button>
+                <button class="ql-italic" title="Italic (Ctrl+I)"></button>
+                <button class="ql-underline" title="Underline (Ctrl+U)"></button>
+            </span>
+            <span class="ql-formats">
+                <select class="ql-color" title="Text Color"></select>
+                <select class="ql-background" title="Background Color"></select>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-list" value="ordered" title="Numbered List"></button>
+                <button class="ql-list" value="bullet" title="Bullet List"></button>
+                <button class="ql-indent" value="-1" title="Decrease Indent"></button>
+                <button class="ql-indent" value="+1" title="Increase Indent"></button>
+            </span>
+            <span class="ql-formats"><select class="ql-align" title="Text Alignment"></select></span>
+            <span class="ql-formats">
+                <button class="ql-link" title="Insert Link"></button>
+                <button class="ql-image" title="Insert Image"></button>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-table" title="Insert Table" type="button">
+                    <svg viewBox="0 0 18 18">
+                        <rect class="ql-stroke" height="12" width="12" x="3" y="3"></rect>
+                        <rect class="ql-fill" height="2" width="3" x="5" y="5"></rect>
+                        <rect class="ql-fill" height="2" width="4" x="9" y="5"></rect>
+                        <g class="ql-fill ql-transparent">
+                            <rect height="2" width="3" x="5" y="8"></rect>
+                            <rect height="2" width="4" x="9" y="8"></rect>
+                            <rect height="2" width="3" x="5" y="11"></rect>
+                            <rect height="2" width="4" x="9" y="11"></rect>
+                        </g>
+                    </svg>
+                </button>
+                <button class="ql-strike" title="Strikethrough"></button>
+                <button class="ql-code-block" title="Code Block"></button>
+                <button class="ql-blockquote" title="Blockquote"></button>
+            </span>
+            <!-- Placeholder variable picker (quill-placeholder-module) -->
+            <span class="ql-formats">
+                <button class="ql-placeholder" title="Insert Variable / Placeholder">
+                    <svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Left curly brace -->
+                        <path d="M5.5 2.5 C4.2 2.5 3.5 3.1 3.5 4.2 L3.5 6.8 C3.5 7.6 3 8 2.5 8.5 C3 9 3.5 9.4 3.5 10.2 L3.5 12.8 C3.5 13.9 4.2 14.5 5.5 14.5"
+                              stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+                        <!-- Right curly brace -->
+                        <path d="M11.5 2.5 C12.8 2.5 13.5 3.1 13.5 4.2 L13.5 6.8 C13.5 7.6 14 8 14.5 8.5 C14 9 13.5 9.4 13.5 10.2 L13.5 12.8 C13.5 13.9 12.8 14.5 11.5 14.5"
+                              stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+                        <!-- Dots -->
+                        <circle cx="7" cy="8.5" r="0.9" fill="currentColor"/>
+                        <circle cx="9" cy="8.5" r="0.9" fill="currentColor"/>
+                        <circle cx="11" cy="8.5" r="0.9" fill="currentColor"/>
+                    </svg>
+                </button>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-clean" title="Clear Formatting"></button>
+            </span>
+        </div>
+    </div>
+
+    <!-- Word limit bar (NEW v3) -->
+    <div id="wordLimitBar"><div id="wordLimitFill"></div></div>
+
+    <!-- ============================================================
+         MAIN LAYOUT
+    ============================================================ -->
+    <div class="main-layout">
+
+        <!-- Editor -->
+        <div class="editor-container">
+            <div class="editor-wrapper">
+                <!-- Quill pagination pages container (PRESERVED — used by quill-pagination-system.js) -->
+                <div id="editor-pages"></div>
+            </div>
+            <!-- Quill status bar (NEW v3) -->
+            <div id="quillStatusBar">
+                <span id="qsWords">0 words</span>
+                <span id="qsChars">0 chars</span>
+                <span id="qsLines">1 lines</span>
+                <span id="qsPage">Page 1 of 1</span>
+                <span id="qsCursor" style="margin-left:auto;">Col 1, Row 1</span>
+            </div>
+        </div>
+
+        <!-- Pages Offcanvas (NEW v3) -->
+        <div class="pages-offcanvas" id="pagesOffcanvas">
+            <div class="offcanvas-header">
+                <div>
+                    <div class="offcanvas-title">Document Pages</div>
+                    <div class="offcanvas-subtitle">Click to select · Drag to reorder · Drop on trash</div>
+                </div>
+                <div class="offcanvas-actions">
+                    <span id="selectedCount"></span>
+                    <button class="offcanvas-btn offcanvas-btn-del" id="deleteSelectedBtn" disabled title="Delete selected pages">
+                        <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete
+                    </button>
+                </div>
+            </div>
+            <div class="documents-container" id="docsContainer">
+                <div class="documents-grid" id="docsGrid"></div>
+                <div class="selection-rect" id="selectionRect"></div>
+            </div>
+            <div class="trash-zone" id="trashZone">
+                <i data-lucide="trash-2" style="width:18px;height:18px;"></i><span style="font-size:10.5px;font-weight:600;">Drop here to delete</span>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="appSidebar">
+
+
+            <!-- Writing Statistics Panel (HIDDEN for student discretion) -->
+            <div class="panel" style="display:none;">
+                <div class="panel-header" data-toggle="aiwritting">
+                    <div class="panel-title">
+                        <i data-lucide="activity"></i><span>Writing Statistics</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="panel-toggle-icon"></i>
+                </div>
+                <div class="panel-content collapsed" id="aiwritting">
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-label"><span id="progressPercent">0%</span> complete</div>
+                        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+                    </div>
+                    <div class="stats-grid">
+                        <!-- [PRESERVED] IDs used by invite-inline.js / marktrack-script3.js -->
+                        <div class="stat-item">
+                            <span class="stat-label">Total Words</span>
+                            <span class="stat-value" id="statTotalWords">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Time Active</span>
+                            <span class="stat-value" id="statActiveTime">0h 0m</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Words/Min</span>
+                            <span class="stat-value" id="statWPM">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Spelling</span>
+                            <span class="stat-value" id="statSpellingErrors">0</span>
+                        </div>
+                        <div class="stat-item" style="grid-column:span 2;">
+                            <span class="stat-label">Grammar Errors</span>
+                            <span class="stat-value" id="statGrammarErrors">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Version History Panel (PRESERVED) -->
+            <div class="panel">
+                <div class="panel-header" data-toggle="versionHistory">
+                    <div class="panel-title">
+                        <i data-lucide="clock"></i><span>My Versions</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="panel-toggle-icon"></i>
+                </div>
+                <div class="panel-content collapsed" id="versionHistory">
+                    <div class="version-list" id="versionList">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assignment Guidelines Panel (PRESERVED — Jinja-bound) -->
+            <div class="panel">
+                <div class="panel-header" data-toggle="guidelines">
+                    <div class="panel-title">
+                        <i data-lucide="file-text"></i><span>Assignment Guidelines</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="panel-toggle-icon"></i>
+                </div>
+                <div class="panel-content collapsed" id="guidelines">
+                    <!-- [JINJA] workspace.title, workspace.classroom, workspace.deadline -->
+                    <div class="guideline-item"><strong>Assignment:</strong> {{ workspace.title }}</div>
+                    {% if workspace.classroom %}
+                    <div class="guideline-item"><strong>Classroom:</strong> {{ workspace.classroom }}</div>
+                    {% endif %}
+                    <div class="guideline-item"><strong>Due Date:</strong> {{ workspace.deadline.strftime('%d/%m/%Y %H:%M') }}</div>
+                </div>
+            </div>
+
+            <!-- Comments Panel — Professor feedback -->
+            <div class="panel">
+                <div class="panel-header" data-toggle="commentsPanel">
+                    <div class="panel-title">
+                        <i data-lucide="message-square"></i><span>Comments</span>
+                    </div>
+                    <!-- Toggle Shading Action -->
+                    <div class="panel-actions" onclick="event.stopPropagation()">
+                        <button id="cpToggleShadingBtn" class="btn-panel-action" title="Show/Hide Highlights" onclick="window.cpToggleShading()">
+                            <i data-lucide="eye"></i>
+                        </button>
+                    </div>
+                    <i data-lucide="chevron-down" class="panel-toggle-icon"></i>
+                </div>
+                <div class="panel-content collapsed" id="commentsPanel">
+                    <div id="commentsPanelBody">
+                        <div class="activity-empty">Loading…</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Panel — Collaborators + Invite (máx 3) -->
+            <div class="panel">
+                <div class="panel-header" data-toggle="teamSidePanel">
+                    <div class="panel-title">
+                        <i data-lucide="users"></i><span>Team</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="panel-toggle-icon"></i>
+                </div>
+                <div class="panel-content collapsed" id="teamSidePanel">
+                    <!-- Collaborator list -->
+                    <div id="teamSideList" class="team-side-list">
+                        <div style="padding:15px;text-align:center;font-size:12px;color:rgba(255,255,255,0.3);">Loading team…</div>
+                    </div>
+                    <!-- Invite form (hidden when max reached) -->
+                    <div id="teamSideForm">
+                        <div style="display:flex;gap:6px;margin-bottom:5px;">
+                            <input type="email" id="teamSideEmail" placeholder="collaborator@email.com"
+                                   style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 10px;font-size:12px;color:#fff;outline:none;">
+                        </div>
+                        <div style="display:flex;gap:6px;">
+                            <select id="teamSideRole"
+                                    style="flex:1;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 8px;font-size:12px;color:#fff;outline:none;cursor:pointer;">
+                                <option value="editor">Editor</option>
+                                <option value="collaborator" selected>Collaborator</option>
+                                <option value="reader">Reader</option>
+                            </select>
+                            <button onclick="teamSideInvite()"
+                                    style="background:rgba(99,102,241,0.8);border:none;border-radius:8px;padding:6px 12px;color:#fff;font-size:12px;cursor:pointer;white-space:nowrap;">
+                                Invite
+                            </button>
+                        </div>
+                        <div id="teamSideMsg" style="display:none;font-size:11px;margin-top:6px;padding:4px 8px;border-radius:6px;"></div>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+    </div><!-- /.main-layout -->
+
+    <!-- Footer (Consolidated) -->
+    <footer class="app-footer">
+        <div class="footer-left">
+            <span class="auto-save-status">Last saved: <span id="lastSaved">never</span></span>
+        </div>
+        
+        <div class="footer-metrics">
+            <div class="typing-indicator" id="typingIndicator" style="display:none; font-size: 11px; align-items:center; gap:6px; color:#50c88c; font-weight:600; background:rgba(80,200,140,0.1); padding: 4px 8px; border-radius: 20px;">
+                <span style="width:8px;height:8px;background:#50c88c;border-radius:50%;display:inline-block;animation:pulse 1.5s infinite;"></span> Actively Typing
+            </div>
+            <div class="session-timer" id="sessionTimer">00:00</div>
+            <div class="privacy-notice-inline">
+                Recording for integrity. Process visible to instructor.
+            </div>
+        </div>
+
+        <div class="footer-right">
+            <button class="btn btn-secondary" id="saveDraftBtn"><i data-lucide="save" style="width:16px;height:16px;"></i> Save Draft</button>
+            <button class="btn btn-primary" id="SignaturBtn"><i data-lucide="send" style="width:16px;height:16px;"></i> Submit Work</button>
+        </div>
+    </footer>
+
+</div><!-- /#studentView -->
+</div><!-- /#editorArea -->
+
+{% endif %}<!-- end workspace and invitation block -->
+
+<!-- ================================================================
+     LOGOUT / SAVE & EXIT MODAL (PRESERVED — functions called by JS)
+================================================================ -->
+<div class="logout-modal-overlay" id="logoutModalOverlay">
+    <div class="logout-modal-panel">
+        <div class="logout-modal-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" x2="9" y1="12" y2="12"/>
+            </svg>
+        </div>
+        <h3 class="logout-modal-title">Save &amp; Exit?</h3>
+        <p class="logout-modal-text">Would you like to save your work before leaving? Any unsaved changes will be lost.</p>
+        <div class="logout-modal-actions">
+            <!-- [PRESERVED] onclick handlers used by invite-inline.js -->
+            <button class="btn-cancel-logout" onclick="closeLogoutModal()">Cancel</button>
+            <button class="btn-save-exit" onclick="saveAndExit()">Save &amp; Exit</button>
+            <button class="btn-exit-nosave" onclick="exitWithoutSave()">Exit</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================
+     SETTINGS MODAL (PRESERVED — full original content)
+================================================================ -->
+<div id="settingsModal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content modal-lg">
+        <div class="modal-header">
+            <h2>Settings</h2>
+            <button class="btn-close" data-modal="settingsModal"><i data-lucide="x"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="settings-tabs">
+                <button class="tab-btn active" data-tab="appearance">Appearance</button>
+                <button class="tab-btn" data-tab="editor">Editor</button>
+                <button class="tab-btn" data-tab="privacy">Privacy</button>
+            </div>
+            <!-- Appearance Tab -->
+            <div class="settings-panel active" id="appearance">
+                <div class="setting-group">
+                    <label>Theme</label>
+                    <div class="theme-selector">
+                        <button class="theme-option active" data-theme="light"><i data-lucide="sun"></i><span>Light</span></button>
+                        <button class="theme-option" data-theme="dark"><i data-lucide="moon"></i><span>Dark</span></button>
+                        <button class="theme-option" data-theme="auto"><i data-lucide="monitor"></i><span>Auto</span></button>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <label>Font Family</label>
+                    <select id="fontFamily" class="form-select">
+                        <option value="inter">Inter</option><option value="georgia">Georgia</option>
+                        <option value="times">Times New Roman</option><option value="arial">Arial</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label>Font Size</label>
+                    <input type="range" id="fontSize" min="12" max="24" value="16" class="range-slider">
+                    <span id="fontSizeValue">16px</span>
+                </div>
+                <div class="setting-group">
+                    <label>Line Spacing</label>
+                    <select id="lineSpacing" class="form-select">
+                        <option value="1.0">Single</option><option value="1.15">1.15</option>
+                        <option value="1.5" selected>1.5</option><option value="2.0">Double</option>
+                    </select>
+                </div>
+            </div>
+            <!-- Editor Tab -->
+            <div class="settings-panel" id="editor" style="display:none;">
+                <div class="setting-group"><label class="checkbox-label"><input type="checkbox" id="autoSave" checked><span>Auto-save</span></label><small>Automatically save changes every 2 minutes</small></div>
+                <div class="setting-group"><label class="checkbox-label"><input type="checkbox" id="spellCheckAuto" checked><span>Automatic spell check</span></label></div>
+                <div class="setting-group"><label class="checkbox-label"><input type="checkbox" id="grammarCheck" checked><span>Grammar suggestions</span></label></div>
+                <div class="setting-group"><label class="checkbox-label"><input type="checkbox" id="showWordCount" checked><span>Show word count</span></label></div>
+            </div>
+            <!-- Privacy Tab -->
+            <div class="settings-panel" id="privacy" style="display:none;">
+                <div class="alert alert-info">
+                    <i data-lucide="info"></i>
+                    <span>All your work is tracked for academic integrity. Your teacher can see your progress.</span>
+                </div>
+                <div class="setting-group"><label class="checkbox-label"><input type="checkbox" id="shareAnalytics" checked><span>Share anonymous analytics</span></label><small>Help us improve the platform</small></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" data-modal="settingsModal">Cancel</button>
+            <button class="btn btn-primary" id="saveSettingsBtn">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================
+     SIGNATURE / SUBMIT MODAL (UPDATED with Privacy & Types)
+================================================================ -->
+<div id="signatureModal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content modal-signature" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2>Sign and Submit</h2>
+            <button class="btn-close" data-modal="signatureModal"><i data-lucide="x"></i></button>
+        </div>
+        <div class="modal-body">
+            <!-- Privacy Alert -->
+            <div class="alert alert-info" style="margin-bottom: 20px; font-size: 13px;">
+                <i data-lucide="shield-check" style="color:var(--primary);"></i>
+                <span><strong>Academic Privacy Notice:</strong> Your writing activity is being monitored to verify dedication and effort. Only your instructor will see the aggregated metrics.</span>
+            </div>
+            
+            <div class="signature-tabs" style="display:flex; gap:10px; margin-bottom:15px; border-bottom:1px solid var(--glass-bdr); padding-bottom:10px;">
+                <button class="btn-tab active" id="tabDraw" style="background:transparent; border:none; color:var(--t1); font-weight:600; cursor:pointer;">Draw Signature</button>
+                <button class="btn-tab" id="tabUpload" style="background:transparent; border:none; color:var(--t3); font-weight:600; cursor:pointer;">Upload Photo</button>
+            </div>
+
+            <div class="signature-area" id="areaDraw">
+                <div class="signature-tools">
+                    <button class="tool-btn active" data-color="#000000"><span class="color-dot" style="background:#000000;"></span></button>
+                    <button class="tool-btn" data-color="#2563eb"><span class="color-dot" style="background:#2563eb;"></span></button>
+                    <button class="tool-btn" data-color="#dc2626"><span class="color-dot" style="background:#dc2626;"></span></button>
+                    <div class="tool-divider"></div>
+                    <button class="tool-btn" id="clearSignature"><i data-lucide="eraser"></i></button>
+                </div>
+                <!-- Width adjusted to responsive inline -->
+                <canvas id="signatureCanvas" width="480" height="150" style="max-width:100%; border:1px solid var(--glass-bdr); border-radius:8px;"></canvas>
+                <p class="signature-hint">Sign above</p>
+            </div>
+
+            <div class="signature-area" id="areaUpload" style="display:none; text-align:center; padding: 30px; border: 2px dashed var(--glass-bdr); border-radius:8px;">
+                <input type="file" id="signatureUpload" accept="image/*" style="display:none;">
+                <i data-lucide="upload-cloud" style="width:40px;height:40px;color:var(--t3);margin-bottom:10px;"></i>
+                <p style="font-size:13px;color:var(--t2);margin-bottom:15px;">Upload a scan or photo of your signature</p>
+                <button class="btn btn-secondary" onclick="document.getElementById('signatureUpload').click()">Choose File</button>
+                <div id="uploadPreview" style="margin-top:15px;display:none;">
+                    <img id="uploadPreviewImg" src="" style="max-height:80px; max-width:100%; border-radius:4px; border:1px solid var(--glass-bdr);">
+                </div>
+            </div>
+
+            <div class="integrity-statement" style="margin-top: 20px;">
+                <label class="checkbox-label" style="display:flex; align-items:flex-start; gap:10px;">
+                    <input type="checkbox" id="integrityCheckbox">
+                    <span style="font-size: 13px; line-height: 1.4;">I confirm that this work is my own. I've followed all AI use policies and understand this signature is legally binding.</span>
+                </label>
+            </div>
+            <div class="signature-error" id="signatureError" style="display:none;">
+                <i data-lucide="alert-circle"></i><span>Please sign and confirm the integrity statement</span>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" data-modal="signatureModal">Cancel</button>
+            <button class="btn btn-primary" id="submitWithSignature" disabled>Finalize & Submit</button>
+        </div>
+    </div>
+</div>
+
+    <!-- ── Floating Find Bar ── -->
+    <div id="editorFind" class="editor-find-bar" style="display:none;" role="search" aria-label="Find in document">
+        <div class="find-input-wrap">
+            <svg class="find-search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input id="findInput" class="find-input" type="text" placeholder="Find in document…" autocomplete="off" spellcheck="false">
+            <span id="findCount" class="find-count"></span>
+        </div>
+        <div class="find-divider"></div>
+        <div class="find-actions">
+            <button id="findPrev" class="find-btn" title="Previous match (Shift+Enter)" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+            </button>
+            <button id="findNext" class="find-btn" title="Next match (Enter)" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <button id="findClose" class="find-btn find-btn-close" title="Close (Esc)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+        </div>
+    </div>
+
+<!-- Toast notification (PRESERVED — used by JS) -->
+<div class="toast" id="toast"></div>
+
+<!-- ================================================================
+     SCRIPTS
+================================================================ -->
+
+<!-- [PRESERVED] TOKEN Jinja variable — used by invite-editor.js -->
+<!-- [PRESERVED] Server-side configuration -->
+<script id="server-config" type="application/json">
+{
+    "token": {{ (token if token is defined else "") | tojson | safe }},
+    "documentId": {{ (invitation.document_id if (invitation and invitation.document_id) else 0) | tojson | safe }},
+    "isStudent": {{ (not is_owner) | tojson | safe if is_owner is defined else true | tojson | safe }},
+    "studentName": {{ (((invitation.first_name or "") + " " + (invitation.last_name or "")).strip() if invitation else "") | tojson | safe }},
+    "userId": {{ (current_student.id if (current_student is defined and current_student) else (current_user.id if (current_user is defined and current_user and current_user.is_authenticated) else 0)) | tojson | safe }}
+}
+</script>
+
+<!-- Quill.js dependencies -->
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+
+<!-- Modular Page Core (Sets window.TOKEN, window.DOCUMENT_ID, etc.) -->
+<script src="{{ url_for('static', filename='js/pages/invite_core.js') }}"></script>
+
+<!-- ══════════════════════════════════════════
+     MODAL: CONFIRM REMOVE COLLABORATOR
+══════════════════════════════════════════ -->
+<div id="collabRemoveBackdrop" onclick="closeCollabRemoveModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(10px);z-index:9900;align-items:center;justify-content:center;">
+  <div onclick="event.stopPropagation()" style="background:linear-gradient(145deg,rgba(28,32,48,.98),rgba(18,22,38,.98));border:1px solid rgba(239,68,68,.22);border-top:1px solid rgba(239,68,68,.35);border-radius:20px;width:min(400px,90vw);padding:28px 26px 22px;text-align:center;animation:hbModalIn .28s cubic-bezier(.34,1.56,.64,1);">
+    <div style="width:50px;height:50px;border-radius:50%;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+      <svg width="22" height="22" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="18" y1="8" x2="23" y2="13"></line><line x1="23" y1="8" x2="18" y2="13"></line></svg>
+    </div>
+    <h3 style="font-size:16px;font-weight:700;color:#fff;margin:0 0 8px;">Remove Collaborator?</h3>
+    <p style="font-size:13px;color:rgba(255,255,255,0.5);margin:0 0 14px;">This will revoke their access and <strong style="color:#f87171;">cancel the invitation link</strong>.</p>
+    <div style="background:rgba(239,68,68,.09);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:10px 14px;margin-bottom:20px;">
+      <p style="font-size:13.5px;font-weight:600;color:#f87171;margin:0;" id="removeCollabEmailDisplay">email@example.com</p>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:center;">
+      <button onclick="closeCollabRemoveModal()" style="display:flex;align-items:center;gap:6px;padding:9px 20px;border-radius:9px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Cancel</button>
+      <button id="confirmRemoveCollabBtn" style="padding:9px 20px;border-radius:9px;background:linear-gradient(135deg,#ef4444,#dc2626);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;box-shadow:0 4px 12px rgba(239,68,68,.3);">
+        <span class="spinner-small" id="removeCollabSpinner" style="display:none;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:rotate 1s linear infinite;"></span>
+        Remove
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Global Systems -->
+<script src="{{ url_for('static', filename='js/custom-image-blot.js') }}"></script>
+<script>
+    if (window.CustomImageBlot) {
+        Quill.register(window.CustomImageBlot, true);
+    }
+</script>
+<script src="{{ url_for('static', filename='js/quill-image-controls.js') }}"></script>
+<script src="{{ url_for('static', filename='js/quill-pagination-system.js') }}"></script>
+<script src="{{ url_for('static', filename='js/editor-find.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages-offcanvas.js') }}"></script>
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js" crossorigin="anonymous"></script>
+
+<!-- Main Page Logic (Invite Editor) — Uses window.TOKEN -->
+<script src="{{ url_for('static', filename='js/typing-metrics.js') }}?v=1.1.0"></script>
+<script src="{{ url_for('static', filename='js/quill-bubble-toolbar.js') }}"></script>
+<script src="{{ url_for('static', filename='js/invite-editor.js') }}?v=1.1.0"></script>
+<script src="{{ url_for('static', filename='js/plagiarism-detector-fixed.js') }}"></script>
+
+<!-- Sub-Modules -->
+<script src="{{ url_for('static', filename='js/pages/invite_registration.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/invite_presence.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/invite_metrics.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/invite_comments.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/invite_team.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/invite_notifs.js') }}?v=4.0.0_aggro"></script>
+
+<!-- Yjs Collaborative Editing (ESM module — activates only when ≥2 collaborators are active) -->
+<script type="module" src="{{ url_for('static', filename='js/collab-sync.js') }}"></script>
+
+
+<!-- ================================================================
+     ALL NOTIFICATIONS MODAL (Global Scope - Premium Design)
+================================================================ -->
+<style>
+    body { margin: 0 !important; }
+    @keyframes smoothGlow {
+        0% { background-color: transparent; box-shadow: 0 0 0 rgba(59, 130, 246, 0); border-left: 3px solid transparent; }
+        10% { background-color: rgba(59, 130, 246, 0.1); box-shadow: -4px 0 12px rgba(59, 130, 246, 0.2); border-left: 3px solid #3b82f6; }
+        80% { background-color: rgba(59, 130, 246, 0.1); box-shadow: -4px 0 12px rgba(59, 130, 246, 0.2); border-left: 3px solid #3b82f6; }
+        100% { background-color: transparent; box-shadow: 0 0 0 rgba(59, 130, 246, 0); border-left: 3px solid transparent; }
+    }
+    .comment-highlight-glow {
+        animation: smoothGlow 3.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        border-radius: 4px;
+    }
+    .mt-modal-overlay {
+        position: fixed; inset: 0; z-index: 9999999;
+        background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        display: flex; align-items: center; justify-content: center;
+        padding: 20px;
+    }
+    .mt-modal-content {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 24px; width: 100%; max-width: 600px;
+        box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.8); overflow: hidden;
+        color: #f8fafc;
+        display: flex; flex-direction: column;
+    }
+    .mt-modal-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 24px 32px; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .mt-modal-header-title { display: flex; align-items: center; gap: 12px; }
+    .mt-modal-header-title i { color: #3b82f6; }
+    .mt-modal-header h3 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+    
+    .mt-modal-tabs {
+        display: flex; gap: 4px; padding: 12px 32px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .mt-modal-tab {
+        padding: 10px 16px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.5);
+        cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
+    }
+    .mt-modal-tab:hover { color: #fff; }
+    .mt-modal-tab.active { color: #3b82f6; border-bottom-color: #3b82f6; }
+
+    .mt-modal-body { 
+        padding: 24px 32px; 
+        max-height: 60vh; 
+        overflow-y: auto;
+        min-height: 250px;
+    }
+    .mt-modal-body::-webkit-scrollbar { width: 6px; }
+    .mt-modal-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    .mt-modal-footer {
+        padding: 20px 32px;
+        background: rgba(255,255,255,0.02);
+        border-top: 1px solid rgba(255,255,255,0.05);
+        display: flex; justify-content: flex-end; align-items: center; gap: 16px;
+    }
+    .mt-modal-footer-info {
+        font-size: 11px; color: rgba(255,255,255,0.25); margin-right: auto;
+        display: flex; align-items: center; gap: 6px;
+    }
+    .btn-modal-close {
+        background: #3b82f6; color: #fff; border: none;
+        padding: 8px 16px; border-radius: 10px; font-size: 12px; font-weight: 600;
+        cursor: pointer; display: flex; align-items: center; gap: 6px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    .btn-modal-close:hover {
+        background: #2563eb; transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+    }
+    .btn-modal-close:active { transform: translateY(0); }
+
+    /* List items inside modal */
+    .modal-notif-item {
+        display: flex; gap: 16px; padding: 16px;
+        background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
+        border-radius: 16px; margin-bottom: 12px; cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+    }
+    .modal-notif-item:hover {
+        background: rgba(255,255,255,0.05);
+        border-color: rgba(59, 130, 246, 0.3);
+        transform: translateY(-2px);
+    }
+    .modal-notif-item.unread { background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.15); }
+    .modal-notif-dot {
+        position: absolute; top: 12px; right: 12px; width: 8px; height: 8px;
+        background: #3b82f6; border-radius: 50%; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    }
+    .modal-notif-icon {
+        flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(255,255,255,0.03); color: #94a3b8;
+    }
+    .modal-notif-item.unread .modal-notif-icon { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+    
+    /* Stronger highlight for comments in sidebar */
+    .comment-target-active {
+        border: 2px solid #3b82f6 !important;
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.4) !important;
+        transition: all 0.3s ease;
+    }
+    .comment-notif-flash {
+        animation: flashBorder 2s infinite;
+    }
+    @keyframes flashBorder {
+        0%, 100% { border-color: transparent; }
+        50% { border-color: #3b82f6; }
+    }
+</style>
+<style>
+    .modal-notif-content { flex: 1; }
+    .modal-notif-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .modal-notif-msg { font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.5; }
+    .modal-notif-time { font-size: 11px; color: rgba(255,255,255,0.3); margin-top: 8px; font-weight: 500; }
+
+    @media (max-width: 640px) {
+        .mt-modal-content { border-radius: 0; height: 100%; max-height: 100vh; max-width: 100%; border: none; }
+        .mt-modal-overlay { padding: 0; }
+        .mt-modal-header { padding: 20px; }
+        .mt-modal-tabs { padding: 0 20px; }
+        .mt-modal-body { padding: 20px; }
+    }
+</style>
+<div id="allNotifsModal" class="mt-modal-overlay" style="display:none; opacity:0; transition: opacity 0.3s;">
+    <div class="mt-modal-content" style="transform:translateY(20px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+        <div class="mt-modal-header">
+            <div class="mt-modal-header-title">
+                <i data-lucide="bell"></i>
+                <h3>Notifications</h3>
+            </div>
+            <button onclick="window.closeAllNotifsModal()" class="btn-icon" style="color:rgba(255,255,255,.5); background:none; border:none; cursor:pointer; padding: 8px; border-radius: 50%; transition: background 0.2s;">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="mt-modal-tabs">
+            <div class="mt-modal-tab active" data-tab="all" onclick="window.setNotifTab('all')">All</div>
+            <div class="mt-modal-tab" data-tab="unread" onclick="window.setNotifTab('unread')">Unread</div>
+            <div class="mt-modal-tab" data-tab="mentions" onclick="window.setNotifTab('mentions')">Mentions</div>
+        </div>
+        <div class="mt-modal-body" id="allNotifsModalList">
+            <!-- Populated via JS -->
+        </div>
+        <div class="mt-modal-footer">
+            <div class="mt-modal-footer-info">
+                <i data-lucide="info" style="width:14px;height:14px;"></i>
+                Keep track of your document updates.
+            </div>
+            <button onclick="window.closeAllNotifsModal()" class="btn-modal-close">
+                <i data-lucide="check"></i>
+                <span>Dismiss</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+    <!-- Page Comment Modal (Glass v3 Standard) -->
+    <div id="pageCommentModal" class="mt-modal-overlay" style="display:none; opacity:0; transition: opacity 0.3s; z-index: 10001;">
+        <div class="mt-modal-content" style="max-width: 450px; transform:translateY(20px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+            <div class="mt-modal-header">
+                <div class="mt-modal-header-title">
+                    <i data-lucide="message-square"></i>
+                    <h3 id="pageCommentModalTitle">Add Comment to Page</h3>
+                </div>
+                <button onclick="closePageCommentModal()" class="btn-icon" style="color:rgba(255,255,255,.5); background:none; border:none; cursor:pointer; padding: 8px; border-radius: 50%; transition: background 0.2s;">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="mt-modal-body" style="padding: 20px 32px;">
+                <div id="newCommentSection" style="margin-bottom: 24px;">
+                    <p id="commentAreaTitle" style="font-size: 11px; font-weight: 700; color: var(--primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">New Comment</p>
+                    <textarea id="pageCommentText" 
+                        placeholder="Type your comment here..." 
+                        style="width: 100%; height: 80px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #fff; padding: 14px; font-size: 14px; resize: none; margin-bottom: 4px; outline: none; transition: border-color 0.2s;"></textarea>
+                    <div id="pageCommentError" style="color: #ef4444; font-size: 11px; margin-top: 4px; display: none;">Comment cannot be empty.</div>
+                </div>
+
+                <div id="modalCommentsList" class="modal-comments-list">
+                    <!-- Existing comments here -->
+                </div>
+            </div>
+            <div class="mt-modal-footer" style="padding: 14px 32px; border-top: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.1); display: flex; gap: 12px;">
+                 <button onclick="closePageCommentModal()" class="btn-modal-close" style="background:transparent; border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.7); flex: 1; justify-content: center; height: 38px; box-shadow: none;">
+                    <i data-lucide="x" style="width:14px;height:14px;"></i>
+                    <span>Cancel</span>
+                </button>
+                <button id="savePageCommentBtn" class="btn-modal-close" style="flex: 1; justify-content: center; background: var(--primary); height: 38px;">
+                    <i data-lucide="check" style="width:14px;height:14px;"></i>
+                    <span id="saveBtnText">Save Comment</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Professional Delete Confirmation Modal -->
+    <div id="deleteConfirmModal" class="mt-modal-overlay" style="display:none; opacity:0; transition: opacity 0.3s; z-index: 10002;">
+        <div class="mt-modal-content" style="max-width: 400px; transform:translateY(20px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+            <div class="mt-modal-header" style="border-bottom:none; padding-bottom:0;">
+                <div class="mt-modal-header-title">
+                    <i data-lucide="trash-2" style="color:#ef4444;"></i>
+                    <h3>Delete Page</h3>
+                </div>
+            </div>
+            <div class="mt-modal-body" style="min-height:auto; padding: 24px 32px;">
+                <p id="deleteConfirmText" style="margin:0; color:rgba(255,255,255,0.7); font-size:14px; line-height:1.6;">
+                    Are you sure you want to delete this page? This action cannot be undone.
+                </p>
+            </div>
+            <div class="mt-modal-footer" style="background:transparent; border:none; padding: 24px 32px; gap: 12px;">
+                <button id="cancelDeleteBtn" class="btn-modal-close" style="background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.6); border:1px solid rgba(255,255,255,0.1); flex:1; justify-content:center; box-shadow:none;">
+                    Cancel
+                </button>
+                <button id="confirmDeleteBtn" class="btn-modal-close" style="background:#ef4444; color:#fff; flex:1; justify-content:center; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function closePageCommentModal() {
+            const modal = document.getElementById('pageCommentModal');
+            if (!modal) return;
+            modal.style.opacity = '0';
+            const content = modal.querySelector('.mt-modal-content');
+            if (content) content.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        }
+    </script>
+</body>
+</html>
