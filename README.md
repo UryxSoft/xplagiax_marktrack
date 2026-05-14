@@ -183,7 +183,7 @@ graph TD
     A[Professor: Create Workspace] --> B[Generate 32-char Secure Token]
     B --> C["Store Invitation Record (status=pending)"]
     C --> D["Dispatch Professional Email via Flask-Mail"]
-    D --> E[Student: Clicks link /invite/{token}]
+    D --> E["Student: Clicks link /invite/{token}"]
     E --> F{Is Student Logged in?}
     F -- No --> G["Redirect to /homework Login/Register"]
     F -- Yes --> H{Is email match?}
