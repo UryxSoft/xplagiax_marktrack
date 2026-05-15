@@ -1,25 +1,36 @@
+        /* ═══════════════════════════════════════════════════════════════════
+           auth-login-inline.css  — XplagiaX MarkTrack
+           Layout model:
+             .auth-wrapper (flex row)
+               ├── .forms-area   (flex:1, position:relative, overflow:hidden)
+               │     ├── .panel-professor  (position:absolute, fills forms-area)
+               │     └── .panel-student   (position:absolute, fills forms-area)
+               └── .overlay-container (flex:1, in-flow — never moves)
+        ══════════════════════════════════════════════════════════════════════ */
+
         :root {
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --primary-light: #3b82f6;
+            --primary:           #2563eb;
+            --primary-dark:      #1d4ed8;
+            --primary-light:     #3b82f6;
+            --student-primary:   #7c3aed;
+            --student-dark:      #6d28d9;
+            --student-light:     #8b5cf6;
             --bg-gradient-start: #0f172a;
-            --bg-gradient-end: #1e293b;
-            --card-bg: rgba(255, 255, 255, 0.03);
-            --card-border: rgba(255, 255, 255, 0.08);
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --error: #ef4444;
-            --success: #22c55e;
-            --google-red: #ea4335;
-            --microsoft-blue: #00a4ef;
+            --bg-gradient-end:   #1e293b;
+            --card-bg:           rgba(255, 255, 255, 0.03);
+            --card-border:       rgba(255, 255, 255, 0.08);
+            --text-primary:      #f8fafc;
+            --text-secondary:    #94a3b8;
+            --text-muted:        #64748b;
+            --error:             #ef4444;
+            --success:           #22c55e;
+
+            /* Animation */
+            --anim-dur:    580ms;
+            --anim-ease:   cubic-bezier(0.76, 0, 0.24, 1);
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', sans-serif;
@@ -32,17 +43,13 @@
             color: var(--text-primary);
         }
 
-        /* Background animation dots/glows */
+        /* ── Ambient background glow (unchanged from original) ─────────────── */
         .bg-glow {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            inset: 0;
             pointer-events: none;
             z-index: 0;
         }
-
         .bg-glow::before,
         .bg-glow::after {
             content: '';
@@ -54,32 +61,17 @@
             opacity: 0.15;
             animation: float 20s ease-in-out infinite;
         }
-
-        .bg-glow::before {
-            background: var(--primary);
-            top: -300px;
-            left: -300px;
-        }
-
-        .bg-glow::after {
-            background: #3b82f6;
-            bottom: -300px;
-            right: -300px;
-            animation-delay: -10s;
-        }
+        .bg-glow::before { background: var(--primary); top: -300px; left: -300px; }
+        .bg-glow::after  { background: #3b82f6; bottom: -300px; right: -300px; animation-delay: -10s; }
 
         @keyframes float {
-
-            0%,
-            100% {
-                transform: translate(0, 0) scale(1);
-            }
-
-            50% {
-                transform: translate(50px, 30px) scale(1.1);
-            }
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50%       { transform: translate(50px, 30px) scale(1.1); }
         }
 
+        /* ═══════════════════════════════════════════════════════════════════
+           AUTH WRAPPER — outer card (unchanged visual)
+        ══════════════════════════════════════════════════════════════════════ */
         .auth-wrapper {
             position: relative;
             z-index: 1;
@@ -91,77 +83,195 @@
             border-radius: 24px;
             backdrop-filter: blur(20px);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            display: flex;
+            display: flex;              /* flex row */
+            flex-direction: row;
             overflow: hidden;
             margin: 20px 0;
         }
 
-        /* Forms Container */
+        /* ═══════════════════════════════════════════════════════════════════
+           FORMS AREA — left half of the card
+           Contains both panels; panels animate inside via translateX.
+        ══════════════════════════════════════════════════════════════════════ */
+        .forms-area {
+            flex: 1;                    /* occupies left 50% */
+            position: relative;         /* stacking context for absolute panels */
+            overflow: hidden;           /* clips sliding panels */
+            min-width: 0;
+        }
 
-
+        /* ═══════════════════════════════════════════════════════════════════
+           PANELS — both fill the forms-area exactly
+        ══════════════════════════════════════════════════════════════════════ */
         .form-box {
-            flex: 1;
-            padding: 50px 60px;
+            position: absolute;
+            inset: 0;                   /* top/right/bottom/left = 0 */
+            padding: 44px 56px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             background: rgba(15, 23, 42, 0.2);
+            overflow-y: auto;
+            /* GPU-composited animation */
+            transition:
+                transform var(--anim-dur) var(--anim-ease),
+                opacity   var(--anim-dur) var(--anim-ease);
+            will-change: transform, opacity;
         }
 
-        /* Overlay Container */
+        /* Professor — default: visible, centred */
+        .panel-professor {
+            transform: translateX(0);
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Student — default: hidden off to the RIGHT */
+        .panel-student {
+            transform: translateX(100%);
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        /* ── Animation states (class-based, toggled by JS) ──────────────── */
+
+        /* Professor slides out to the LEFT when student is shown */
+        .panel-professor.panel--exit-left {
+            transform: translateX(-100%);
+            opacity: 0;
+        }
+
+        /* Student arrives from the RIGHT — initial position before activation */
+        .panel-student.panel--enter-right {
+            transform: translateX(100%);
+            opacity: 0;
+            visibility: visible;
+        }
+
+        /* Student fully active — centre position */
+        .panel-student.panel--enter-right.panel--active {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        /* Professor arrives from the LEFT when reverting */
+        .panel-professor.panel--enter-left {
+            transform: translateX(-100%);
+            opacity: 0;
+            visibility: visible;
+        }
+
+        /* Student slides out to the RIGHT when professor is restored */
+        .panel-student.panel--exit-right {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           OVERLAY CONTAINER — right half of the card (in-flow flex child)
+           This element NEVER moves — it's a normal flex sibling.
+           Visual switching is done entirely through image + text crossfades.
+        ══════════════════════════════════════════════════════════════════════ */
         .overlay-container {
-            flex: 1;
+            flex: 1;                    /* occupies right 50% */
             position: relative;
             overflow: hidden;
             border-left: 1px solid var(--card-border);
-            display: block;
         }
 
-        .overlay {
-            background: url('/static/brain/auth_branding_image_signin.png') no-repeat center center;
+        /* ── Branding images (stacked, crossfade via opacity) ─────────────── */
+        .overlay-img {
+            position: absolute;
+            inset: 0;
             background-size: cover;
-            width: 100%;
-            height: 100%;
-            position: relative;
+            background-position: center center;
+            background-repeat: no-repeat;
+            transition: opacity var(--anim-dur) var(--anim-ease);
+            will-change: opacity;
+        }
+        .overlay-img--professor {
+            background-image: url('/static/brain/auth_branding_image_signin.png');
+            opacity: 1;
+        }
+        .overlay-img--student {
+            background-image: url('/static/brain/auth_branding_image_signin_students.png');
+            opacity: 0;
+        }
+
+        /* ── Gradient tint (morphs colour on role switch) ─────────────────── */
+        .overlay-tint {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.62) 0%, rgba(37, 99, 235, 0.38) 100%);
+            z-index: 1;
+            transition: background var(--anim-dur) var(--anim-ease);
+        }
+        .auth-wrapper.role--student .overlay-tint {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.62) 0%, rgba(124, 58, 237, 0.38) 100%);
+        }
+
+        /* ── Overlay text content ─────────────────────────────────────────── */
+        .overlay-content {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
             padding: 0 40px;
-        }
-
-        .overlay::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.6) 0%, rgba(37, 99, 235, 0.4) 100%);
-            backdrop-filter: brightness(0.8);
-        }
-
-        .overlay-content {
-            position: relative;
-            z-index: 30;
             color: white;
+            transition:
+                opacity   var(--anim-dur) var(--anim-ease),
+                transform var(--anim-dur) var(--anim-ease);
+            will-change: opacity, transform;
+        }
+        /* Student overlay text starts invisible */
+        .overlay-content--student {
+            opacity: 0;
+            transform: translateY(8px);
         }
 
-        .overlay h2 {
-            font-size: 2.2rem;
+        .overlay-content h2 {
+            font-size: 2rem;
             font-weight: 700;
             margin-bottom: 1rem;
+            margin-top: 1rem;
             text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
         }
-
-        .overlay p {
-            font-size: 1.1rem;
+        .overlay-content p {
+            font-size: 1rem;
             opacity: 0.9;
-            line-height: 1.6;
+            line-height: 1.65;
             text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
         }
 
+        /* ── Role badge chip ──────────────────────────────────────────────── */
+        .overlay-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(37, 99, 235, 0.22);
+            border: 1px solid rgba(59, 130, 246, 0.32);
+            color: #93c5fd;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            padding: 6px 14px;
+            border-radius: 100px;
+            backdrop-filter: blur(8px);
+        }
+        .overlay-badge--student {
+            background: rgba(124, 58, 237, 0.22);
+            border-color: rgba(139, 92, 246, 0.32);
+            color: #c4b5fd;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           FORM ELEMENTS — preserved from original design
+        ══════════════════════════════════════════════════════════════════════ */
         .app-icon {
             width: 50px;
             height: 50px;
@@ -171,10 +281,14 @@
             justify-content: center;
             align-items: center;
             box-shadow: 0 10px 30px rgba(0, 122, 255, 0.3), 0 4px 15px rgba(0, 0, 0, 0.1);
-            position: relative;
-            overflow: hidden;
             margin: 0 auto 20px auto;
+            flex-shrink: 0;
         }
+        .app-icon--student {
+            background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+            box-shadow: 0 10px 30px rgba(124, 58, 237, 0.35), 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .icon-svg { color: white; }
 
         .form-header {
             display: flex;
@@ -184,32 +298,26 @@
             margin-bottom: 5px;
         }
 
-        .icon-svg {
-            color: white;
-        }
-
         h1 {
             font-size: 1.75rem;
             color: var(--text-primary);
             margin-bottom: 8px;
         }
-
         .subtitle {
             color: var(--text-secondary);
             font-size: 0.9rem;
             margin-bottom: 10px;
         }
 
-        .form-group {
-            margin-bottom: 1.2rem;
-        }
+        .form-group { margin-bottom: 1.1rem; }
 
         label {
             display: block;
             margin-bottom: 6px;
             font-size: 0.85rem;
             font-weight: 500;
-            color: var(--text-secondary);
+            color: var(--text-primary); /* Lighter/Clearer */
+            opacity: 0.9;
         }
 
         input {
@@ -222,26 +330,25 @@
             font-size: 0.95rem;
             transition: all 0.2s;
         }
-
         input:focus {
             outline: none;
             border-color: var(--primary);
             background: rgba(255, 255, 255, 0.08);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
         }
-
-        input::placeholder {
-            color: var(--text-muted);
+        .panel-student input:focus {
+            border-color: var(--student-primary);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
         }
+        input::placeholder { color: var(--text-muted); }
 
         .form-options {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
+            margin-bottom: 22px;
             font-size: 0.85rem;
         }
-
         .checkbox-group {
             display: flex;
             align-items: center;
@@ -249,25 +356,22 @@
             color: var(--text-secondary);
             cursor: pointer;
         }
-
         .checkbox-group input {
             width: 18px;
             height: 18px;
             accent-color: var(--primary);
             cursor: pointer;
         }
-
         .forgot-link {
             color: var(--primary-light);
             text-decoration: none;
             font-weight: 600;
             cursor: pointer;
+            font-size: 0.82rem;
         }
+        .forgot-link:hover { text-decoration: underline; }
 
-        .forgot-link:hover {
-            text-decoration: underline;
-        }
-
+        /* ── CTA buttons ──────────────────────────────────────────────────── */
         .btn-primary {
             width: 100%;
             padding: 14px;
@@ -278,21 +382,29 @@
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
-            margin-bottom: 20px;
+            transition: all 0.25s;
+            margin-bottom: 18px;
+            font-family: 'Inter', sans-serif;
         }
-
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.5);
         }
+        .btn-primary:disabled { opacity: 0.65; transform: none; cursor: not-allowed; }
 
+        .btn-primary--student {
+            background: linear-gradient(135deg, var(--student-primary) 0%, var(--student-dark) 100%);
+        }
+        .btn-primary--student:hover {
+            box-shadow: 0 10px 20px -5px rgba(124, 58, 237, 0.5);
+        }
+
+        /* ── Divider ──────────────────────────────────────────────────────── */
         .divider {
             position: relative;
             text-align: center;
-            margin: 15px 0;
+            margin: 10px 0;
         }
-
         .divider::before {
             content: '';
             position: absolute;
@@ -302,7 +414,6 @@
             height: 1px;
             background: var(--card-border);
         }
-
         .divider span {
             position: relative;
             background: #161e32;
@@ -313,11 +424,11 @@
             letter-spacing: 1px;
         }
 
+        /* ── OAuth ────────────────────────────────────────────────────────── */
         .oauth-group {
             display: flex;
             gap: 12px;
         }
-
         .btn-oauth {
             flex: 1;
             padding: 10px;
@@ -335,17 +446,92 @@
             text-decoration: none;
             color: var(--text-primary);
         }
-
         .btn-oauth:hover {
             background: rgba(255, 255, 255, 0.1);
             border-color: var(--text-muted);
         }
+        .btn-oauth svg { width: 18px; height: 18px; }
 
-        .btn-oauth svg {
-            width: 18px;
-            height: 18px;
+        /* ═══════════════════════════════════════════════════════════════════
+           ROLE SWITCHER — bottom of each panel
+        ══════════════════════════════════════════════════════════════════════ */
+        .role-switch-hint {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 18px;
+            font-size: 0.79rem;
+            color: var(--text-muted);
+        }
+        .role-switch-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: none;
+            border: none;
+            color: var(--primary-light);
+            font-size: 0.79rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            transition: background 0.2s, color 0.2s;
+        }
+        .role-switch-btn svg {
+            width: 12px;
+            height: 12px;
+            flex-shrink: 0;
+            transition: transform 0.2s;
+        }
+        .role-switch-btn:hover {
+            background: rgba(59, 130, 246, 0.12);
+            color: #93c5fd;
+        }
+        .role-switch-btn:hover svg { transform: translateX(3px); }
+        .role-switch-btn--back:hover svg { transform: translateX(-3px); }
+
+        /* Student panel — violet accent on switcher */
+        .panel-student .role-switch-btn { color: var(--student-light); }
+        .panel-student .role-switch-btn:hover {
+            background: rgba(139, 92, 246, 0.12);
+            color: #c4b5fd;
         }
 
+        /* ═══════════════════════════════════════════════════════════════════
+           STUDENT INLINE ERROR / SUCCESS BOXES
+        ══════════════════════════════════════════════════════════════════════ */
+        .auth-error-box {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            color: #fca5a5;
+            font-size: 0.82rem;
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 14px;
+            display: none;
+        }
+        .auth-success-box {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.25);
+            color: #86efac;
+            font-size: 0.82rem;
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 14px;
+        }
+        .hw-login-footer-note {
+            text-align: center;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-top: 4px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           NOTIFICATION TOAST (unchanged from original)
+        ══════════════════════════════════════════════════════════════════════ */
         .notification {
             position: fixed;
             top: 20px;
@@ -359,27 +545,24 @@
             transition: transform 0.3s ease;
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
         }
+        .notification.show    { transform: translateX(0); }
+        .notification-success { background: var(--success); }
+        .notification-error   { background: var(--error); }
 
-        .notification.show {
-            transform: translateX(0);
-        }
-
-        .notification-success {
-            background: var(--success);
-        }
-
-        .notification-error {
-            background: var(--error);
-        }
-
+        /* ═══════════════════════════════════════════════════════════════════
+           RESPONSIVE — same breakpoint as original (900px)
+        ══════════════════════════════════════════════════════════════════════ */
         @media (max-width: 900px) {
             .auth-wrapper {
                 width: 450px;
                 height: auto;
                 flex-direction: column;
             }
+            .forms-area {
+                height: 600px;      /* give a fixed height so absolute panels render */
+            }
             .overlay-container {
-                display: none;
+                display: none;      /* same as original */
             }
             .form-box {
                 padding: 40px 30px;

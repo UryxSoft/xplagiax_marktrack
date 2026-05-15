@@ -55,162 +55,173 @@
 ================================================================ -->
 {% if show_login or show_registration or show_invite_login or reset_token %}
 <div class="hw-login-overlay" id="hwLoginOverlay">
-  <div class="hw-login-card" role="dialog" aria-modal="true">
-
-    <!-- Brand -->
-    <div class="hw-login-brand">
-      <div class="hw-login-brand-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-          <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69-12-2-12.459 3.69-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
-          <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
-        </svg>
-      </div>
-      <div>
-        <div class="hw-login-brand-name">MarkTrack</div>
-        <div class="hw-login-brand-sub">Student Portal</div>
-      </div>
-    </div>
-
-    <!-- ── State 1: REGISTRATION ────────────────────────────────────── -->
-    {% if show_registration %}
-    <h1 class="hw-login-title">Create Account</h1>
-    <p class="hw-login-subtitle">
-      Register to access <strong>{{ invite_context.title or invite_context.workspace.title }}</strong>.<br>
-      You'll use this account for all future assignments.
-    </p>
-
-    <div class="hw-login-error" id="hwRegError"></div>
-
-    <form id="hwRegForm" onsubmit="hwDoRegister(event)">
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <div class="hw-field">
-          <label for="regFirstName">First Name</label>
-          <input type="text" id="regFirstName" required placeholder="John">
-        </div>
-        <div class="hw-field">
-          <label for="regLastName">Last Name</label>
-          <input type="text" id="regLastName" required placeholder="Doe">
-        </div>
-      </div>
-      <div class="hw-field">
-        <label for="regEmail">Email address</label>
-        <input type="email" id="regEmail" value="{{ invite_context.email }}" readonly 
-               style="opacity:0.6; cursor:not-allowed;" tabindex="-1">
-      </div>
-      <div class="hw-field">
-        <label for="regPassword">Password</label>
-        <input type="password" id="regPassword" required placeholder="••••••••" oninput="hwUpdatePwStrength(this.value)">
-        <!-- Strength meter -->
-        <div id="pwStrengthWrap" style="margin-top:6px; display:none;">
-          <div style="height:4px; border-radius:2px; background:rgba(255,255,255,0.1); overflow:hidden;">
-            <div id="pwStrengthBar" style="height:100%; width:0; transition:all 0.3s;"></div>
-          </div>
-          <div id="pwStrengthLabel" style="font-size:10px; margin-top:3px; color:var(--hw-text-3);"></div>
-        </div>
-      </div>
-      <div class="hw-field">
-        <label for="regPasswordConfirm">Confirm Password</label>
-        <input type="password" id="regPasswordConfirm" required placeholder="••••••••">
-      </div>
-      <button type="submit" class="hw-login-submit" id="hwRegBtn">Create Account & Join</button>
-    </form>
-
-
-    <!-- ── State 2: INVITE LOGIN ────────────────────────────────────── -->
-    {% elif show_invite_login %}
-    <h1 class="hw-login-title">Sign In</h1>
-    <p class="hw-login-subtitle">
-      Welcome back! Sign in to join <strong>{{ invite_context.title or invite_context.workspace.title }}</strong>.
-    </p>
-
-    <div class="hw-login-error" id="hwInviteLoginError"></div>
-
-    <form id="hwInviteLoginForm" onsubmit="hwDoInviteLogin(event)">
-      <div class="hw-field">
-        <label for="invEmail">Email address</label>
-        <input type="email" id="invEmail" value="{{ invite_context.email }}" readonly 
-               style="opacity:0.6; cursor:not-allowed;" tabindex="-1">
-      </div>
-      <div class="hw-field">
-        <label for="invPassword">Password</label>
-        <input type="password" id="invPassword" required placeholder="••••••••" autofocus>
-      </div>
-      <a href="#" onclick="hwShowForgotModal(event)" style="display:block; text-align:right; font-size:11px; color:#3b82f6; text-decoration:none; margin-bottom:14px; margin-top:-6px;">Forgot password?</a>
-      <button type="submit" class="hw-login-submit" id="hwInviteLoginBtn">Sign In & Access</button>
-      <div class="hw-login-footer" style="cursor:pointer;" onclick="window.location.href='/homework'">
-        Not <strong>{{ invite_context.email }}</strong>? Sign in with another account.
-      </div>
-    </form>
-
-
-    <!-- ── State 3: RESET PASSWORD ──────────────────────────────────── -->
-    {% elif reset_token %}
-    <h1 class="hw-login-title">Reset Password</h1>
-    <p class="hw-login-subtitle">Enter your new password below.</p>
-    <div class="hw-login-error" id="hwResetError"></div>
-    <div class="hw-login-success" id="hwResetSuccess" style="display:none; color:#22c55e; font-size:13px; text-align:center; margin-bottom:16px;"></div>
+  
+  <div class="auth-wrapper">
     
-    <form id="hwResetForm" onsubmit="hwDoResetPassword(event)">
-      <div class="hw-field">
-        <label for="rstPassword">New Password</label>
-        <input type="password" id="rstPassword" placeholder="••••••••" required autofocus oninput="hwUpdatePwStrength(this.value, 'rstStrengthWrap', 'rstStrengthBar', 'rstStrengthLabel')">
-        <div id="rstStrengthWrap" style="margin-top:6px; display:none;">
-          <div style="height:4px; border-radius:2px; background:rgba(255,255,255,0.1); overflow:hidden;">
-            <div id="rstStrengthBar" style="height:100%; width:0; transition:all 0.3s;"></div>
-          </div>
-          <div id="rstStrengthLabel" style="font-size:10px; margin-top:3px; color:var(--hw-text-3);"></div>
+    <!-- Left: Forms Area (100% Identical to auth_bp/login Student Panel) -->
+    <div class="forms-area">
+
+        <div class="form-header">
+            <div class="app-icon app-icon--student">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8.211 2.047a.5.5 0 0 0-.422 0l-7.5 3.5a.5.5 0 0 0 .025.917l7.5 3a.5.5 0 0 0 .372 0L14 7.14V13a1 1 0 0 0-1 1v2h3v-2a1 1 0 0 0-1-1V6.739l.686-.275a.5.5 0 0 0 .025-.917l-7.5-3.5Z"></path>
+                    <path d="M4.176 9.032a.5.5 0 0 0-.656.327l-.5 1.7a.5.5 0 0 0 .294.605l4.5 1.8a.5.5 0 0 0 .372 0l4.5-1.8a.5.5 0 0 0 .294-.605l-.5-1.7a.5.5 0 0 0-.656-.327L8 10.466 4.176 9.032Z"></path>
+                </svg>
+            </div>
+            <h1>Student Portal</h1>
+            <p class="subtitle">Sign in to access your assignments</p>
         </div>
+
+        <!-- ── State 1: REGISTRATION ────────────────────────────────────── -->
+        {% if show_registration %}
+        <div id="stdRegView">
+            <div class="auth-error-box" id="hwRegError"></div>
+            <form id="hwRegForm" onsubmit="hwDoRegister(event)">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="form-group">
+                        <label>First Name</label>
+                        <input type="text" id="regFirstName" required placeholder="John">
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name</label>
+                        <input type="text" id="regLastName" required placeholder="Doe">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="regEmail" value="{{ invite_context.email }}" readonly 
+                           style="opacity:0.6; cursor:not-allowed;" tabindex="-1">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="regPassword" required placeholder="••••••••" oninput="hwUpdatePwStrength(this.value)">
+                    <div id="pwStrengthWrap" style="margin-top:6px; display:none;">
+                        <div style="height:4px; border-radius:2px; background:rgba(255,255,255,0.1); overflow:hidden;">
+                            <div id="pwStrengthBar" style="height:100%; width:0; transition:all 0.3s;"></div>
+                        </div>
+                        <div id="pwStrengthLabel" style="font-size:10px; margin-top:3px; color:var(--hw-text-3);"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" id="regPasswordConfirm" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn-primary btn-primary--student" id="hwRegBtn">Create Account & Join</button>
+            </form>
+        </div>
+
+        <!-- ── State 2: INVITE LOGIN ────────────────────────────────────── -->
+        {% elif show_invite_login %}
+        <div id="stdInviteLoginView">
+            <div class="auth-error-box" id="hwInviteLoginError"></div>
+            <form id="hwInviteLoginForm" onsubmit="hwDoInviteLogin(event)">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="invEmail" value="{{ invite_context.email }}" readonly 
+                           style="opacity:0.6; cursor:not-allowed;" tabindex="-1">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="invPassword" required placeholder="••••••••" autofocus>
+                </div>
+                <div class="form-options">
+                    <span></span>
+                    <a href="#" class="forgot-link" onclick="hwShowForgotModal(event)">Forgot Password?</a>
+                </div>
+                <button type="submit" class="btn-primary btn-primary--student" id="hwInviteLoginBtn">Sign In & Access</button>
+            </form>
+        </div>
+
+        <!-- ── State 3: RESET PASSWORD ──────────────────────────────────── -->
+        {% elif reset_token %}
+        <div id="stdResetView">
+            <div class="auth-error-box" id="hwResetError"></div>
+            <div class="auth-success-box" id="hwResetSuccess" style="display:none;"></div>
+            <div class="form-header" style="margin-bottom:16px;">
+                <h1 style="font-size:1.4rem;">Reset Password</h1>
+                <p class="subtitle">Enter your new password below.</p>
+            </div>
+            <form id="hwResetForm" onsubmit="hwDoResetPassword(event)">
+                <div class="form-group">
+                    <label>New Password</label>
+                    <input type="password" id="rstPassword" placeholder="••••••••" required autofocus oninput="hwUpdatePwStrength(this.value, 'rstStrengthWrap', 'rstStrengthBar', 'rstStrengthLabel')">
+                    <div id="rstStrengthWrap" style="margin-top:6px; display:none;">
+                        <div style="height:4px; border-radius:2px; background:rgba(255,255,255,0.1); overflow:hidden;">
+                            <div id="rstStrengthBar" style="height:100%; width:0; transition:all 0.3s;"></div>
+                        </div>
+                        <div id="rstStrengthLabel" style="font-size:10px; margin-top:3px; color:var(--hw-text-3);"></div>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary btn-primary--student" id="hwResetBtn">Set New Password</button>
+            </form>
+        </div>
+
+        <!-- ── State 4: GENERIC LOGIN & FORGOT PWD ──────────────────────── -->
+        {% else %}
+        <div id="stdLoginView">
+            <div class="auth-error-box" id="stdLoginError"></div>
+            <form id="stdLoginForm" onsubmit="hwDoLogin(event)">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="stdEmail" placeholder="your@email.com" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="stdPassword" placeholder="••••••••" required autocomplete="current-password">
+                </div>
+                <div class="form-options">
+                    <span></span>
+                    <a href="#" class="forgot-link" onclick="stdShowForgot(event)">Forgot Password?</a>
+                </div>
+                <button type="submit" class="btn-primary btn-primary--student" id="stdLoginBtn">Sign In</button>
+            </form>
+            <p class="hw-login-footer-note">
+                Don't have an account? Open the assignment link<br>sent to your email to register.
+            </p>
+        </div>
+
+        <div id="stdForgotView" style="display:none;">
+            <div class="auth-error-box" id="stdForgotError"></div>
+            <div class="auth-success-box" id="stdForgotSuccess" style="display:none;"></div>
+            <div class="form-header" style="margin-bottom:16px;">
+                <h1 style="font-size:1.4rem;">Password Recovery</h1>
+                <p class="subtitle">Enter your email to receive a reset link.</p>
+            </div>
+            <form id="stdForgotForm" onsubmit="hwDoForgot(event)">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="stdForgotEmail" placeholder="your@email.com" required autocomplete="email">
+                </div>
+                <button type="submit" class="btn-primary btn-primary--student" id="stdForgotBtn">Send Reset Link</button>
+            </form>
+            <p class="hw-login-footer-note" style="cursor:pointer;" onclick="stdHideForgot()">
+                Remembered your password? <strong>Sign In</strong>
+            </p>
+        </div>
+        {% endif %}
+
+    </div><!-- /.forms-area -->
+
+    <!-- Right: Overlay Area — Identical to auth_bp/login Student Overlay -->
+    <div class="overlay-container">
+      <div class="overlay-img"></div>
+      <div class="overlay-tint"></div>
+      <div class="overlay-content">
+        <div class="overlay-badge overlay-badge--student">
+          <svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+            <path d="M8.211 2.047a.5.5 0 0 0-.422 0l-7.5 3.5a.5.5 0 0 0 .025.917l7.5 3a.5.5 0 0 0 .372 0L14 7.14V13a1 1 0 0 0-1 1v2h3v-2a1 1 0 0 0-1-1V6.739l.686-.275a.5.5 0 0 0 .025-.917l-7.5-3.5Z"/>
+            <path d="M4.176 9.032a.5.5 0 0 0-.656.327l-.5 1.7a.5.5 0 0 0 .294.605l4.5 1.8a.5.5 0 0 0 .372 0l4.5-1.8a.5.5 0 0 0 .294-.605l-.5-1.7a.5.5 0 0 0-.656-.327L8 10.466 4.176 9.032Z"/>
+          </svg>
+          Student Portal
+        </div>
+        <h2>Academic Integrity</h2>
+        <p>Track your submissions, view detailed feedback, and ensure your work meets institutional standards with our forensic analysis engine.</p>
       </div>
-      <button type="submit" class="hw-login-submit" id="hwResetBtn">Set New Password</button>
-      <p class="hw-login-footer">
-        <a href="/homework" style="color:inherit; text-decoration:none;">Back to login</a>
-      </p>
-    </form>
-
-
-    <!-- ── State 4: GENERIC LOGIN & FORGOT PWD ──────────────────────── -->
-    {% else %}
-    <div id="hwLoginView">
-      <h1 class="hw-login-title">Welcome back</h1>
-      <p class="hw-login-subtitle">Sign in to access your assignments and track your progress.</p>
-      <div class="hw-login-error" id="hwLoginError"></div>
-      <form id="hwLoginForm" onsubmit="hwDoLogin(event)">
-        <div class="hw-field">
-          <label for="hwEmail">Email address</label>
-          <input type="email" id="hwEmail" placeholder="your@email.com" required autocomplete="email">
-        </div>
-        <div class="hw-field">
-          <label for="hwPassword">Password</label>
-          <input type="password" id="hwPassword" placeholder="••••••••" required autocomplete="current-password">
-        </div>
-        <a href="#" onclick="hwShowForgotModal(event)" style="display:block; text-align:right; font-size:11px; color:#3b82f6; text-decoration:none; margin-bottom:14px; margin-top:-6px;">Forgot password?</a>
-        <button type="submit" class="hw-login-submit" id="hwLoginBtn">Sign In</button>
-      </form>
-      <p class="hw-login-footer">
-        Don't have an account? Open the assignment link<br>sent to your email to register.
-      </p>
     </div>
 
-    <div id="hwForgotView" style="display:none;">
-      <h1 class="hw-login-title">Password Recovery</h1>
-      <p class="hw-login-subtitle">Enter your email address to receive a secure reset link.</p>
-      <div class="hw-login-error" id="hwForgotError"></div>
-      <div class="hw-login-success" id="hwForgotSuccess" style="display:none; color:#22c55e; font-size:13px; text-align:center; background:rgba(34,197,94,0.1); padding:10px; border-radius:8px; margin-bottom:16px;"></div>
-      <form id="hwForgotForm" onsubmit="hwDoForgot(event)">
-        <div class="hw-field">
-          <label for="fgEmail">Email address</label>
-          <input type="email" id="fgEmail" placeholder="your@email.com" required autocomplete="email">
-        </div>
-        <button type="submit" class="hw-login-submit" id="hwForgotBtn">Send Reset Link</button>
-      </form>
-      <p class="hw-login-footer" style="margin-top:20px; cursor:pointer;" onclick="hwHideForgotModal(event)">
-        Remembered your password? <strong>Sign In</strong>
-      </p>
-    </div>
-    {% endif %}
+  </div><!-- /.auth-wrapper -->
 
-  </div>
-</div>
+</div><!-- /.hw-login-overlay -->
 {% endif %}
 
 <!-- ================================================================
@@ -243,7 +254,7 @@
       <div class="notif-dropdown" id="hwNotifDropdown" style="display:none">
         <div class="notif-header">
           <span style="font-weight:600;font-size:13px;">Notifications</span>
-          <button onclick="hwNotifMarkAll()" class="notif-link-btn" style="background:none;border:none;cursor:pointer;font-size:11px;color:#3b82f6;padding:0;">Mark all read</button>
+          <button onclick="hwNotifMarkAll()" class="notif-link-btn" style="background:none;border:none;cursor:pointer;font-size:11px;color:#7c3aed;padding:0;">Mark all read</button>
         </div>
         <div class="notif-filters">
           <button class="notif-filter-pill active" onclick="hwNotifFilter(this,'all')">All</button>
@@ -442,11 +453,10 @@
 
   // ── Auth Handlers ────────────────────────────────────────────────
   
-  function hwShowForgotModal(e) {
+  function stdShowForgot(e) {
     if (e) e.preventDefault();
     
-    // Hide all possible login views
-    const views = ['hwLoginView', 'hwInviteLoginForm', 'hwInviteLoginBtn', 'hwInviteLoginError'];
+    const views = ['stdLoginView', 'hwInviteLoginForm', 'hwInviteLoginBtn', 'hwInviteLoginError'];
     views.forEach(v => {
       const el = document.getElementById(v);
       if (el) el.style.display = 'none';
@@ -458,37 +468,37 @@
     if (inviteHeader) inviteHeader.style.display = 'none';
     if (inviteSub)    inviteSub.style.display = 'none';
 
-    document.getElementById('hwForgotView').style.display = 'block';
+    document.getElementById('stdForgotView').style.display = 'block';
     
     // Pre-fill email if we have it from the invite modal
     const invEmail = document.getElementById('invEmail');
-    const fgEmail  = document.getElementById('fgEmail');
+    const fgEmail  = document.getElementById('stdForgotEmail');
     if (invEmail && fgEmail) {
       fgEmail.value = invEmail.value;
     }
   }
 
-  function hwHideForgotModal(e) {
+  function stdHideForgot(e) {
     if (e) e.preventDefault();
-    document.getElementById('hwForgotView').style.display = 'none';
+    document.getElementById('stdForgotView').style.display = 'none';
     
     // Restore generic login or reload for invite (simpler than manual restoration)
     if (HW_TOKEN || COLLAB_TOKEN) {
       window.location.reload(); 
     } else {
-      document.getElementById('hwLoginView').style.display = 'block';
+      document.getElementById('stdLoginView').style.display = 'block';
     }
     
-    document.getElementById('hwForgotError').style.display = 'none';
-    document.getElementById('hwForgotSuccess').style.display = 'none';
+    document.getElementById('stdForgotError').style.display = 'none';
+    document.getElementById('stdForgotSuccess').style.display = 'none';
   }
 
   async function hwDoForgot(e) {
     e.preventDefault();
-    const btn = document.getElementById('hwForgotBtn');
-    const err = document.getElementById('hwForgotError');
-    const succ = document.getElementById('hwForgotSuccess');
-    const email = document.getElementById('fgEmail').value.trim();
+    const btn = document.getElementById('stdForgotBtn');
+    const err = document.getElementById('stdForgotError');
+    const succ = document.getElementById('stdForgotSuccess');
+    const email = document.getElementById('stdForgotEmail').value.trim();
     
     btn.disabled = true; btn.textContent = 'Sending...'; 
     err.style.display = 'none'; succ.style.display = 'none';
@@ -503,7 +513,7 @@
       if (data.success) {
         succ.textContent = data.message;
         succ.style.display = 'block';
-        document.getElementById('fgEmail').value = '';
+        document.getElementById('stdForgotEmail').value = '';
       } else {
         err.textContent = data.error || 'Failed to send recovery email.';
         err.style.display = 'block';
@@ -556,10 +566,10 @@
 
   async function hwDoLogin(e) {
     e.preventDefault();
-    const btn = document.getElementById('hwLoginBtn');
-    const err = document.getElementById('hwLoginError');
-    const email    = document.getElementById('hwEmail').value.trim();
-    const password = document.getElementById('hwPassword').value;
+    const btn = document.getElementById('stdLoginBtn');
+    const err = document.getElementById('stdLoginError');
+    const email    = document.getElementById('stdEmail').value.trim();
+    const password = document.getElementById('stdPassword').value;
     
     btn.disabled = true; btn.textContent = 'Signing in…'; err.style.display = 'none';
 

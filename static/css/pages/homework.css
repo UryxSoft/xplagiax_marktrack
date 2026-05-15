@@ -11,9 +11,11 @@
   --hw-text-1:      #f1f5f9;
   --hw-text-2:      rgba(255,255,255,0.60);
   --hw-text-3:      rgba(255,255,255,0.35);
-  --hw-accent:      #3b82f6;
-  --hw-accent-glow: rgba(59,130,246,0.35);
+  --hw-accent:      #7c3aed;  /* Violet */
+  --hw-accent-glow: rgba(124, 58, 237, 0.35);
   --hw-blue:        #2563eb;
+  --hw-violet:      #7c3aed;
+  --hw-violet-dark: #6d28d9;
   --hw-green:       #22c55e;
   --hw-red:         #ef4444;
   --hw-amber:       #f59e0b;
@@ -351,16 +353,113 @@ body {
   to   { opacity: 1; }
 }
 
-.hw-login-card {
-  background: #111827;
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 20px;
-  padding: 40px 40px 36px;
-  width: 100%;
-  max-width: 420px;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+/* ── The Wrapper (Split View) ── */
+.auth-wrapper {
+  display: flex;
+  flex-direction: row;
+  width: 1000px;
+  max-width: 95vw;
+  height: 650px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
   animation: hw-slide-up 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+.hw-login-card { /* Kept for compatibility if needed, but logic moved to .auth-wrapper */
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    animation: none;
+}
+
+/* Forms Area (Left) */
+.forms-area {
+  flex: 1;
+  position: relative;
+  background: rgba(15, 23, 42, 0.2);
+  display: flex;
+  flex-direction: column;
+  padding: 44px 56px;
+  overflow-y: auto;
+}
+
+/* Overlay Area (Right) */
+.overlay-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.overlay-img {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center center;
+  background-image: url('/static/brain/auth_branding_image_signin_students.png');
+}
+
+.overlay-tint {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.62) 0%, rgba(124, 58, 237, 0.38) 100%);
+  z-index: 1;
+}
+
+/* ── Overlay text content — Identical to auth-login-inline.css ── */
+.overlay-content {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 0 40px;
+  color: white;
+}
+.overlay-content h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+.overlay-content p {
+    font-size: 1rem;
+    opacity: 0.9;
+    line-height: 1.65;
+    text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Role badge chip — Identical to auth-login-inline.css ── */
+.overlay-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(37, 99, 235, 0.22);
+    border: 1px solid rgba(59, 130, 246, 0.32);
+    color: #93c5fd;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 100px;
+    backdrop-filter: blur(8px);
+}
+.overlay-badge--student {
+    background: rgba(124, 58, 237, 0.22);
+    border-color: rgba(139, 92, 246, 0.32);
+    color: #c4b5fd;
+}
+
 @keyframes hw-slide-up {
   from { opacity: 0; transform: translateY(24px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0)    scale(1); }
@@ -370,21 +469,93 @@ body {
   display: flex; align-items: center; gap: 10px;
   margin-bottom: 24px;
 }
-.hw-login-brand-icon {
-  width: 38px; height: 38px; border-radius: 10px;
-  background: linear-gradient(135deg, #007AFF 0%, #0051D5 100%);
-  display: flex; align-items: center; justify-content: center;
-  color: #fff;
-  box-shadow: 0 8px 24px rgba(0, 122, 255, 0.4);
+/* Forms Area (Left) */
+.forms-area {
+  flex: 1;
+  position: relative;
+  background: rgba(15, 23, 42, 0.2);
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Center vertically like auth_bp/login */
+  padding: 44px 56px;
+  overflow-y: auto;
 }
-.hw-login-brand-name {
-  font-size: 17px; font-weight: 800;
-  color: var(--hw-text-1);
-  letter-spacing: -0.02em;
+
+/* ── Form Elements — Identical to auth_bp/login ── */
+.app-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 20px auto;
+    flex-shrink: 0;
 }
-.hw-login-brand-sub {
-  font-size: 10px; color: var(--hw-text-3); text-transform: uppercase; letter-spacing: 0.08em;
+.app-icon--student {
+    background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+    box-shadow: 0 10px 30px rgba(124, 58, 237, 0.35), 0 4px 15px rgba(0, 0, 0, 0.1);
 }
+.form-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 5px; /* Matched to auth-login-inline.css */
+}
+.form-header h1 {
+    font-size: 1.75rem;
+    color: var(--hw-text-1);
+    margin-bottom: 8px;
+}
+.form-header .subtitle {
+    color: var(--hw-text-2);
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+}
+
+/* Overlay Area (Right) */
+.overlay-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.overlay-img {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center center;
+  background-image: url('/static/brain/auth_branding_image_signin_students.png');
+}
+
+.overlay-tint {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.62) 0%, rgba(124, 58, 237, 0.38) 100%);
+  z-index: 1;
+}
+
+.overlay-content {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 0 40px;
+  color: white;
+}
+
+@keyframes hw-slide-up {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+.hw-login-brand { display: none; } /* Replaced by form-header */
 
 .hw-login-title {
   font-size: 22px; font-weight: 700;
@@ -397,70 +568,151 @@ body {
   line-height: 1.5;
 }
 
-/* Form fields */
-.hw-field {
-  margin-bottom: 16px;
+/* ── Form Groups ── */
+.form-group {
+    margin-bottom: 1.1rem;
 }
-.hw-field label {
-  display: block;
-  font-size: 12px; font-weight: 600;
-  color: var(--hw-text-2);
-  margin-bottom: 6px;
-  letter-spacing: 0.02em;
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--hw-text-1); /* Lighter/Clearer */
+    opacity: 0.95;
 }
-.hw-field input {
-  width: 100%; padding: 10px 14px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 10px;
-  color: var(--hw-text-1);
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.15s, background 0.15s;
-  font-family: inherit;
+.form-group input {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    color: var(--hw-text-1);
+    font-size: 0.95rem;
+    transition: all 0.2s;
 }
-.hw-field input:focus {
-  border-color: var(--hw-accent);
-  background: rgba(99,102,241,0.06);
-}
-.hw-field input::placeholder { color: rgba(255,255,255,0.25); }
-
-.hw-login-error {
-  background: rgba(239,68,68,0.12);
-  border: 1px solid rgba(239,68,68,0.25);
-  color: #f87171;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 12px;
-  margin-bottom: 14px;
-  display: none;
+.form-group input:focus {
+    outline: none;
+    border-color: var(--hw-violet);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
 }
 
-.hw-login-submit {
-  width: 100%; padding: 12px;
-  background: linear-gradient(135deg, var(--hw-accent), #1d4ed8);
-  border: none;
-  border-radius: 10px;
-  color: #fff;
-  font-size: 15px; font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.15s, transform 0.12s;
-  letter-spacing: 0.01em;
-  margin-top: 4px;
-  font-family: inherit;
+/* ── Buttons — Identical to auth-login-inline.css ── */
+.btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--hw-blue) 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s;
+    margin-bottom: 18px;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
 }
-.hw-login-submit:hover { opacity: 0.88; transform: translateY(-1px); }
-.hw-login-submit:active { transform: translateY(0); }
-.hw-login-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.5);
+}
+.btn-primary:disabled { opacity: 0.65; transform: none; cursor: not-allowed; }
 
-.hw-login-footer {
+.btn-primary--student {
+    background: linear-gradient(135deg, var(--hw-violet) 0%, var(--hw-violet-dark) 100%);
+}
+.btn-primary--student:hover {
+    box-shadow: 0 10px 20px -5px rgba(124, 58, 237, 0.5);
+}
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+/* ── Options & Links — Identical to auth-login-inline.css ── */
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 22px;
+    font-size: 0.85rem;
+}
+.forgot-link {
+    color: #3b82f6; /* primary-light */
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.82rem;
+}
+.forgot-link:hover { text-decoration: underline; }
+
+/* ── Error & Success Boxes — Identical to auth-login-inline.css ── */
+.auth-error-box {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #fca5a5;
+    font-size: 0.82rem;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    display: none;
+}
+.auth-success-box {
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    color: #86efac;
+    font-size: 0.82rem;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+}
+
+/* ── Role Switching ── */
+.role-switch-hint {
+    margin-top: auto;
+    padding-top: 24px;
+    text-align: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.role-switch-hint span {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--hw-text-3);
+    margin-bottom: 12px;
+}
+.role-switch-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--hw-text-2);
+    padding: 10px 20px;
+    border-radius: 100px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.role-switch-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+}
+.role-switch-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.hw-login-footer-note {
   margin-top: 20px;
-  font-size: 11px;
+  font-size: 0.85rem;
   color: var(--hw-text-3);
   text-align: center;
   line-height: 1.6;
 }
-.hw-login-footer a { color: var(--hw-text-2); text-decoration: underline; }
 
 /* ============================================================
    NOTIFICATION DROPDOWN positioning in hw-rail
@@ -685,9 +937,18 @@ body {
   }
 
   /* MODALS */
-  .hw-login-card {
-    max-width: 90vw;
-    padding: 30px 24px;
+  .auth-wrapper {
+    width: 450px;
+    height: auto;
+    flex-direction: column;
+  }
+  .overlay-container {
+    display: none;
+  }
+  .forms-area {
+    padding: 40px 30px;
+    height: auto;
+    min-height: 500px;
   }
   
   /* SETTINGS MODAL INLINE-STYLE OVERRIDES */

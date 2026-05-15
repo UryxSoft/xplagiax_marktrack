@@ -16,95 +16,313 @@
     <div id="notification" class="notification"></div>
 
     <div class="auth-wrapper" id="authWrapper">
-        <div class="form-box login-side">
-            <div class="form-header">
-                <div class="app-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
-                        class="icon-svg bi bi-pencil-square" viewBox="0 0 16 16">
-                        <path
-                            d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z">
-                        </path>
-                        <path fill-rule="evenodd"
-                            d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z">
-                        </path>
-                    </svg>
+
+        <!-- ══════════════════════════════════════════════════════════
+             FORMS AREA — flex:1 container; panels animate inside it
+             Both panels are position:absolute filling this container.
+        ══════════════════════════════════════════════════════════════ -->
+        <div class="forms-area" id="formsArea">
+
+            <!-- Panel A — Professor (visible by default, translateX:0) -->
+            <div class="form-box panel-professor" id="panelProfessor">
+                <div class="form-header">
+                    <div class="app-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                            class="icon-svg bi bi-pencil-square" viewBox="0 0 16 16">
+                            <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"></path>
+                            <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"></path>
+                        </svg>
+                    </div>
+                    <h1>Welcome Back</h1>
+                    <p class="subtitle">Enter your credentials to access your account</p>
                 </div>
-                <h1>Welcome Back</h1>
-                <p class="subtitle">Enter your credentials to access your account</p>
+
+                <form id="loginForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" name="email" placeholder="name@company.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" name="password" placeholder="••••••••" required>
+                    </div>
+
+                    <div class="form-options">
+                        <label class="checkbox-group">
+                            <input type="checkbox" name="remember_me">
+                            <span>Remember me</span>
+                        </label>
+                        <a href="{{ url_for('auth_bp.forgot_password') }}" class="forgot-link">Forgot Password?</a>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Sign In</button>
+                </form>
+
+                <div class="divider"><span>OR CONTINUE WITH</span></div>
+
+                <div class="oauth-group">
+                    <a href="{{ url_for('auth_bp.google_login') }}" class="btn-oauth">
+                        <svg viewBox="0 0 24 24">
+                            <path fill="#EA4335" d="M5.266 9.765C6.199 6.939 8.854 4.91 12 4.91c1.691 0 3.218.6 4.418 1.49l3.491-3.49C17.782 1.145 15.055 0 12 0 7.27 0 3.198 2.698 1.24 6.65l4.026 3.115z" />
+                            <path fill="#34A853" d="M16.04 18.013c-1.09.704-2.475 1.078-4.04 1.078-3.134 0-5.781-2.014-6.723-4.823l-4.04 3.067C3.193 21.294 7.265 24 12 24c2.933 0 5.735-1.043 7.834-3l-3.794-2.987z" />
+                            <path fill="#4A90E2" d="M19.834 21c2.195-2.048 3.62-5.096 3.62-9 0-.71-.11-1.473-.273-2.182H12v4.636h6.436c-.317 1.559-1.17 2.767-2.396 3.559L19.834 21z" />
+                            <path fill="#FBBC05" d="M5.277 14.268c-.239-.712-.368-1.474-.368-2.268 0-.782.125-1.533.357-2.235L1.24 6.65C.437 8.26 0 10.075 0 12c0 1.92.445 3.735 1.237 5.335l4.04-3.067z" />
+                        </svg>
+                        Google
+                    </a>
+                    <a href="{{ url_for('auth_bp.microsoft_login') }}" class="btn-oauth">
+                        <svg viewBox="0 0 24 24">
+                            <rect x="1" y="1" width="10" height="10" fill="#f25022" />
+                            <rect x="13" y="1" width="10" height="10" fill="#7fba00" />
+                            <rect x="1" y="13" width="10" height="10" fill="#00a4ef" />
+                            <rect x="13" y="13" width="10" height="10" fill="#ffb900" />
+                        </svg>
+                        Microsoft
+                    </a>
+                </div>
+
+                <div class="role-switch-hint">
+                    <span>Are you a student?</span>
+                    <button class="role-switch-btn" id="switchToStudent" onclick="authSwitchToStudent()">
+                        Login as Student
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div><!-- /#panelProfessor -->
+
+            <!-- Panel B — Student (hidden offscreen right by default, translateX:100%) -->
+            <div class="form-box panel-student" id="panelStudent">
+                <div class="form-header">
+                    <div class="app-icon app-icon--student">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8.211 2.047a.5.5 0 0 0-.422 0l-7.5 3.5a.5.5 0 0 0 .025.917l7.5 3a.5.5 0 0 0 .372 0L14 7.14V13a1 1 0 0 0-1 1v2h3v-2a1 1 0 0 0-1-1V6.739l.686-.275a.5.5 0 0 0 .025-.917l-7.5-3.5Z"/>
+                            <path d="M4.176 9.032a.5.5 0 0 0-.656.327l-.5 1.7a.5.5 0 0 0 .294.605l4.5 1.8a.5.5 0 0 0 .372 0l4.5-1.8a.5.5 0 0 0 .294-.605l-.5-1.7a.5.5 0 0 0-.656-.327L8 10.466 4.176 9.032Z"/>
+                        </svg>
+                    </div>
+                    <h1>Student Portal</h1>
+                    <p class="subtitle">Sign in to access your assignments</p>
+                </div>
+
+                <!-- Generic student login view -->
+                <div id="stdLoginView">
+                    <div class="auth-error-box" id="stdLoginError"></div>
+                    <form id="stdLoginForm">
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" id="stdEmail" placeholder="your@email.com" required autocomplete="email">
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" id="stdPassword" placeholder="••••••••" required autocomplete="current-password">
+                        </div>
+                        <div class="form-options">
+                            <span></span>
+                            <a href="#" class="forgot-link" onclick="stdShowForgot(event)">Forgot Password?</a>
+                        </div>
+                        <button type="submit" class="btn-primary btn-primary--student" id="stdLoginBtn">Sign In</button>
+                    </form>
+                    <p class="hw-login-footer-note">
+                        Don't have an account? Open the assignment link<br>sent to your email to register.
+                    </p>
+                </div>
+
+                <!-- Forgot password sub-view -->
+                <div id="stdForgotView" style="display:none;">
+                    <div class="auth-error-box" id="stdForgotError"></div>
+                    <div class="auth-success-box" id="stdForgotSuccess" style="display:none;"></div>
+                    <div class="form-header" style="margin-bottom:16px;">
+                        <h1 style="font-size:1.4rem;">Password Recovery</h1>
+                        <p class="subtitle">Enter your email to receive a reset link.</p>
+                    </div>
+                    <form id="stdForgotForm">
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" id="stdForgotEmail" placeholder="your@email.com" required autocomplete="email">
+                        </div>
+                        <button type="submit" class="btn-primary btn-primary--student" id="stdForgotBtn">Send Reset Link</button>
+                    </form>
+                    <p class="hw-login-footer-note" style="cursor:pointer;" onclick="stdHideForgot()">
+                        Remembered your password? <strong>Sign In</strong>
+                    </p>
+                </div>
+
+                <div class="role-switch-hint">
+                    <span>Are you a professor?</span>
+                    <button class="role-switch-btn role-switch-btn--back" id="switchToProfessor" onclick="authSwitchToProfessor()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                        Login as Professor
+                    </button>
+                </div>
+            </div><!-- /#panelStudent -->
+
+        </div><!-- /.forms-area -->
+
+        <!-- ══════════════════════════════════════════════════════════
+             OVERLAY — flex:1 sibling, always on the RIGHT.
+             Images crossfade; content badges crossfade.
+             This element never moves — layout stays clean.
+        ══════════════════════════════════════════════════════════════ -->
+        <div class="overlay-container" id="overlayContainer">
+
+            <!-- Stacked images that crossfade -->
+            <div class="overlay-img overlay-img--professor" id="overlayImgProf"></div>
+            <div class="overlay-img overlay-img--student"   id="overlayImgStud"></div>
+
+            <!-- Gradient tint — morphs from blue→violet -->
+            <div class="overlay-tint" id="overlayTint"></div>
+
+            <!-- Professor text (visible by default) -->
+            <div class="overlay-content" id="overlayContentProf">
+                <div class="overlay-badge">
+                    <svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+                        <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                        <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+                    </svg>
+                    Professor Access
+                </div>
+                <h2>Welcome Back!</h2>
+                <p>Access your dashboard and manage your academic documents in one place.</p>
             </div>
 
-            <form id="loginForm">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="form-group">
-                    <label>Email Address</label>
-                    <input type="email" name="email" placeholder="name@company.com" required>
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" name="password" placeholder="••••••••" required>
-                </div>
-
-                <div class="form-options">
-                    <label class="checkbox-group">
-                        <input type="checkbox" name="remember_me">
-                        <span>Remember me</span>
-                    </label>
-                    <a href="{{ url_for('auth_bp.forgot_password') }}" class="forgot-link">Forgot Password?</a>
-                </div>
-
-                <button type="submit" class="btn-primary">Sign In</button>
-            </form>
-
-            <div class="divider"><span>OR CONTINUE WITH</span></div>
-
-            <div class="oauth-group">
-                <a href="{{ url_for('auth_bp.google_login') }}" class="btn-oauth">
-                    <svg viewBox="0 0 24 24">
-                        <path fill="#EA4335"
-                            d="M5.266 9.765C6.199 6.939 8.854 4.91 12 4.91c1.691 0 3.218.6 4.418 1.49l3.491-3.49C17.782 1.145 15.055 0 12 0 7.27 0 3.198 2.698 1.24 6.65l4.026 3.115z" />
-                        <path fill="#34A853"
-                            d="M16.04 18.013c-1.09.704-2.475 1.078-4.04 1.078-3.134 0-5.781-2.014-6.723-4.823l-4.04 3.067C3.193 21.294 7.265 24 12 24c2.933 0 5.735-1.043 7.834-3l-3.794-2.987z" />
-                        <path fill="#4A90E2"
-                            d="M19.834 21c2.195-2.048 3.62-5.096 3.62-9 0-.71-.11-1.473-.273-2.182H12v4.636h6.436c-.317 1.559-1.17 2.767-2.396 3.559L19.834 21z" />
-                        <path fill="#FBBC05"
-                            d="M5.277 14.268c-.239-.712-.368-1.474-.368-2.268 0-.782.125-1.533.357-2.235L1.24 6.65C.437 8.26 0 10.075 0 12c0 1.92.445 3.735 1.237 5.335l4.04-3.067z" />
+            <!-- Student text (hidden by default) -->
+            <div class="overlay-content overlay-content--student" id="overlayContentStud">
+                <div class="overlay-badge overlay-badge--student">
+                    <svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+                        <path d="M8.211 2.047a.5.5 0 0 0-.422 0l-7.5 3.5a.5.5 0 0 0 .025.917l7.5 3a.5.5 0 0 0 .372 0L14 7.14V13a1 1 0 0 0-1 1v2h3v-2a1 1 0 0 0-1-1V6.739l.686-.275a.5.5 0 0 0 .025-.917l-7.5-3.5Z"/>
+                        <path d="M4.176 9.032a.5.5 0 0 0-.656.327l-.5 1.7a.5.5 0 0 0 .294.605l4.5 1.8a.5.5 0 0 0 .372 0l4.5-1.8a.5.5 0 0 0 .294-.605l-.5-1.7a.5.5 0 0 0-.656-.327L8 10.466 4.176 9.032Z"/>
                     </svg>
-                    Google
-                </a>
-                <a href="{{ url_for('auth_bp.microsoft_login') }}" class="btn-oauth">
-                    <svg viewBox="0 0 24 24">
-                        <rect x="1" y="1" width="10" height="10" fill="#f25022" />
-                        <rect x="13" y="1" width="10" height="10" fill="#7fba00" />
-                        <rect x="1" y="13" width="10" height="10" fill="#00a4ef" />
-                        <rect x="13" y="13" width="10" height="10" fill="#ffb900" />
-                    </svg>
-                    Microsoft
-                </a>
-            </div>
-        </div>
-        <!-- Branding side with the requested image -->
-        <div class="overlay-container">
-            <div class="overlay">
-                <div class="overlay-content">
-                    <h2>Welcome Back!</h2>
-                    <p>Access your dashboard and manage your academic documents in one place.</p>
+                    Student Portal
                 </div>
+                <h2>Your Assignments Await</h2>
+                <p>Log in to view your work, submit documents, and track your progress.</p>
             </div>
-        </div>
-    </div>
+
+        </div><!-- /.overlay-container -->
+
+    </div><!-- /#authWrapper -->
 
     <script>
-        const notification = document.getElementById('notification');
+        // ─── CSRF token ───────────────────────────────────────────────────────
+        const _CSRF = document.querySelector('[name="csrf_token"]').value;
 
+        // ─── Notification helper ──────────────────────────────────────────────
+        const notification = document.getElementById('notification');
         function showNotification(msg, type = 'success') {
             notification.textContent = msg;
             notification.className = `notification notification-${type} show`;
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
+            setTimeout(() => notification.classList.remove('show'), 3500);
         }
 
-        // Form Handlers
+        // ═════════════════════════════════════════════════════════════════════
+        //  ROLE-SWITCH ENGINE
+        //  Strategy: panels animate with translateX inside .forms-area.
+        //  The overlay stays in flex-flow (never moves).
+        //  Only transform + opacity are mutated → GPU only, zero layout/paint.
+        // ═════════════════════════════════════════════════════════════════════
+        let _currentRole = 'professor';
+        let _animating   = false;
+        const ANIM_MS    = 580;
+
+        function authSwitchToStudent() {
+            if (_animating || _currentRole === 'student') return;
+            _animating = true;
+            _currentRole = 'student';
+
+            const prof = document.getElementById('panelProfessor');
+            const stud = document.getElementById('panelStudent');
+            const imgP = document.getElementById('overlayImgProf');
+            const imgS = document.getElementById('overlayImgStud');
+            const cpP  = document.getElementById('overlayContentProf');
+            const cpS  = document.getElementById('overlayContentStud');
+            const tint = document.getElementById('overlayTint');
+
+            // 1. Toggle wrapper class (morphs tint colour via CSS)
+            document.getElementById('authWrapper').classList.add('role--student');
+
+            // 2. Slide professor panel out to the LEFT
+            prof.classList.add('panel--exit-left');
+
+            // 3. Slide student panel in from the RIGHT
+            stud.classList.add('panel--enter-right');
+            // Small delay then activate transition
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    stud.classList.add('panel--active');
+                });
+            });
+
+            // 4. Crossfade overlay images
+            imgP.style.opacity = '0';
+            imgS.style.opacity = '1';
+
+            // 5. Crossfade overlay text (staggered 40% into animation)
+            cpP.style.opacity = '0';
+            cpP.style.transform = 'translateY(-8px)';
+            setTimeout(() => {
+                cpS.style.opacity = '1';
+                cpS.style.transform = 'translateY(0)';
+            }, ANIM_MS * 0.4);
+
+            setTimeout(() => {
+                prof.style.visibility = 'hidden';
+                _animating = false;
+            }, ANIM_MS);
+        }
+
+        function authSwitchToProfessor() {
+            if (_animating || _currentRole === 'professor') return;
+            _animating = true;
+            _currentRole = 'professor';
+
+            const prof = document.getElementById('panelProfessor');
+            const stud = document.getElementById('panelStudent');
+            const imgP = document.getElementById('overlayImgProf');
+            const imgS = document.getElementById('overlayImgStud');
+            const cpP  = document.getElementById('overlayContentProf');
+            const cpS  = document.getElementById('overlayContentStud');
+
+            document.getElementById('authWrapper').classList.remove('role--student');
+
+            // 1. Slide student panel out to the RIGHT
+            stud.classList.remove('panel--active');
+            stud.classList.add('panel--exit-right');
+
+            // 2. Restore professor panel from left
+            prof.style.visibility = 'visible';
+            prof.classList.remove('panel--exit-left');
+            prof.classList.add('panel--enter-left');
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    prof.classList.remove('panel--enter-left');
+                });
+            });
+
+            // 3. Crossfade overlay images
+            imgS.style.opacity = '0';
+            imgP.style.opacity = '1';
+
+            // 4. Crossfade overlay text
+            cpS.style.opacity = '0';
+            cpS.style.transform = 'translateY(-8px)';
+            setTimeout(() => {
+                cpP.style.opacity = '1';
+                cpP.style.transform = 'translateY(0)';
+            }, ANIM_MS * 0.4);
+
+            setTimeout(() => {
+                stud.classList.remove('panel--enter-right', 'panel--exit-right');
+                _animating = false;
+            }, ANIM_MS);
+        }
+
+        // ═════════════════════════════════════════════════════════════════════
+        //  PROFESSOR LOGIN — unchanged logic
+        // ═════════════════════════════════════════════════════════════════════
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
@@ -135,6 +353,100 @@
                 showNotification('Connection error', 'error');
             }
         });
+
+        // ═════════════════════════════════════════════════════════════════════
+        //  STUDENT LOGIN — calls /student/login (same endpoint as /homework)
+        // ═════════════════════════════════════════════════════════════════════
+        document.getElementById('stdLoginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn   = document.getElementById('stdLoginBtn');
+            const errEl = document.getElementById('stdLoginError');
+            const email    = document.getElementById('stdEmail').value.trim();
+            const password = document.getElementById('stdPassword').value;
+
+            btn.disabled = true;
+            btn.textContent = 'Signing in…';
+            errEl.style.display = 'none';
+
+            try {
+                const resp = await fetch('/student/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _CSRF },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    showNotification('Welcome back! Redirecting…');
+                    setTimeout(() => window.location.href = data.redirect || '/homework', 1000);
+                } else {
+                    errEl.textContent = data.error || 'Login failed.';
+                    errEl.style.display = 'block';
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                }
+            } catch (_) {
+                errEl.textContent = 'Connection error. Please try again.';
+                errEl.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = 'Sign In';
+            }
+        });
+
+        // ─── Student forgot-password ──────────────────────────────────────────
+        function stdShowForgot(e) {
+            if (e) e.preventDefault();
+            document.getElementById('stdLoginView').style.display  = 'none';
+            document.getElementById('stdForgotView').style.display = 'block';
+        }
+        function stdHideForgot() {
+            document.getElementById('stdForgotView').style.display = 'none';
+            document.getElementById('stdLoginView').style.display  = 'block';
+        }
+
+        document.getElementById('stdForgotForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn    = document.getElementById('stdForgotBtn');
+            const errEl  = document.getElementById('stdForgotError');
+            const succEl = document.getElementById('stdForgotSuccess');
+            const email  = document.getElementById('stdForgotEmail').value.trim();
+
+            btn.disabled = true;
+            btn.textContent = 'Sending…';
+            errEl.style.display = 'none';
+            succEl.style.display = 'none';
+
+            try {
+                const resp = await fetch('/api/student/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _CSRF },
+                    body: JSON.stringify({ email })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    succEl.textContent = data.message || 'Recovery email sent. Check your inbox.';
+                    succEl.style.display = 'block';
+                    document.getElementById('stdForgotEmail').value = '';
+                } else {
+                    errEl.textContent = data.error || 'Could not send email.';
+                    errEl.style.display = 'block';
+                }
+            } catch (_) {
+                errEl.textContent = 'Connection error. Please try again.';
+                errEl.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Send Reset Link';
+            }
+        });
+
+        // ─── Handle Flask Flashes ─────────────────────────────────────────────
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    showNotification("{{ message }}", "{{ 'error' if category in ['error', 'danger', 'warning'] else 'success' }}");
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
     </script>
 </body>
 

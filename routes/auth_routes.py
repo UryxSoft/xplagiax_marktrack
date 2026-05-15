@@ -144,43 +144,37 @@ def google_callback():
 
         current_app.logger.info("[OAuth][Google] Email del usuario: %s", email)
 
-        # 2. Buscar o crear usuario
+        # 2. Buscar usuario existente (NO auto-registro)
         user = User.query.filter_by(email=email).first()
         is_new_user = False
 
         if not user:
-            current_app.logger.info("[OAuth][Google] Creando nuevo usuario: %s", email)
-            plan_starter = StoragePlan.query.filter_by(name="Starter").first()
-            user = User(
-                email=email,
-                name=user_data.get('name', ''),
-                confirmed=True,
-                isactive=True,
-                user_type="Starter",
-                storage_plan_id=plan_starter.id if plan_starter else None,
-                oauth_provider='google',
-                oauth_id=str(user_data.get('id', '')),
-                avatar=user_data.get('picture'),
-                confirmed_at=datetime.utcnow()
-            )
-            db.session.add(user)
-            db.session.flush()  # Obtiene el ID antes del commit
-            is_new_user = True
-        else:
-            current_app.logger.info("[OAuth][Google] Usuario existente encontrado: %s", email)
-            if user_data.get('picture'):
-                user.avatar = user_data.get('picture')
-            if not user.isactive:
-                user.isactive = True
-            if not user.confirmed:
-                user.confirmed = True
-                user.confirmed_at = datetime.utcnow()
-            if not user.oauth_provider:
-                user.oauth_provider = 'google'
-                user.oauth_id = str(user_data.get('id', ''))
+            current_app.logger.warning("[OAuth][Google] Login denied: Account not found for %s", email)
+            flash("This account is not registered. Please contact your administrator.", "error")
+            return redirect(url_for('auth_bp.login'))
+
+        # Validar tipo de usuario (Solo Institutes)
+        if user.user_type != "Institutes":
+            current_app.logger.warning("[OAuth][Google] Login denied: user_type '%s' is not Institutes for %s", user.user_type, email)
+            flash("Access denied. This portal is exclusively for Institute accounts.", "error")
+            return redirect(url_for('auth_bp.login'))
+
+        current_app.logger.info("[OAuth][Google] Institute user found: %s", email)
+        
+        # Actualizar datos básicos si es necesario
+        if user_data.get('picture'):
+            user.avatar = user_data.get('picture')
+        if not user.isactive:
+            user.isactive = True
+        if not user.confirmed:
+            user.confirmed = True
+            user.confirmed_at = datetime.utcnow()
+        if not user.oauth_provider:
+            user.oauth_provider = 'google'
+            user.oauth_id = str(user_data.get('id', ''))
 
         db.session.commit()
-        current_app.logger.info("[OAuth][Google] Usuario ID=%s guardado en DB", user.id)
+        current_app.logger.info("[OAuth][Google] User ID=%s authenticated", user.id)
 
         # 3. Preparar sesión y login
         flask_session.clear()
@@ -310,46 +304,37 @@ def microsoft_callback():
 
         current_app.logger.info("[OAuth][Microsoft] Email del usuario: %s", email)
 
-        # 2. Buscar o crear usuario
+        # 2. Buscar usuario existente (NO auto-registro)
         user = User.query.filter_by(email=email).first()
         is_new_user = False
 
         if not user:
-            current_app.logger.info("[OAuth][Microsoft] Creando nuevo usuario: %s", email)
-            plan_starter = StoragePlan.query.filter_by(name="Starter").first()
-            user = User(
-                email=email,
-                name=user_data.get('name', ''),
-                confirmed=True,
-                isactive=True,
-                user_type="Starter",
-                storage_plan_id=plan_starter.id if plan_starter else None,
-                oauth_provider='microsoft',
-                oauth_id=str(user_data.get('id', '')),
-                confirmed_at=datetime.utcnow()
-            )
-            db.session.add(user)
-            db.session.flush()
-            is_new_user = True
+            current_app.logger.warning("[OAuth][Microsoft] Login denied: Account not found for %s", email)
+            flash("This account is not registered. Please contact your administrator.", "error")
+            return redirect(url_for('auth_bp.login'))
 
-            # Intentar guardar foto de Microsoft (operación opcional, no bloquea el flujo)
-            if user_data.get('access_token'):
-                _save_microsoft_photo(user, user_data['access_token'])
-        else:
-            current_app.logger.info("[OAuth][Microsoft] Usuario existente encontrado: %s", email)
-            if user_data.get('access_token'):
-                _save_microsoft_photo(user, user_data['access_token'])
-            if not user.isactive:
-                user.isactive = True
-            if not user.confirmed:
-                user.confirmed = True
-                user.confirmed_at = datetime.utcnow()
-            if not user.oauth_provider:
-                user.oauth_provider = 'microsoft'
-                user.oauth_id = str(user_data.get('id', ''))
+        # Validar tipo de usuario (Solo Institutes)
+        if user.user_type != "Institutes":
+            current_app.logger.warning("[OAuth][Microsoft] Login denied: user_type '%s' is not Institutes for %s", user.user_type, email)
+            flash("Access denied. This portal is exclusively for Institute accounts.", "error")
+            return redirect(url_for('auth_bp.login'))
+
+        current_app.logger.info("[OAuth][Microsoft] Institutes user found: %s", email)
+        
+        if user_data.get('access_token'):
+            _save_microsoft_photo(user, user_data['access_token'])
+            
+        if not user.isactive:
+            user.isactive = True
+        if not user.confirmed:
+            user.confirmed = True
+            user.confirmed_at = datetime.utcnow()
+        if not user.oauth_provider:
+            user.oauth_provider = 'microsoft'
+            user.oauth_id = str(user_data.get('id', ''))
 
         db.session.commit()
-        current_app.logger.info("[OAuth][Microsoft] Usuario ID=%s guardado en DB", user.id)
+        current_app.logger.info("[OAuth][Microsoft] User ID=%s authenticated", user.id)
 
         # 3. Preparar sesión y login
         flask_session.clear()
@@ -482,6 +467,11 @@ def login():
     if not bcrypt.checkpw(password.encode('utf-8'), user._password_hash.encode('utf-8')):
         current_app.logger.info("[Login] Contraseña incorrecta para: %s", email)
         return jsonify({'error': 'Incorrect credentials'}), 401
+
+    # Validar tipo de usuario (Solo Institutes)
+    if user.user_type != "Institutes":
+        current_app.logger.warning("[Login] Access denied: user_type '%s' is not Institutes for %s", user.user_type, email)
+        return jsonify({'error': 'Access denied. Only Institute accounts are permitted.'}), 403
 
     # Crear sesión e iniciar login
     session_token = user.create_session()
