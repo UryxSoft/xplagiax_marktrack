@@ -100,6 +100,11 @@
                     window.ReferencesIntegrity.update(json.results.citation_check.data);
                 }
 
+                // 7. Notify quota tracker — decrement miniProgress bar
+                if (window.analysisTracker && typeof window.analysisTracker.updateAfterAnalysis === 'function') {
+                    window.analysisTracker.updateAfterAnalysis();
+                }
+
             } catch (err) {
                 console.error('[AIDetection]', err);
                 showError(err.message || 'Analysis failed. Please try again.');

@@ -53,6 +53,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/review-inline.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/miniprogress.css') }}">
 
     <!-- Quill Modules CSS -->
     <!-- quill-emoji -->
@@ -133,6 +134,34 @@
                     <i data-lucide="panel-right"></i>
                 </button>
                 <!-- Notification Bell (professor — student activity) -->
+                <!-- Analysis Quota Mini Progress -->
+                <div class="mini-progress-container" id="miniProgress" title="Click to see details" style="margin-right:4px;">
+                    <div class="mini-circular-progress">
+                        <svg class="mini-progress-circle" viewBox="0 0 50 50">
+                            <circle class="mini-progress-background" cx="25" cy="25" r="20"></circle>
+                            <circle class="mini-progress-bar green" cx="25" cy="25" r="20"
+                                    stroke-dasharray="125.66" stroke-dashoffset="0" id="miniProgressBar"></circle>
+                        </svg>
+                        <div class="mini-progress-text">
+                            <div class="mini-progress-number" id="miniProgressNumber">--/--</div>
+                            <div class="mini-progress-label">left</div>
+                        </div>
+                    </div>
+                    <div class="critical-badge large" id="criticalBadge"></div>
+                    <div class="progress-tooltip">
+                        <div class="tooltip-content">
+                            <div class="tooltip-title">Analysis Quota</div>
+                            <div class="tooltip-stats">
+                                <span class="remaining" id="tooltipRemaining">--</span>
+                                <span class="total">/ <span id="tooltipLimit">--</span></span>
+                            </div>
+                            <div class="tooltip-reset">
+                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                Resets in <span id="tooltipReset">--:--:--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="review-notif-wrapper" id="reviewNotifWrapper">
                     <button class="btn-icon" id="reviewNotifBtn" title="Student Notifications" onclick="toggleReviewNotifs(event)" style="position:relative;">
                         <i data-lucide="bell"></i>
@@ -596,6 +625,47 @@
     <script src="{{ url_for('static', filename='js/pages/review_references_integrity.js') }}"></script>
     <script src="{{ url_for('static', filename='js/pages/review_ai_detection.js') }}"></script>
     <script src="{{ url_for('static', filename='js/pages/review_media_integrity.js') }}"></script>
+
+<!-- ═══ UPGRADE / LIMIT MODAL (Analysis Quota) ═══════════════════════ -->
+<div class="analysis-modal-overlay" id="upgradeModal">
+    <div class="upgrade-modal">
+        <button class="analysis-modal-close" id="closeUpgradeModal" aria-label="Close">&#215;</button>
+        <div class="analysis-modal-header">
+            <div class="limit-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+            </div>
+            <h2>You've reached your daily analysis limit</h2>
+            <p class="limit-message">Your quota resets every 24 hours. Upgrade for more daily analyses.</p>
+            <div class="countdown-container">
+                <span class="countdown-icon">&#9201;</span>
+                <div class="countdown-info">
+                    <div class="countdown-label">Resets in</div>
+                    <div class="countdown-timer" id="countdownTimer">--:--:--</div>
+                </div>
+            </div>
+        </div>
+        <div class="upgrade-options">
+            <h3>Upgrade Your Plan</h3>
+            <p class="upgrade-subtitle">Get more daily analyses and unlock premium features.</p>
+            <div class="pricing-cards" id="pricingCardsContainer">
+                <div class="loading-plans"><div class="analysis-spinner"></div><p>Loading plans&hellip;</p></div>
+            </div>
+        </div>
+        <div class="analysis-modal-footer">
+            <div class="guarantee">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Secure payment &bull; Cancel anytime
+            </div><br>
+            <button class="btn-continue-free" onclick="document.getElementById('upgradeModal').classList.remove('active');document.body.style.overflow='';">Continue with current plan</button>
+        </div>
+    </div>
+</div>
+<!-- ANALYSIS QUOTA TRACKER -->
+<script src="{{ url_for('static', filename='js/pages/analysis_tracker.js') }}"></script>
 </body>
 
 </html>

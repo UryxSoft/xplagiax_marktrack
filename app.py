@@ -107,6 +107,10 @@ from routes.extension_routes import extension_bp
 app.register_blueprint(extension_bp)
 csrf.exempt(extension_bp)  # Students use session-auth, CSRF via X-CSRFToken header
 
+# ── Analysis Quota Counter ────────────────────────────────────────────────────
+from routes.analysis_counter_routes import x_analysiscounter
+app.register_blueprint(x_analysiscounter, url_prefix='/x_analysiscounter')
+
 
 # ============================================================================
 # RUTAS PRINCIPALES DE AUTENTICACIÓN (Sin prefijo)

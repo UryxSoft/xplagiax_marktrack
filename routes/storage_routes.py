@@ -43,25 +43,25 @@ def _calculate_real_usage(user_id: int) -> int:
     """
 
     # 1. Active documents
-    doc_size = db.session.query(func.sum(Document.size_bytes)).filter(
+    doc_size = int(db.session.query(func.sum(Document.size_bytes)).filter(
         Document.owner_id == user_id,
         Document.is_deleted.is_(False)
-    ).scalar() or 0
+    ).scalar() or 0)
 
     # 2. Document versions (of non-deleted docs)
-    version_size = db.session.query(func.sum(DocumentVersion.size_bytes)).join(
+    version_size = int(db.session.query(func.sum(DocumentVersion.size_bytes)).join(
         Document, DocumentVersion.document_id == Document.id
     ).filter(
         Document.owner_id == user_id,
         Document.is_deleted.is_(False)
-    ).scalar() or 0
+    ).scalar() or 0)
 
     # 3. Uploaded files (File model uses `size` and `user_id`, not `size_bytes`/`owner_id`)
-    file_size = db.session.query(func.sum(File.size)).filter(
+    file_size = int(db.session.query(func.sum(File.size)).filter(
         File.user_id == user_id
-    ).scalar() or 0
+    ).scalar() or 0)
 
-    return int(doc_size + version_size + file_size)
+    return int((doc_size or 0) + (version_size or 0) + (file_size or 0))
 
 
 def _get_plan_limit_bytes(user_id: int) -> int:
@@ -88,7 +88,7 @@ def _get_plan_limit_bytes(user_id: int) -> int:
     base_bytes = plan.base_storage_mb * 1024 * 1024
 
     # Add active addon storage
-    addon_bytes = db.session.query(
+    addon_bytes = int(db.session.query(
         func.sum(StorageAddon.storage_mb)
     ).join(
         UserAddonSubscription,
@@ -96,9 +96,9 @@ def _get_plan_limit_bytes(user_id: int) -> int:
     ).filter(
         UserAddonSubscription.user_id == user_id,
         UserAddonSubscription.is_active.is_(True)
-    ).scalar() or 0
+    ).scalar() or 0)
 
-    return base_bytes + int(addon_bytes) * 1024 * 1024
+    return int(base_bytes or 0) + (int(addon_bytes or 0) * 1024 * 1024)
 
 
 def _get_plan(user_id: int):
@@ -202,20 +202,20 @@ def _get_cat_usage_range(user_id: int, cat_name: str, start: datetime, end: date
     # Crude filter but matches _mime_to_category categories
     keyword = cat_name.split(' ')[0]
     
-    d_sz = db.session.query(func.sum(Document.size_bytes)).filter(
+    d_sz = int(db.session.query(func.sum(Document.size_bytes)).filter(
         Document.owner_id == user_id,
         Document.is_deleted.is_(False),
         Document.created_at >= start,
         Document.created_at < end,
         Document.mime_type.ilike(f"%{keyword}%")
-    ).scalar() or 0
+    ).scalar() or 0)
     
-    f_sz = db.session.query(func.sum(File.size)).filter(
+    f_sz = int(db.session.query(func.sum(File.size)).filter(
         File.user_id == user_id,
         File.created_at >= start,
         File.created_at < end,
         File.mime_type.ilike(f"%{keyword}%")
-    ).scalar() or 0
+    ).scalar() or 0)
     
     return int(d_sz + f_sz)
 
@@ -237,6 +237,7 @@ def get_storage_summary():
       svSubtitle, svSyncDot, svDonutBadge
     """
     try:
+        db.session.rollback()  # Limpiar cualquier error de transacciones previas
         days = request.args.get('range', 30, type=int)
         days = days if days in (7, 30, 90) else 30
 
@@ -245,34 +246,34 @@ def get_storage_summary():
         if cached_data:
             return jsonify(cached_data)
 
-        total_bytes = _get_plan_limit_bytes(current_user.id)
-        used_bytes  = _sync_usage(current_user)
-        avail_bytes = max(0, total_bytes - used_bytes)
-        usage_pct   = round((used_bytes / total_bytes * 100), 1) if total_bytes > 0 else 0.0
+        total_bytes = int(_get_plan_limit_bytes(current_user.id) or 0)
+        used_bytes  = int(_sync_usage(current_user) or 0)
+        avail_bytes = int(max(0, total_bytes - used_bytes))
+        usage_pct   = float(round((used_bytes / total_bytes * 100), 1)) if total_bytes > 0 else 0.0
 
         # Monthly growth (current window vs previous window)
         window_start = _get_range_start(days)
         prev_start   = _get_range_start(days * 2)
 
-        current_growth = db.session.query(func.sum(Document.size_bytes)).filter(
+        current_growth = int(db.session.query(func.sum(Document.size_bytes)).filter(
             Document.owner_id == current_user.id,
             Document.created_at >= window_start,
             Document.is_deleted.is_(False)
-        ).scalar() or 0
+        ).scalar() or 0)
 
-        prev_growth = db.session.query(func.sum(Document.size_bytes)).filter(
+        prev_growth = int(db.session.query(func.sum(Document.size_bytes)).filter(
             Document.owner_id == current_user.id,
             Document.created_at >= prev_start,
             Document.created_at < window_start,
             Document.is_deleted.is_(False)
-        ).scalar() or 0
+        ).scalar() or 0)
 
         trend_pct = 0.0
-        if prev_growth > 0:
-            trend_pct = round(((current_growth - prev_growth) / prev_growth) * 100, 1)
+        if (prev_growth or 0) > 0:
+            trend_pct = round((( (current_growth or 0) - (prev_growth or 0)) / prev_growth) * 100, 1)
 
         plan         = _get_plan(current_user.id)
-        monthly_cost = float(plan.price_monthly_usd) if plan else 0.0
+        monthly_cost = float(plan.price_monthly_usd or 0.0) if plan else 0.0
         plan_name    = plan.name if plan else 'Free'
 
         # Cost per GB
@@ -298,9 +299,9 @@ def get_storage_summary():
                 'windowDays':       days,
             },
             'billing': {
-                'monthlyCostUsd': monthly_cost,
-                'costPerGbUsd':   cost_per_gb,
-                'planName':       plan_name,
+                'monthlyCostUsd': float(monthly_cost),
+                'costPerGbUsd':   float(cost_per_gb),
+                'planName':       str(plan_name),
             },
             'syncAt': datetime.utcnow().isoformat() + 'Z',
         }
@@ -309,8 +310,11 @@ def get_storage_summary():
         return jsonify(response_data)
 
     except Exception as e:
-        logger.error(f"[storage/summary] {e}", exc_info=True)
-        return jsonify({'error': 'Internal server error'}), 500
+        logger.error(f"[storage/summary] ERROR for user {getattr(current_user, 'id', 'unknown')}: {str(e)}", exc_info=True)
+        return jsonify({
+            'error': 'Internal server error',
+            'details': str(e)
+        }), 500
 
 
 # ============================================================================
@@ -394,7 +398,7 @@ def get_growth_chart():
                 File.created_at <= point_dt
             ).scalar() or 0
 
-            cumulative = int(doc_sum + version_sum + file_sum)
+            cumulative = int((doc_sum or 0) + (version_sum or 0) + (file_sum or 0))
             labels.append(label)
             data_points.append(cumulative)
 

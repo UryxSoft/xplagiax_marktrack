@@ -58,6 +58,10 @@ class CacheDashboard {
         this.showLoader(true);
         this.fetchData().then(() => {
             this.showLoader(false);
+            // Re-trigger chart update once visible to ensure correct sizing
+            if (this.lastData && this.lastData.history) {
+                this.updateCharts(this.lastData.history);
+            }
         });
 
         // Start Polling loop
@@ -95,12 +99,13 @@ class CacheDashboard {
             if (!res.ok) throw new Error("HTTP " + res.status);
             
             const data = await res.json();
+            this.lastData = data;
             this.updateUI(data);
             
         } catch (err) {
             console.error("[CacheDashboard] Fetch failed:", err);
             // Fallback UI to offline state
-            this.updateUI({
+            const fallbackData = {
                 systemStatus: 'down',
                 hitRatio: 0,
                 totalHits: 0,
@@ -111,7 +116,9 @@ class CacheDashboard {
                 pingLatencyMs: -1,
                 recommendation: 'Connection to endpoint failed.',
                 history: []
-            });
+            };
+            this.lastData = fallbackData;
+            this.updateUI(fallbackData);
         }
     }
 
@@ -120,24 +127,24 @@ class CacheDashboard {
         const up = data.systemStatus === 'up';
         
         this.dom.statusBadge.className = `cd-status-badge ${up ? 'cd-up' : 'cd-down'}`;
-        this.dom.statusText.textContent = up ? `Online (${data.pingLatencyMs}ms)` : 'Offline';
+        this.dom.statusText.textContent = up ? `Online (${data.pingLatencyMs || 0}ms)` : 'Offline';
         
         const now = new Date();
         this.dom.lastUpdated.textContent = `Last check: ${now.toLocaleTimeString()}`;
 
         // 2. Update KPIs
-        this.dom.valHitRatio.textContent = data.hitRatio;
-        // Color coding for hit ratio
-        this.dom.valHitRatio.className = `cd-kpi-value ${data.hitRatio > 70 ? 'cd-val-good' : (data.hitRatio > 50 ? 'cd-val-warn' : 'cd-val-danger')}`;
+        const hr = data.hitRatio || 0;
+        this.dom.valHitRatio.textContent = hr;
+        this.dom.valHitRatio.className = `cd-kpi-value ${hr > 70 ? 'cd-val-good' : (hr > 50 ? 'cd-val-warn' : 'cd-val-danger')}`;
         
-        this.dom.valTotalHits.textContent = this.formatNumber(data.totalHits);
-        this.dom.valTotalMisses.textContent = this.formatNumber(data.totalMisses);
-        this.dom.valLatencyCached.textContent = data.latencyCachedMs;
-        this.dom.valLatencyUncached.textContent = data.latencyUncachedEstMs;
-        this.dom.valQueriesAvoided.textContent = this.formatNumber(data.dbQueriesAvoided);
+        this.dom.valTotalHits.textContent = this.formatNumber(data.totalHits || 0);
+        this.dom.valTotalMisses.textContent = this.formatNumber(data.totalMisses || 0);
+        this.dom.valLatencyCached.textContent = (data.latencyCachedMs || 0) + 'ms';
+        this.dom.valLatencyUncached.textContent = (data.latencyUncachedEstMs || 250) + 'ms';
+        this.dom.valQueriesAvoided.textContent = this.formatNumber(data.dbQueriesAvoided || 0);
 
         // 3. Update Recommendation Box
-        this.dom.recText.textContent = data.recommendation;
+        this.dom.recText.textContent = data.recommendation || 'No recommendations at this time.';
         
         if (!up) {
             this.setRecommendationStyle('danger', 'System Unreachable');
@@ -235,6 +242,7 @@ class CacheDashboard {
     }
 
     formatNumber(num) {
+        if (num === undefined || num === null) return '0';
         if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
         if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
         return num.toString();

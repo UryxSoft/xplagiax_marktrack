@@ -106,6 +106,7 @@ class AnalysisLimit(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     plan_name = db.Column(db.String(50), nullable=False)
     daily_analysis_limit = db.Column(db.Integer, default=10)
+    description = db.Column(db.String(255), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
 
 
@@ -118,7 +119,7 @@ class UserAnalysisUsage(db.Model):
     usage_date = db.Column(db.Date, nullable=False)
     analysis_count = db.Column(db.Integer, default=0)
     limit_reached_at = db.Column(db.DateTime, nullable=True)
-    last_reset_at = db.Column(db.DateTime, nullable=True)
+    last_reset_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
@@ -479,9 +480,94 @@ class User(db.Model, UserMixin):
         return True
 
     # =========================================================================
+    # Analysis Quota Methods
+    # =========================================================================
+
+    def _get_analysis_limit(self):
+        """Return daily_analysis_limit for this user's plan (default 10)."""
+        plan_name = self.user_type or 'Starter'
+        limit_row = AnalysisLimit.query.filter_by(plan_name=plan_name, is_active=True).first()
+        return limit_row.daily_analysis_limit if limit_row else 10
+
+    def _get_today_usage(self):
+        """Return today's UserAnalysisUsage row, creating it if needed."""
+        today = datetime.utcnow().date()
+        usage = UserAnalysisUsage.query.filter_by(user_id=self.id, usage_date=today).first()
+        if not usage:
+            db.session.rollback() # Limpiar cualquier error previo
+            now = datetime.utcnow()
+            usage = UserAnalysisUsage(
+                user_id=self.id,
+                usage_date=today,
+                analysis_count=0,
+                last_reset_at=now,
+                updated_at=now,
+            )
+            db.session.add(usage)
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+                # Re-intentar obtener por si otro proceso lo creó justo ahora
+                usage = UserAnalysisUsage.query.filter_by(user_id=self.id, usage_date=today).first()
+                if not usage:
+                    raise
+        return usage
+
+    def can_perform_analysis(self):
+        """True if the user still has quota for today."""
+        usage = self._get_today_usage()
+        return usage.analysis_count < self._get_analysis_limit()
+
+    def get_remaining_analysis(self):
+        """Remaining analyses for today."""
+        usage = self._get_today_usage()
+        return max(0, self._get_analysis_limit() - usage.analysis_count)
+
+    def increment_analysis_count(self):
+        """Increment today's counter. Returns True on success."""
+        try:
+            usage = self._get_today_usage()
+            limit = self._get_analysis_limit()
+            if usage.analysis_count >= limit:
+                return False
+            usage.analysis_count += 1
+            if usage.analysis_count >= limit:
+                usage.limit_reached_at = datetime.utcnow()
+            db.session.commit()
+            return True
+        except Exception:
+            db.session.rollback()
+            return False
+
+    def get_analysis_stats(self):
+        """Return a stats dict consumed by analysis_tracker.js."""
+        from datetime import datetime as dt
+        usage   = self._get_today_usage()
+        limit   = self._get_analysis_limit()
+        used    = usage.analysis_count
+        remaining = max(0, limit - used)
+        pct     = (remaining / limit * 100) if limit else 0
+
+        # Seconds until midnight UTC (daily reset)
+        now = dt.utcnow()
+        midnight = dt.combine(now.date(), dt.min.time()) + timedelta(days=1)
+        reset_in_seconds = int((midnight - now).total_seconds())
+
+        return {
+            'used':             used,
+            'limit':            limit,
+            'remaining':        remaining,
+            'percentage':       round(pct, 1),
+            'reset_at':         midnight.isoformat(),
+            'reset_in_seconds': reset_in_seconds,
+            'limit_reached_at': usage.limit_reached_at.isoformat() if usage.limit_reached_at else None,
+        }
+
+    # =========================================================================
     # Utility Methods
     # =========================================================================
-    
+
     def to_dict(self):
         return {
             'id': self.id,

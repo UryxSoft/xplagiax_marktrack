@@ -221,6 +221,11 @@
 
   </div><!-- /.auth-wrapper -->
 
+  <footer class="footer" role="contentinfo">
+    Powered by 
+    <img src="/static/img/uryx.png" alt="Uryx Technologies logo" loading="lazy">
+    Uryx Technologies | All Rights Reserved 2025
+  </footer>
 </div><!-- /.hw-login-overlay -->
 {% endif %}
 
@@ -355,15 +360,16 @@
                data-invitation-id="{{ a.invitation.id }}"
                data-workspace-title="{{ a.workspace.title|e }}"
                data-is-closed="{{ 'true' if a.tag == 'CLOSED' else 'false' }}"
-               data-allow-extensions="{{ 'true' if a.workspace.allow_extensions else 'false' }}">
+               data-allow-extensions="{{ 'true' if a.workspace.allow_extensions else 'false' }}"
+               data-token="{{ a.token }}">
 
             <button class="doc-menu-btn" aria-label="Document menu"
-                    onclick="hwShowCardMenu(event, '{{ a.token }}', {{ a.invitation.id }}, '{{ a.tag }}', {{ 'true' if a.workspace.allow_extensions else 'false' }})"
+                    onclick="hwShowCardMenu(event, this)"
             >
               <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5" fill="white" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="white" stroke="none"/><circle cx="12" cy="19" r="1.5" fill="white" stroke="none"/></svg>
             </button>
 
-            <div class="doc-stack" onclick="hwHandleCardClick('{{ a.token }}', {{ a.invitation.id }}, '{{ a.tag }}', {{ 'true' if a.workspace.allow_extensions else 'false' }}, event)">
+            <div class="doc-stack" onclick="hwHandleCardClick(event, this)">
               <div class="doc-page dp-b2"></div>
               <div class="doc-page dp-b1"></div>
               <div class="doc-page dp-front">
@@ -1540,7 +1546,13 @@ function hwUpdateBanner(invId, req) {
 }
 
 // ── Card Click Handler ─────────────────────────────────────────────────────
-function hwHandleCardClick(token, invId, tag, allowExt, event) {
+function hwHandleCardClick(event, el) {
+  const outer = el.closest('.doc-outer');
+  const token    = outer.getAttribute('data-token');
+  const invId    = parseInt(outer.getAttribute('data-invitation-id'));
+  const tag      = outer.getAttribute('data-status-tag');
+  const allowExt = outer.getAttribute('data-allow-extensions') === 'true';
+
   if (event) event.stopPropagation();
   if (tag === 'CLOSED') {
     const existing = _extStatusCache[invId];
@@ -1559,7 +1571,12 @@ function hwHandleCardClick(token, invId, tag, allowExt, event) {
 // ── Card Context Menu ──────────────────────────────────────────────────────
 let _menuToken = null, _menuInvId = null, _menuTag = null, _menuAllowExt = false;
 
-function hwShowCardMenu(event, token, invId, tag, allowExt) {
+function hwShowCardMenu(event, el) {
+  const outer = el.closest('.doc-outer');
+  const token    = outer.getAttribute('data-token');
+  const invId    = parseInt(outer.getAttribute('data-invitation-id'));
+  const tag      = outer.getAttribute('data-status-tag');
+  const allowExt = outer.getAttribute('data-allow-extensions') === 'true';
   event.stopPropagation();
   _menuToken = token; _menuInvId = invId; _menuTag = tag; _menuAllowExt = allowExt;
 

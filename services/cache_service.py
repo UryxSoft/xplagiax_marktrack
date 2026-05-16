@@ -206,7 +206,7 @@ class CacheService:
                 pipe.get(_KEY_MISSES)
                 pipe.get(_KEY_TIME_MS)
                 pipe.get(_KEY_REQ_COUNT)
-                pipe.lrange(_KEY_HISTORY, 0, 9)
+                pipe.lrange(_KEY_HISTORY, 0, 29)
                 results = pipe.execute()
 
                 hits = int(results[0] or 0)
@@ -214,10 +214,25 @@ class CacheService:
                 time_total = float(results[2] or 0)
                 req_count = int(results[3] or 0)
                 history_raw = results[4] or []
+                history = []
+                for item in history_raw:
+                    try:
+                        history.append(json.loads(item))
+                    except:
+                        continue
+                history.reverse()
 
                 total = hits + misses
                 hit_ratio = round((hits / total) * 100, 1) if total > 0 else 0
                 avg_cached_ms = round(time_total / req_count, 2) if req_count > 0 else 0
+
+                # Snapshot logic
+                now_ts = int(time.time())
+                if not history or (now_ts - history[-1].get('t', 0) > 60):
+                    snap = json.dumps({'t': now_ts, 'hr': hit_ratio, 'h': hits, 'm': misses})
+                    redis_client.lpush(_KEY_HISTORY, snap)
+                    redis_client.ltrim(_KEY_HISTORY, 0, 29)
+                    history.append(json.loads(snap))
 
                 return {
                     'systemStatus': 'up',
@@ -225,9 +240,11 @@ class CacheService:
                     'totalHits': hits,
                     'totalMisses': misses,
                     'latencyCachedMs': avg_cached_ms,
+                    'latencyUncachedEstMs': 250,
+                    'dbQueriesAvoided': hits,
                     'pingLatencyMs': latency_ms,
-                    'recommendation': 'Redis is active.',
-                    'history': []
+                    'recommendation': 'Redis is active and serving requests.',
+                    'history': history
                 }
             except Exception:
                 pass
@@ -243,6 +260,8 @@ class CacheService:
             'totalHits': m[_KEY_HITS],
             'totalMisses': m[_KEY_MISSES],
             'latencyCachedMs': 0.1,
+            'latencyUncachedEstMs': 250,
+            'dbQueriesAvoided': m[_KEY_HITS],
             'pingLatencyMs': -1,
             'recommendation': 'Using in-memory fallback (Redis down).',
             'history': []

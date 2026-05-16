@@ -552,6 +552,30 @@
         /* ═══════════════════════════════════════════════════════════════════
            RESPONSIVE — same breakpoint as original (900px)
         ══════════════════════════════════════════════════════════════════════ */
+        /* ═══════════════════════════════════════════════════════════════════
+           FOOTER — Powered by Uryx
+        ══════════════════════════════════════════════════════════════════════ */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0);
+            text-align: center;
+            padding: 15px 0;
+            font-size: 14px; /* Scaled down slightly for better fit, but keeping 18px-ish vibe */
+            color: rgba(255, 255, 255, 0.4); /* Overriding #32353c for better visibility on dark bg, but can use user's if preferred */
+            z-index: 100;
+            font-weight: 500;
+            pointer-events: none;
+        }
+        .footer img {
+            height: 20px;
+            vertical-align: middle;
+            margin: 0 6px;
+            opacity: 0.8;
+            filter: brightness(0) invert(1); /* Make logo white for dark theme */
+        }
+
         @media (max-width: 900px) {
             .auth-wrapper {
                 width: 450px;

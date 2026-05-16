@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/cache_dashboard.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/home_extra.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/miniprogress.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/home_modals.css') }}">
 
 <script src="{{ url_for('static', filename='js/refresh_btn.js') }}"></script>
@@ -58,6 +59,40 @@
     <a href="{{ url_for('users.almacenamiento') }}" class="nav-btn {% if request.endpoint == 'users.almacenamiento' %}active{% endif %}" data-tip="Quick Access"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="3" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="21"/><line x1="3" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="21" y2="12"/></svg></a>
     <a href="{{ url_for('users.workspace') }}" class="nav-btn {% if request.endpoint == 'users.workspace' %}active{% endif %}" data-tip="Workspace"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></a>
     <div class="nav-spacer"></div>
+
+    <!-- ── ANALYSIS QUOTA MINI PROGRESS ──────────────────────── -->
+    <!-- Progress Bar Mejorado y Corregido -->
+    <div class="mini-progress-container" id="miniProgress" title="Click to see details">
+        <div class="mini-circular-progress">
+            <svg class="mini-progress-circle" viewBox="0 0 50 50">
+                <circle class="mini-progress-background" cx="25" cy="25" r="20"></circle>
+                <!-- Iniciamos con stroke-dashoffset="0" para que comience lleno (100%) -->
+                <circle class="mini-progress-bar green" cx="25" cy="25" r="20"
+                        stroke-dasharray="125.66" stroke-dashoffset="0" id="miniProgressBar"></circle>
+            </svg>
+            <div class="mini-progress-text">
+                <div class="mini-progress-number" id="miniProgressNumber">--/--</div>
+                <div class="mini-progress-label">left</div>
+            </div>
+        </div>
+        <div class="critical-badge large " id="criticalBadge"></div>
+
+        <!-- Tooltip informativo -->
+        <div class="progress-tooltip">
+            <div class="tooltip-content">
+                <div class="tooltip-title">Analysis Quota</div>
+                <div class="tooltip-stats">
+                    <span class="remaining" id="tooltipRemaining">--</span>
+                    <span class="total">/ <span id="tooltipLimit">--</span></span>
+                </div>
+                <div class="tooltip-reset">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    Resets in <span id="tooltipReset">--:--:--</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ── /ANALYSIS QUOTA MINI PROGRESS ────────────────────── -->
 
     <!-- ── NOTIFICATION BELL ─────────────────────────────────── -->
     <div class="notif-bell-wrapper" id="notifBellWrapper" style="position:relative;">
@@ -197,6 +232,49 @@
     {% block view_content %}{% endblock %}
   </div>
 </div>
+
+<!-- ═══ UPGRADE / LIMIT MODAL (Analysis Quota) ══════════════════════════ -->
+<div class="analysis-modal-overlay" id="upgradeModal">
+    <div class="upgrade-modal">
+        <button class="analysis-modal-close" id="closeUpgradeModal" aria-label="Close">&#215;</button>
+        <div class="analysis-modal-header">
+            <div class="limit-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+            </div>
+            <h2>You've reached your daily analysis limit</h2>
+            <p class="limit-message">Your quota resets every 24 hours. Upgrade for more daily analyses.</p>
+            <div class="countdown-container">
+                <span class="countdown-icon">⏱</span>
+                <div class="countdown-info">
+                    <div class="countdown-label">Resets in</div>
+                    <div class="countdown-timer" id="countdownTimer">--:--:--</div>
+                </div>
+            </div>
+        </div>
+        <div class="upgrade-options">
+            <h3>Upgrade Your Plan</h3>
+            <p class="upgrade-subtitle">Get more daily analyses and unlock premium features.</p>
+            <div class="pricing-cards" id="pricingCardsContainer">
+                <div class="loading-plans">
+                    <div class="analysis-spinner"></div>
+                    <p>Loading plans…</p>
+                </div>
+            </div>
+        </div>
+        <div class="analysis-modal-footer">
+            <div class="guarantee">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Secure payment &bull; Cancel anytime
+            </div><br>
+            <button class="btn-continue-free" onclick="document.getElementById('upgradeModal').classList.remove('active'); document.body.style.overflow='';">Continue with current plan</button>
+        </div>
+    </div>
+</div>
+<!-- ═══ /UPGRADE MODAL ═══════════════════════════════════════════════════ -->
 
 <div class="ctx-menu" id="ctxMenu">
   <div class="ctx-item" data-action="open"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg> Open</div>
@@ -1109,6 +1187,9 @@
 <script src="{{ url_for('static', filename='js/pages/home_v3_core.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/home_previews.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/home_notifications.js') }}"></script>
+
+<!-- ANALYSIS QUOTA TRACKER -->
+<script src="{{ url_for('static', filename='js/pages/analysis_tracker.js') }}"></script>
 
 </body>
 </html>
