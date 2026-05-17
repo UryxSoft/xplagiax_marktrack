@@ -196,6 +196,30 @@
                 }
             });
         }
+        // Expose globally to navigate to Plagiarism tab
+        window.switchToPlagiarismTab = function() {
+            const tabButtons = document.querySelectorAll('.tab');
+            const tabPanels = document.querySelectorAll('.tab-panel');
+            tabButtons.forEach(btn => {
+                if (btn.getAttribute('data-tab') === 'plagiarism') {
+                    tabButtons.forEach(b => b.classList.remove('active'));
+                    tabPanels.forEach(p => {
+                        p.classList.remove('active');
+                        p.style.display = 'none';
+                    });
+                    btn.classList.add('active');
+                    const panel = document.getElementById('plagiarism');
+                    if (panel) {
+                        panel.classList.add('active');
+                        panel.style.display = 'block';
+                        // Trigger PasteIntel load
+                        if (window.PasteIntel) {
+                            window.PasteIntel.load();
+                        }
+                    }
+                }
+            });
+        };
     });
 
 })();

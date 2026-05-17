@@ -230,15 +230,15 @@ def change_password():
         if len(new_pw) < 8:
             return jsonify({'status': 'error', 'message': 'New password must be at least 8 characters'}), 400
 
-        # Use werkzeug for password checking (User model uses _password_hash)
-        from werkzeug.security import check_password_hash, generate_password_hash
+        # Use bcrypt for password checking (User model uses _password_hash)
+        import bcrypt
         if not current_user._password_hash:
             return jsonify({'status': 'error', 'message': 'No password set for this account'}), 400
 
-        if not check_password_hash(current_user._password_hash, old_pw):
+        if not bcrypt.checkpw(old_pw.encode('utf-8'), current_user._password_hash.encode('utf-8')):
             return jsonify({'status': 'error', 'message': 'Current password is incorrect'}), 400
 
-        current_user._password_hash = generate_password_hash(new_pw)
+        current_user._password_hash = bcrypt.hashpw(new_pw.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         db.session.commit()
 
         return jsonify({'status': 'success', 'message': 'Password changed successfully'})

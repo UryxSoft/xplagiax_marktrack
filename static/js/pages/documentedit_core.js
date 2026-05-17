@@ -35,7 +35,7 @@
         let extraModules = {};
         let _toolbarHandlerFactories = {};
         try {
-            const { getQuillModules } = await import('/static/js/quill-modules.js');
+            const { getQuillModules } = await import('/static/js/quill-modules.js?v=2.0.0');
             const { registry, config, toolbarHandlerFactories } = await getQuillModules('documentedit');
             
             // Explicitly register each downloaded module namespace
@@ -85,6 +85,19 @@
         if (!quill) {
             updateDebug('dbg-editor', 'Editor: ERROR - Quill init failed');
             return;
+        }
+
+        // Strip text backgrounds and colors on paste to prevent unreadable styling
+        if (quill && quill.clipboard) {
+            quill.clipboard.addMatcher(Node.ELEMENT_NODE, (node, delta) => {
+                delta.ops.forEach(op => {
+                    if (op.attributes) {
+                        delete op.attributes.background;
+                        delete op.attributes.color;
+                    }
+                });
+                return delta;
+            });
         }
 
         // Initialize Floating Bubble Toolbar

@@ -586,6 +586,12 @@
             <button class="btn-icon" id="settingsBtn" title="Settings">
                 <i data-lucide="settings"></i>
             </button>
+            <!-- Keyboard Shortcuts Help -->
+            <button class="btn-icon" id="shortcutsHelpBtn" title="Keyboard Shortcuts (Ctrl+/)" onclick="openShortcutsModal()" style="opacity:.75;transition:opacity .2s;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='.75'">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+            </button>
 
             <!-- User dropdown (PRESERVED — functional, Jinja-bound) -->
             <div class="user-dropdown-wrapper" id="userDropdownWrapper">
@@ -1150,6 +1156,9 @@
 <script src="{{ url_for('static', filename='js/quill-bubble-toolbar.js') }}"></script>
 <script src="{{ url_for('static', filename='js/invite-editor.js') }}?v=1.1.0"></script>
 <script src="{{ url_for('static', filename='js/plagiarism-detector-fixed.js') }}"></script>
+<script src="{{ url_for('static', filename='js/paste_detector.js') }}?v=2.0.2"></script>
+<!-- Keyboard Shortcuts Engine -->
+<script src="{{ url_for('static', filename='js/editor-shortcuts.js') }}?v=1.0.0"></script>
 
 <!-- Sub-Modules -->
 <script src="{{ url_for('static', filename='js/pages/invite_registration.js') }}"></script>

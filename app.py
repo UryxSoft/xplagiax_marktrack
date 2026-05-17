@@ -111,6 +111,18 @@ csrf.exempt(extension_bp)  # Students use session-auth, CSRF via X-CSRFToken hea
 from routes.analysis_counter_routes import x_analysiscounter
 app.register_blueprint(x_analysiscounter, url_prefix='/x_analysiscounter')
 
+# ── Internet Paste Detection ──────────────────────────────────────────────────
+from routes.plagiarism_routes import plagiarism_bp
+from models.paste_evidence import PastedInternetContent  # noqa: F401 — imported to register model
+app.register_blueprint(plagiarism_bp)
+# Ensure the pasted_internet_content table is created if it doesn't exist
+with app.app_context():
+    try:
+        db.create_all()
+        logger.info('[App] pasted_internet_content table ensured via db.create_all()')
+    except Exception as _e:
+        logger.warning('[App] db.create_all() warning: %s', _e)
+
 
 # ============================================================================
 # RUTAS PRINCIPALES DE AUTENTICACIÓN (Sin prefijo)

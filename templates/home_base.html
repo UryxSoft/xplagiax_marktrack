@@ -55,7 +55,7 @@
     </div>
     <br>
     <a href="{{ url_for('users.home') }}" class="nav-btn {% if request.endpoint == 'users.home' %}active{% endif %}" data-tip="Home"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></a>
-    <a href="{{ url_for('users.analytics') }}" class="nav-btn {% if request.endpoint == 'users.analytics' %}active{% endif %}" data-tip="Analytics"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></a>
+    <a href="{{ url_for('users.analytics') }}" class="nav-btn {% if request.endpoint == 'users.analytics' %}active{% endif %}" data-tip="Analytics" style="display: none;"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></a>
     <a href="{{ url_for('users.almacenamiento') }}" class="nav-btn {% if request.endpoint == 'users.almacenamiento' %}active{% endif %}" data-tip="Quick Access"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="3" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="21"/><line x1="3" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="21" y2="12"/></svg></a>
     <a href="{{ url_for('users.workspace') }}" class="nav-btn {% if request.endpoint == 'users.workspace' %}active{% endif %}" data-tip="Workspace"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></a>
     <div class="nav-spacer"></div>

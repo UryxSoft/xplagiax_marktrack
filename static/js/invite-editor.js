@@ -123,7 +123,7 @@
         let extraModules = {};
         let _toolbarHandlerFactories = {};
         try {
-            const { getQuillModules } = await import('/static/js/quill-modules.js');
+            const { getQuillModules } = await import('/static/js/quill-modules.js?v=2.0.0');
             const { registry, config, toolbarHandlerFactories } = await getQuillModules('invite');
             
             // Explicitly register each downloaded module namespace
@@ -161,6 +161,19 @@
         // Expose globally for any other scripts
         window.quillPagination = pagination;
         window.quill = quillInstance;
+        
+        // Strip text backgrounds and colors on paste to prevent unreadable styling
+        if (quillInstance && quillInstance.clipboard) {
+            quillInstance.clipboard.addMatcher(Node.ELEMENT_NODE, (node, delta) => {
+                delta.ops.forEach(op => {
+                    if (op.attributes) {
+                        delete op.attributes.background;
+                        delete op.attributes.color;
+                    }
+                });
+                return delta;
+            });
+        }
         
         // Initialize Floating Bubble Toolbar
         if (typeof QuillBubbleToolbar !== 'undefined') {

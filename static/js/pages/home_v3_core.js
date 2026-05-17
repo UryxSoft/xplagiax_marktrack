@@ -557,6 +557,29 @@ function addMoreFiles() {
 loadFolders();
 loadDocuments();
 
+// ── Initialize user settings at startup ──
+async function initializeUserSettings() {
+  try {
+    const r = await fetch('/api/settings/', { credentials: 'same-origin' });
+    const data = await r.json();
+    if (data.status === 'success') {
+      const settings = data.data;
+      const compact = settings.preferences?.compact_view || false;
+      document.body.classList.toggle('compact-docs', compact);
+      const compactEl = document.getElementById('stCheckCompact');
+      if (compactEl) compactEl.checked = compact;
+
+      // Update folder default color
+      if (settings.workspace?.default_folder_color) {
+        _stFolderColor = settings.workspace.default_folder_color;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to load user settings on startup:', e);
+  }
+}
+initializeUserSettings();
+
 /* =====================
    ARCHIVED OFFCANVAS
 ===================== */
@@ -2415,7 +2438,18 @@ async function stSelectCreativity(val, save = true) {
 function stTogglePw(inputId, eyeEl) {
     const inp = document.getElementById(inputId);
     if (!inp) return;
-    inp.type = inp.type === 'password' ? 'text' : 'password';
+    const isRevealed = inp.type === 'text';
+    inp.type = isRevealed ? 'password' : 'text';
+    if (eyeEl) {
+        eyeEl.classList.toggle('revealed', !isRevealed);
+        if (!isRevealed) {
+            // Slashed eye (hide state)
+            eyeEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-svg"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+        } else {
+            // Normal eye (show state)
+            eyeEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-svg"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+        }
+    }
 }
 
 // ── SECURITY — Change password ───────────────────────────

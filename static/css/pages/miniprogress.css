@@ -33,9 +33,12 @@
 .mini-progress-container {
     position: relative;
     cursor: pointer;
-    margin-bottom: 20px;
+    margin-bottom: 0;
     transition: transform 0.3s ease;
     z-index: 5000;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Badge crítico y advertencia */

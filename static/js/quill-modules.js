@@ -237,8 +237,10 @@ export async function getQuillModules(screen) {
         // quill-magic-url — auto-linkifies typed/pasted URLs
         loadScript('https://cdn.jsdelivr.net/npm/quill-magic-url@4.2.0/dist/index.min.js'),
 
-        // quill-paste-smart — strips unwanted styles from pasted content
-        loadScript('https://cdn.jsdelivr.net/npm/quill-paste-smart@1.5.0/dist/quill-paste-smart.js'),
+        // quill-paste-smart has been intentionally disabled because it is fundamentally 
+        // incompatible with Quill v2 and throws uncaught exceptions (e.preventDefault) 
+        // on paste events, which breaks all subsequent event listeners and keyboard shortcuts.
+        // Quill v2's native clipboard handles sanitization perfectly out of the box.
 
         // quill-table-better — actively maintained Quill v2 table module (shared)
         loadLink('https://cdn.jsdelivr.net/npm/quill-table-better@1.2.3/dist/quill-table-better.css'),
@@ -258,12 +260,9 @@ export async function getQuillModules(screen) {
         urlRegularExpression:    /(https?:\/\/[\w-]+(\.[\w-]+)+([\w.,@?^=%&:/~+#\-_]*[\w@?^=%&/~+#\-_])?)/gi,
     };
 
-    // quill-paste-smart: self-registers into clipboard module
+    // Standard Quill v2 clipboard config
     config.clipboard = {
-        keepSelection: true,        // preserve cursor after paste
-        substituteBlockElements: true,
-        magicPasteLinks: true,
-        removeConsecutiveSubstitutionTags: true,
+        matchVisual: false
     };
 
     // quill-table-better
