@@ -133,7 +133,21 @@ def index():
     """Ruta principal - requiere autenticación"""
     if current_user.is_authenticated:
         return render_template('sections/home.html')
-    return redirect(url_for('auth_bp.login'))
+    return redirect(url_for('login'))
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Ruta de login en la raíz sin prefijo /auth_bp"""
+    from routes.auth_routes import login as auth_login
+    return auth_login()
+
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Ruta de recuperación de contraseña en la raíz"""
+    from routes.auth_routes import forgot_password as auth_forgot_password
+    return auth_forgot_password()
 
 
 @app.route('/health', methods=['GET'])
@@ -225,7 +239,7 @@ def logout_page():
     logout_user()
     session.clear()
     flash('Sesión cerrada correctamente', 'success')
-    return redirect(url_for('auth_bp.login'))
+    return redirect(url_for('login'))
 
 
 # ============================================================================
