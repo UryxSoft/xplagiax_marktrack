@@ -253,61 +253,167 @@ gunicorn -k eventlet -w 9 --threads 2 --bind 0.0.0.0:5002 app:app
 
 ### 6.2 Docker Deployment Guide / Guía de Despliegue en Docker
 
+This section describes how to compile, configure, and launch the enterprise-grade production container under the custom Docker bridged network `xplagiax-net` on your Debian host server.
+*Esta sección detalla cómo compilar, configurar y lanzar el contenedor de producción de grado empresarial bajo la red Docker personalizada `xplagiax-net` en tu servidor Debian.*
+
+---
+
 #### 🐳 6.2.1 Building the Docker Image / Construcción de la Imagen
 **[EN]** Build the runtime image from the root workspace directory:
 ```bash
 docker build -t xplagiax/marktrack:latest .
 ```
-**[ES]** Construye la imagen de producción desde el directorio raíz:
+**[ES]** Construye la imagen de producción desde el directorio raíz del proyecto:
 ```bash
 docker build -t xplagiax/marktrack:latest .
 ```
 
 ---
 
-#### 🏃‍♂️ 6.2.2 Running the Container / Ejecución del Contenedor (docker run)
-**[EN]** Launch the container in production using the `docker run` command:
-```bash
-docker run -d \
-  --name marktrack_app \
-  -p 5002:5002 \
-  -e SECRET_KEY="your-production-secret-key" \
-  -e SECURITY_PASSWORD_SALT="your-production-salt" \
-  -e APP_BASE_URL="https://marktrack.xplagiax.ca" \
-  -e GOOGLE_REDIRECT_URI="https://marktrack.xplagiax.ca/auth_bp/google/callbackx" \
-  -e MICROSOFT_REDIRECT_URI="https://marktrack.xplagiax.ca/auth_bp/microsoft/callback" \
-  xplagiax/marktrack:latest
-```
+#### 📄 6.2.2 The Environment Configuration Template (.env) / Configuración del Entorno (.env)
+**[EN]** Create a plain text file named `.env` in your project root on the production server (this file is excluded from Git to prevent exposing credentials).
+**[ES]** Crea un archivo de texto plano llamado `.env` en la raíz de tu proyecto en el servidor de producción (este archivo se encuentra en `.gitignore` para salvaguardar contraseñas y claves).
 
-**[ES]** Lanza el contenedor de producción utilizando el comando `docker run`:
-```bash
-docker run -d \
-  --name marktrack_app \
-  -p 5002:5002 \
-  -e SECRET_KEY="tu-llave-secreta-de-produccion" \
-  -e SECURITY_PASSWORD_SALT="tu-sal-de-produccion" \
-  -e APP_BASE_URL="https://marktrack.xplagiax.ca" \
-  -e GOOGLE_REDIRECT_URI="https://marktrack.xplagiax.ca/auth_bp/google/callbackx" \
-  -e MICROSOFT_REDIRECT_URI="https://marktrack.xplagiax.ca/auth_bp/microsoft/callback" \
-  xplagiax/marktrack:latest
-```
+```env
+# ── CONFIGURACIÓN DE LA APLICACIÓN ──────────────────────────────────────
+FLASK_ENV=production
+SECRET_KEY=1112821092c444e178ebb4fc5ce9f0245e29ee656b5284db3613cf6941ac447c
+SECURITY_PASSWORD_SALT=1c3485c42a4e751ea2e4c48db6687f9a6d5e5c7b40f145b215b8bd8c5db806c3
 
-##### 🔍 Parametric Breakdown / Desglose de Parámetros:
-*   `-d` / `--detach`: Runs the container in the background (daemon mode). / *Ejecuta el contenedor en segundo plano.*
-*   `--name`: Assigns a readable identity to the container instance. / *Asigna un identificador legible a la instancia.*
-*   `-p 5002:5002`: Maps internal port `5002` to the host port `5002`. / *Mapea el puerto del servidor host al puerto del contenedor.*
-*   `-e KEY="value"`: Declares environment variables. **Set these to your secure production values.** / *Declara variables de entorno del contenedor.*
+# ── URLS DE PRODUCCIÓN ──────────────────────────────────────────────────
+APP_BASE_URL=https://marktrack.xplagiax.ca
+GOOGLE_REDIRECT_URI=https://marktrack.xplagiax.ca/auth_bp/google/callbackx
+MICROSOFT_REDIRECT_URI=https://marktrack.xplagiax.ca/auth_bp/microsoft/callback
+
+# ── APIS DE TERCEROS ────────────────────────────────────────────────────
+GEMINI_API_KEY=tu_api_key_real_aqui_para_deteccion_de_plagio
+XPLAGIAX_URL=http://xplagiax-xota:5006/analyze_document
+IMAGE_SVC_URL=http://xplagiax_image_service:5010
+
+# ── SERVIDOR DE CORREO (SMTP) ───────────────────────────────────────────
+MAIL_USERNAME=noreply@XplagiaX.ca
+MAIL_PASSWORD=MYR1xkd2kqc_gat2hem
+
+# ── BASE DE DATOS (mysql/proxysql) ──────────────────────────────────────
+MYSQL_ROOT_PASSWORD=xplagiax001
+MYSQL_DATABASE=xplagiax_db
+MYSQL_USER=marktrack
+MYSQL_PASSWORD=xplagiax001
+DATABASE_URL=mysql+mysqldb://xplagiaxadminuser:xplagiax001@mysql-container:3306/xplagiax_db?charset=utf8mb4
+
+# ── CACHÉ Y COLAS (redis) ────────────────────────────────────────────────
+REDIS_URL=redis://redis:6379
+
+# ── ALMACENAMIENTO DE ARCHIVOS (seaweedfs) ──────────────────────────────
+SEAWEEDFS_FILER_URL=seaweedfs-filer:8888
+SEAWEEDFS_MASTER_URL=seaweedfs-master:9333
+SEAWEEDFS_SECURE=false
+```
 
 ---
 
-#### 📄 6.2.3 Running with an Environment File / Despliegue Simplificado con .env
-**[EN]** For automated environments, place your variables inside a `.env` file and execute:
+#### 🏃‍♂️ 6.2.3 Running the Container / Ejecución del Contenedor (docker run)
+**[EN]** Launch the container on the custom `xplagiax-net` network with all environment variables fully inline:
+**[ES]** Lanza el contenedor de producción en la red virtual `xplagiax-net` con todas las variables de entorno especificadas:
+
 ```bash
-docker run -d --name marktrack_app -p 5002:5002 --env-file .env xplagiax/marktrack:latest
+docker run -d \
+  --name marktrack_app \
+  --network xplagiax-net \
+  --restart unless-stopped \
+  -p 5002:5002 \
+  -e FLASK_ENV="production" \
+  -e SECRET_KEY="1112821092c444e178ebb4fc5ce9f0245e29ee656b5284db3613cf6941ac447c" \
+  -e SECURITY_PASSWORD_SALT="1c3485c42a4e751ea2e4c48db6687f9a6d5e5c7b40f145b215b8bd8c5db806c3" \
+  -e APP_BASE_URL="https://marktrack.xplagiax.ca" \
+  -e GOOGLE_REDIRECT_URI="https://marktrack.xplagiax.ca/auth_bp/google/callbackx" \
+  -e MICROSOFT_REDIRECT_URI="https://marktrack.xplagiax.ca/auth_bp/microsoft/callback" \
+  -e GEMINI_API_KEY="tu_api_key_real_aqui_para_deteccion_de_plagio" \
+  -e XPLAGIAX_URL="http://xplagiax-xota:5006/analyze_document" \
+  -e IMAGE_SVC_URL="http://xplagiax_image_service:5010" \
+  -e MAIL_USERNAME="noreply@XplagiaX.ca" \
+  -e MAIL_PASSWORD="MYR1xkd2kqc_gat2hem" \
+  -e MYSQL_ROOT_PASSWORD="xplagiax001" \
+  -e MYSQL_DATABASE="xplagiax_db" \
+  -e MYSQL_USER="marktrack" \
+  -e MYSQL_PASSWORD="xplagiax001" \
+  -e DATABASE_URL="mysql+mysqldb://xplagiaxadminuser:xplagiax001@mysql-container:3306/xplagiax_db?charset=utf8mb4" \
+  -e REDIS_URL="redis://redis:6379" \
+  -e SEAWEEDFS_FILER_URL="seaweedfs-filer:8888" \
+  -e SEAWEEDFS_MASTER_URL="seaweedfs-master:9333" \
+  -e SEAWEEDFS_SECURE="false" \
+  xplagiax/marktrack:latest
 ```
-**[ES]** Para mayor simplicidad y orden, guarda tus variables en un archivo `.env` y ejecuta:
+
+##### 🔍 Parameter Breakdown / Desglose de Parámetros:
+*   `-d` / `--detach`: Runs the container in background daemon mode. / *Ejecuta en segundo plano.*
+*   `--name marktrack_app`: Sets the readable container identifier. / *Nombra la instancia.*
+*   `--network xplagiax-net`: Joins the microservices virtual bridge network for seamless hostname DNS resolution. / *Conecta el contenedor a la red virtual del ecosistema.*
+*   `--restart unless-stopped`: Standard high-availability process management policy. / *Reinicia el contenedor si falla o si el servidor Debian se reinicia.*
+*   `-p 5002:5002`: Binds physical port `5002` to container port `5002`. / *Mapea el puerto host al del contenedor.*
+
+---
+
+#### 📄 6.2.4 Running with the Environment File / Despliegue Simplificado (.env)
+**[EN]** For professional environments, place your variables inside `.env` in the active path and run:
+**[ES]** Para mayor simplicidad y orden, guarda tus variables en un archivo `.env` en la raíz y ejecuta:
+
 ```bash
-docker run -d --name marktrack_app -p 5002:5002 --env-file .env xplagiax/marktrack:latest
+docker run -d \
+  --name marktrack_app \
+  --network xplagiax-net \
+  --restart unless-stopped \
+  -p 5002:5002 \
+  --env-file .env \
+  xplagiax/marktrack:latest
+```
+
+---
+
+#### 📤 6.2.5 Uploading Secrets to Debian (SCP) / Subida de Secretos a Debian (SCP)
+**[EN]** Since `.env` is ignored by Git for security, copy it from your local macOS machine to your Debian host:
+**[ES]** Dado que `.env` está excluido de Git, súbelo desde tu Mac de desarrollo al servidor de producción:
+
+```bash
+# Upload ONLY .env / Subir ÚNICAMENTE .env
+scp /Users/user/Documents/xplagiax_marktrack/.env usuario@ip_de_tu_servidor:/ruta/de/despliegue/xplagiax_marktrack/
+
+# Upload entire directory / Subir TODO el directorio
+scp -r /Users/user/Documents/xplagiax_marktrack usuario@ip_de_tu_servidor:/ruta/de/despliegue/
+```
+
+---
+
+#### 🗄️ 6.2.6 Manual Database Initialization Query / Query Manual de Inicialización MySQL
+**[EN]** Run this DDL query inside your `mysql-container` to manually initialize the forensic internet paste tracking table `pasted_internet_content` if needed:
+**[ES]** Ejecuta este query DDL dentro de tu contenedor `mysql-container` para inicializar manualmente la tabla de auditoría forense de copiado `pasted_internet_content` si es requerido:
+
+```sql
+CREATE TABLE IF NOT EXISTS `pasted_internet_content` (
+    `id`                  INT           NOT NULL AUTO_INCREMENT,
+    `document_id`         INT           NOT NULL,
+    `user_id`             INT           DEFAULT NULL,
+    `student_id`          INT           DEFAULT NULL,
+    `paste_uuid`          VARCHAR(36)   NOT NULL,
+    `pasted_text`         TEXT          NOT NULL,
+    `source_url`          VARCHAR(2048) DEFAULT NULL,
+    `source_domain`       VARCHAR(255)  DEFAULT NULL,
+    `clipboard_html`      TEXT          DEFAULT NULL,
+    `internet_copy_score` SMALLINT      NOT NULL DEFAULT 0,
+    `char_count`          INT           NOT NULL DEFAULT 0,
+    `is_active`           TINYINT(1)    NOT NULL DEFAULT 1,
+    `is_removed`          TINYINT(1)    NOT NULL DEFAULT 0,
+    `created_at`          DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`          DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_pic_paste_uuid` (`paste_uuid`),
+    KEY `idx_pic_document` (`document_id`),
+    KEY `idx_pic_student`  (`student_id`),
+    KEY `idx_pic_active`   (`is_active`),
+    CONSTRAINT `fk_pic_document` FOREIGN KEY (`document_id`) REFERENCES `marktrack_documents` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_pic_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+    CONSTRAINT `fk_pic_student` FOREIGN KEY (`student_id`) REFERENCES `student_workspace_users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
 ---
