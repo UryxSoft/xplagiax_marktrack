@@ -14,6 +14,11 @@ Tuning formula for eventlet workers:
 
 For a 2-vCPU container: workers=5 → 5 × 1000 green threads = 5 000 concurrent requests.
 """
+# ── Early eventlet monkey patch: MUST be first — before any other import ────────────
+import eventlet
+eventlet.monkey_patch()
+# ──────────────────────────────────────────────────────────────────────────────
+
 import os
 import multiprocessing
 

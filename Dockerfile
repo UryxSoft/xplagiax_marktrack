@@ -85,6 +85,9 @@ RUN mkdir -p /app/uploads && chown appuser:appgroup /app/uploads
 # Switch to non-root
 USER appuser
 
+# Define writable cache home in /tmp to eliminate Fontconfig cache warnings
+ENV XDG_CACHE_HOME=/tmp/.cache
+
 # Expose Gunicorn port
 EXPOSE 5002
 
