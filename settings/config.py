@@ -26,7 +26,7 @@ class Config:
     SESSION_COOKIE_HTTPONLY   = True
     SESSION_COOKIE_SECURE     = False          # override True in ProductionConfig
     PERMANENT_SESSION_LIFETIME = timedelta(days=30)
-    APP_BASE_URL              = _env("APP_BASE_URL", "http://localhost:5000")
+    APP_BASE_URL              = _env("APP_BASE_URL", "http://localhost:5002")
 
     # ── SQLAlchemy core ───────────────────────────────────────────────────────
     SQLALCHEMY_TRACK_MODIFICATIONS = False

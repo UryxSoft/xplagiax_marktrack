@@ -136,6 +136,15 @@ def index():
     return redirect(url_for('auth_bp.login'))
 
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Endpoint de salud para el HEALTHCHECK de Docker / Kubernetes"""
+    return jsonify({
+        'status': 'healthy',
+        'app': 'XplagiaX MarkTrack'
+    }), 200
+
+
 # ── SIDEBAR SHARED COUNTS ─────────────────────────────────────────────────────
 @app.route('/api/home/shared-counts', methods=['GET'])
 @login_required
@@ -267,4 +276,4 @@ if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.config.get('DEBUG'):
 if __name__ == '__main__':
     # socketio.run() reemplaza app.run() para que eventlet maneje WebSockets.
     # El resto del comportamiento (debug, host, port) es idéntico.
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5002)

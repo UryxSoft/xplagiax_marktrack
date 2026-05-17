@@ -49,7 +49,7 @@ class GoogleOAuth:
         )
         self.redirect_uri = os.getenv(
             'GOOGLE_REDIRECT_URI',
-            "http://127.0.0.1:5000/auth_bp/google/callbackx"
+            "http://127.0.0.1:5002/auth_bp/google/callbackx"
         )
 
         # Endpoints de Google

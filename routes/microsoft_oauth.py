@@ -21,7 +21,7 @@ class MicrosoftOAuth:
         self.tenant_id = os.getenv('MICROSOFT_TENANT_ID', 'common')
         self.redirect_uri = os.getenv(
             'MICROSOFT_REDIRECT_URI',
-            "http://localhost:5000/auth_bp/microsoft/callback"
+            "http://localhost:5002/auth_bp/microsoft/callback"
         )
 
         # Endpoints de Microsoft

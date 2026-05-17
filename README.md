@@ -248,7 +248,66 @@ sequenceDiagram
 ### 6.1 Gunicorn + Eventlet Formulas
 **[EN]** Recommended configuration for 1,000+ concurrent users:
 ```bash
-gunicorn -k eventlet -w 9 --threads 2 --bind 0.0.0.0:5000 app:app
+gunicorn -k eventlet -w 9 --threads 2 --bind 0.0.0.0:5002 app:app
+```
+
+### 6.2 Docker Deployment Guide / Guía de Despliegue en Docker
+
+#### 🐳 6.2.1 Building the Docker Image / Construcción de la Imagen
+**[EN]** Build the runtime image from the root workspace directory:
+```bash
+docker build -t xplagiax/marktrack:latest .
+```
+**[ES]** Construye la imagen de producción desde el directorio raíz:
+```bash
+docker build -t xplagiax/marktrack:latest .
+```
+
+---
+
+#### 🏃‍♂️ 6.2.2 Running the Container / Ejecución del Contenedor (docker run)
+**[EN]** Launch the container in production using the `docker run` command:
+```bash
+docker run -d \
+  --name marktrack_app \
+  -p 5002:5002 \
+  -e SECRET_KEY="your-production-secret-key" \
+  -e SECURITY_PASSWORD_SALT="your-production-salt" \
+  -e APP_BASE_URL="https://marktrack.xplagiax.ca" \
+  -e GOOGLE_REDIRECT_URI="https://marktrack.xplagiax.ca/auth_bp/google/callbackx" \
+  -e MICROSOFT_REDIRECT_URI="https://marktrack.xplagiax.ca/auth_bp/microsoft/callback" \
+  xplagiax/marktrack:latest
+```
+
+**[ES]** Lanza el contenedor de producción utilizando el comando `docker run`:
+```bash
+docker run -d \
+  --name marktrack_app \
+  -p 5002:5002 \
+  -e SECRET_KEY="tu-llave-secreta-de-produccion" \
+  -e SECURITY_PASSWORD_SALT="tu-sal-de-produccion" \
+  -e APP_BASE_URL="https://marktrack.xplagiax.ca" \
+  -e GOOGLE_REDIRECT_URI="https://marktrack.xplagiax.ca/auth_bp/google/callbackx" \
+  -e MICROSOFT_REDIRECT_URI="https://marktrack.xplagiax.ca/auth_bp/microsoft/callback" \
+  xplagiax/marktrack:latest
+```
+
+##### 🔍 Parametric Breakdown / Desglose de Parámetros:
+*   `-d` / `--detach`: Runs the container in the background (daemon mode). / *Ejecuta el contenedor en segundo plano.*
+*   `--name`: Assigns a readable identity to the container instance. / *Asigna un identificador legible a la instancia.*
+*   `-p 5002:5002`: Maps internal port `5002` to the host port `5002`. / *Mapea el puerto del servidor host al puerto del contenedor.*
+*   `-e KEY="value"`: Declares environment variables. **Set these to your secure production values.** / *Declara variables de entorno del contenedor.*
+
+---
+
+#### 📄 6.2.3 Running with an Environment File / Despliegue Simplificado con .env
+**[EN]** For automated environments, place your variables inside a `.env` file and execute:
+```bash
+docker run -d --name marktrack_app -p 5002:5002 --env-file .env xplagiax/marktrack:latest
+```
+**[ES]** Para mayor simplicidad y orden, guarda tus variables en un archivo `.env` y ejecuta:
+```bash
+docker run -d --name marktrack_app -p 5002:5002 --env-file .env xplagiax/marktrack:latest
 ```
 
 ---

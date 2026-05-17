@@ -86,12 +86,12 @@ RUN mkdir -p /app/uploads && chown appuser:appgroup /app/uploads
 USER appuser
 
 # Expose Gunicorn port
-EXPOSE 5000
+EXPOSE 5002
 
 # ── Healthcheck ────────────────────────────────────────────────────────────────
 # Checks the /health endpoint every 30 s; 3 consecutive failures → unhealthy
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:5000/health || exit 1
+    CMD curl -f http://localhost:5002/health || exit 1
 
 # ── Entrypoint ─────────────────────────────────────────────────────────────────
 # gunicorn.conf.py contains all tuning (workers, threads, keep-alive, etc.)

@@ -18,7 +18,7 @@ import os
 import multiprocessing
 
 # ── Binding ───────────────────────────────────────────────────────────────────
-bind             = f"0.0.0.0:{os.environ.get('PORT', '5000')}"
+bind             = f"0.0.0.0:{os.environ.get('PORT', '5002')}"
 backlog          = 2048          # max pending connections before OS drops them
 
 # ── Workers ───────────────────────────────────────────────────────────────────

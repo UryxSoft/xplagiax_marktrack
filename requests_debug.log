@@ -6216,3 +6216,14 @@ REQUEST: GET http://127.0.0.1:5000/static/js/docToText.js
 REQUEST: GET http://127.0.0.1:5000/static/js/refresh_btn.js
 REQUEST: GET http://127.0.0.1:5000/static/js/pages/home_previews.js
 REQUEST: GET http://127.0.0.1:5000/static/brain/auth_branding_image_signin_students.png
+REQUEST: GET http://127.0.0.1:5000/
+REQUEST: GET http://127.0.0.1:5000/auth_bp/login?next=/
+REQUEST: GET http://127.0.0.1:5000/static/css/auth-login-inline.css
+REQUEST: GET http://127.0.0.1:5000/static/brain/auth_branding_image_signin.png
+REQUEST: GET http://127.0.0.1:5000/static/brain/auth_branding_image_signin_students.png
+REQUEST: GET http://127.0.0.1:5000/auth_bp/google/login
+REQUEST: GET http://127.0.0.1:5000/auth_bp/google/callbackx?state=lXlKDXX-7j0UKGGZCzbzXlg-joGP0xgZt1d69AQ_BH8&iss=https://accounts.google.com&code=4/0AeoWuM_oz2tFgE876BUCd6Kzt7Fs1A-q73CTlGl_pURRCZ3cxaH9PLSwFjanMmX8S_TkHA&scope=email+profile+https://www.googleapis.com/auth/userinfo.email+openid+https://www.googleapis.com/auth/userinfo.profile&authuser=0&prompt=none
+REQUEST: GET http://127.0.0.1:5000/auth_bp/login
+REQUEST: GET http://127.0.0.1:5000/static/css/auth-login-inline.css
+REQUEST: GET http://127.0.0.1:5000/static/brain/auth_branding_image_signin_students.png
+REQUEST: GET http://127.0.0.1:5000/static/brain/auth_branding_image_signin.png

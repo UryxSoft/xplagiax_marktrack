@@ -506,7 +506,7 @@ def _send_invite_email(to_email: str, to_name: str, inviter_name: str,
     """Envía email HTML de invitación con token de seguridad."""
     try:
         token = generate_collab_token(collab_id)
-        base_url = current_app.config.get('APP_BASE_URL', 'http://localhost:5000')
+        base_url = current_app.config.get('APP_BASE_URL', 'http://localhost:5002')
         accept_url = f"{base_url}/homework?collab_token={token}"
         subject   = f'{inviter_name} te invitó a colaborar — MarkTrack'
         html_body = f"""<!DOCTYPE html>
