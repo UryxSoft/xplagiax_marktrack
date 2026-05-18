@@ -21,6 +21,23 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 # Refreshed for session_metadata support
 
+# ── Defensive Caching Fallback & Cache Busting Context Processor ──────────────
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 2592000  # 30 days fallback cache
+
+@app.context_processor
+def override_url_for():
+    """Automated Cache Busting: Appends file mtime to all static asset links."""
+    def dated_url_for(endpoint, **values):
+        if endpoint == 'static':
+            filename = values.get('filename', None)
+            if filename:
+                file_path = os.path.join(app.static_folder, filename)
+                if os.path.exists(file_path):
+                    values['v'] = int(os.stat(file_path).st_mtime)
+        return url_for(endpoint, **values)
+    return dict(url_for=dated_url_for)
+# ──────────────────────────────────────────────────────────────────────────────
+
 # Cargar configuración
 app.config.from_object(Config['default'])
 
