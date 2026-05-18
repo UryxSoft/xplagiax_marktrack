@@ -5,13 +5,13 @@ import time
 import fnmatch
 from threading import Lock
 
+import os
+
 # Configure standard logger
 logger = logging.getLogger(__name__)
 
 # Cache Service Configuration
-REDIS_HOST = 'localhost'
-REDIS_PORT = 6379
-REDIS_DB = 0
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
 SOCKET_CONNECT_TIMEOUT = 2
 SOCKET_TIMEOUT = 3
 MAX_CONNECTIONS = 20
@@ -25,17 +25,16 @@ _KEY_HISTORY   = 'metrics:cache:history'   # LPUSH list of JSON snapshots
 
 # Global Redis client
 try:
-    pool = redis.ConnectionPool(
-        host=REDIS_HOST,
-        port=REDIS_PORT,
-        db=REDIS_DB,
+    pool = redis.ConnectionPool.from_url(
+        REDIS_URL,
         max_connections=MAX_CONNECTIONS,
         socket_connect_timeout=SOCKET_CONNECT_TIMEOUT,
         socket_timeout=SOCKET_TIMEOUT,
         decode_responses=True
     )
     redis_client = redis.Redis(connection_pool=pool)
-except Exception:
+except Exception as e:
+    logger.error(f"Failed to initialize Redis pool: {e}")
     redis_client = None
 
 

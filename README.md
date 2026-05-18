@@ -322,6 +322,7 @@ docker run -d \
   --network xplagiax-net \
   --restart unless-stopped \
   -p 5002:5002 \
+  -v marktrack_static:/app/static \
   -e FLASK_ENV="production" \
   -e SECRET_KEY="1112821092c444e178ebb4fc5ce9f0245e29ee656b5284db3613cf6941ac447c" \
   -e SECURITY_PASSWORD_SALT="1c3485c42a4e751ea2e4c48db6687f9a6d5e5c7b40f145b215b8bd8c5db806c3" \
@@ -342,7 +343,7 @@ docker run -d \
   -e SEAWEEDFS_FILER_URL="seaweedfs-filer:8888" \
   -e SEAWEEDFS_MASTER_URL="seaweedfs-master:9333" \
   -e SEAWEEDFS_SECURE="false" \
-  xplagiax/marktrack:latest
+  xplagiax_marktrack:latest
 ```
 
 ##### 🔍 Parameter Breakdown / Desglose de Parámetros:
